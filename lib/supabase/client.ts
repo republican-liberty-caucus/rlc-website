@@ -113,6 +113,72 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['rlc_posts']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['rlc_posts']['Insert']>;
       };
+      rlc_contributions: {
+        Row: {
+          id: string;
+          member_id: string | null;
+          contribution_type: 'membership' | 'donation' | 'event_registration' | 'merchandise';
+          amount: number;
+          currency: string;
+          stripe_payment_intent_id: string | null;
+          stripe_subscription_id: string | null;
+          payment_status: string;
+          chapter_id: string | null;
+          campaign_id: string | null;
+          is_recurring: boolean;
+          recurring_interval: string | null;
+          civicrm_contribution_id: number | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_contributions']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_contributions']['Insert']>;
+      };
+      rlc_highlevel_sync_log: {
+        Row: {
+          id: string;
+          entity_type: string;
+          entity_id: string;
+          highlevel_id: string | null;
+          action: string;
+          status: string;
+          error_message: string | null;
+          request_payload: Record<string, unknown> | null;
+          response_payload: Record<string, unknown> | null;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_highlevel_sync_log']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_highlevel_sync_log']['Insert']>;
+      };
+      rlc_event_registrations: {
+        Row: {
+          id: string;
+          event_id: string;
+          member_id: string | null;
+          guest_email: string | null;
+          guest_name: string | null;
+          registration_status: string;
+          checked_in_at: string | null;
+          contribution_id: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_event_registrations']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_event_registrations']['Insert']>;
+      };
+      rlc_member_roles: {
+        Row: {
+          id: string;
+          member_id: string;
+          role: 'member' | 'chapter_admin' | 'state_chair' | 'national_board' | 'super_admin';
+          chapter_id: string | null;
+          granted_by: string | null;
+          granted_at: string;
+          expires_at: string | null;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_member_roles']['Row'], 'id' | 'granted_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_member_roles']['Insert']>;
+      };
     };
   };
 };

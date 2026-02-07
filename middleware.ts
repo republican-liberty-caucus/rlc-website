@@ -11,6 +11,7 @@ const isPublicRoute = createRouteMatcher([
   '/blog(.*)',
   '/sign-in(.*)',
   '/sign-up(.*)',
+  '/unauthorized(.*)',
   '/api/webhooks/(.*)',
   '/api/v1/chapters(.*)',
   '/api/v1/events(.*)',
@@ -20,6 +21,9 @@ const isPublicRoute = createRouteMatcher([
 // Define admin routes that require specific roles
 const isAdminRoute = createRouteMatcher(['/admin(.*)']);
 
+// Admin roles that grant access to /admin routes
+const ADMIN_ROLES = ['super_admin', 'national_board', 'state_chair', 'chapter_admin'];
+
 export default clerkMiddleware(async (auth, req) => {
   // Allow public routes
   if (isPublicRoute(req)) {
@@ -27,18 +31,29 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Protect all other routes - require authentication
-  const { userId } = await auth();
+  const session = await auth();
+  const { userId, sessionClaims } = session;
+
   if (!userId) {
     const signInUrl = new URL('/sign-in', req.url);
     signInUrl.searchParams.set('redirect_url', req.url);
     return Response.redirect(signInUrl);
   }
 
-  // For admin routes, could add additional role checks here
-  // This would require checking the user's roles in the database
+  // For admin routes, check user role
   if (isAdminRoute(req)) {
-    // TODO: Add role-based access control
-    // For now, just require authentication
+    // Check for admin role in Clerk's public metadata
+    // This should be set when granting admin privileges via Clerk Dashboard or API
+    // Only use publicMetadata which is the secure, server-controlled path
+    const publicMetadata = sessionClaims?.publicMetadata as { role?: string } | undefined;
+    const role = publicMetadata?.role;
+
+    if (!role || !ADMIN_ROLES.includes(role)) {
+      // User is not an admin - redirect to unauthorized page
+      const unauthorizedUrl = new URL('/unauthorized', req.url);
+      unauthorizedUrl.searchParams.set('from', req.url);
+      return Response.redirect(unauthorizedUrl);
+    }
   }
 });
 

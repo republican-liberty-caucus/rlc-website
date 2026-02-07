@@ -3,23 +3,43 @@ import { headers } from 'next/headers';
 import { createServerClient } from '@/lib/supabase/server';
 import type { Member } from '@/types';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2023-10-16',
-});
+// Lazy initialization to avoid build-time errors when env vars aren't set
+let stripeClient: Stripe | null = null;
+
+function getStripeClient(): Stripe {
+  if (!stripeClient) {
+    const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
+    if (!stripeSecretKey) {
+      throw new Error('STRIPE_SECRET_KEY environment variable is not set');
+    }
+    stripeClient = new Stripe(stripeSecretKey, {
+      apiVersion: '2023-10-16',
+    });
+  }
+  return stripeClient;
+}
 
 export async function POST(req: Request) {
   const body = await req.text();
   const headersList = await headers();
-  const signature = headersList.get('stripe-signature')!;
+  const signature = headersList.get('stripe-signature');
+
+  if (!signature) {
+    console.error('Stripe webhook: Missing stripe-signature header');
+    return new Response('Missing stripe-signature header', { status: 400 });
+  }
+
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+  if (!webhookSecret) {
+    console.error('Stripe webhook: STRIPE_WEBHOOK_SECRET not configured');
+    return new Response('Webhook secret not configured', { status: 500 });
+  }
 
   let event: Stripe.Event;
 
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      signature,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    );
+    const stripe = getStripeClient();
+    event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     console.error('Stripe webhook signature verification failed:', err);
     return new Response('Webhook signature verification failed', { status: 400 });
@@ -81,11 +101,16 @@ async function handleCheckoutComplete(
   if (!memberEmail) return;
 
   // Find the member by email
-  const { data } = await supabase
+  const { data, error: selectError } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('email', memberEmail)
     .single();
+
+  if (selectError && selectError.code !== 'PGRST116') {
+    console.error('Error finding member:', selectError);
+    throw selectError;
+  }
 
   const member = data as Member | null;
 
@@ -95,13 +120,18 @@ async function handleCheckoutComplete(
   }
 
   // Update member with Stripe customer ID
-  await supabase
+  const { error: updateError } = await supabase
     .from('rlc_members')
     .update({ stripe_customer_id: customerId } as never)
     .eq('id', member.id);
 
+  if (updateError) {
+    console.error(`Failed to update member ${member.id} with Stripe customer ID:`, updateError);
+    throw updateError;
+  }
+
   // Create contribution record
-  await supabase.from('rlc_contributions').insert({
+  const { error: insertError } = await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: session.metadata?.type || 'donation',
     amount: (session.amount_total || 0) / 100,
@@ -110,6 +140,11 @@ async function handleCheckoutComplete(
     payment_status: 'completed',
     is_recurring: session.mode === 'subscription',
   } as never);
+
+  if (insertError) {
+    console.error(`Failed to create contribution for member ${member.id}:`, insertError);
+    throw insertError;
+  }
 
   console.log(`Checkout completed for member ${member.id}`);
 }
@@ -121,11 +156,16 @@ async function handleSubscriptionChange(
   const customerId = subscription.customer as string;
 
   // Find member by Stripe customer ID
-  const { data } = await supabase
+  const { data, error: selectError } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
+
+  if (selectError && selectError.code !== 'PGRST116') {
+    console.error('Error finding member by Stripe customer ID:', selectError);
+    throw selectError;
+  }
 
   const member = data as Member | null;
 
@@ -138,7 +178,7 @@ async function handleSubscriptionChange(
   const membershipStatus = subscription.status === 'active' ? 'active' : 'pending';
   const membershipTier = 'sustaining'; // Subscriptions are sustaining members
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('rlc_members')
     .update({
       membership_status: membershipStatus,
@@ -147,6 +187,11 @@ async function handleSubscriptionChange(
       membership_expiry_date: new Date(subscription.current_period_end * 1000).toISOString(),
     } as never)
     .eq('id', member.id);
+
+  if (updateError) {
+    console.error(`Failed to update subscription for member ${member.id}:`, updateError);
+    throw updateError;
+  }
 
   console.log(`Subscription updated for member ${member.id}: ${subscription.status}`);
 }
@@ -158,21 +203,30 @@ async function handleSubscriptionCancelled(
   const customerId = subscription.customer as string;
 
   // Find member by Stripe customer ID
-  const { data } = await supabase
+  const { data, error: selectError } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
+
+  if (selectError && selectError.code !== 'PGRST116') {
+    console.error('Error finding member by Stripe customer ID:', selectError);
+  }
 
   const member = data as Member | null;
 
   if (!member) return;
 
   // Update membership status to expired
-  await supabase
+  const { error: updateError } = await supabase
     .from('rlc_members')
     .update({ membership_status: 'expired' } as never)
     .eq('id', member.id);
+
+  if (updateError) {
+    console.error(`Failed to cancel subscription for member ${member.id}:`, updateError);
+    throw updateError;
+  }
 
   console.log(`Subscription cancelled for member ${member.id}`);
 }
@@ -184,18 +238,22 @@ async function handleInvoicePaid(
   const customerId = invoice.customer as string;
 
   // Find member by Stripe customer ID
-  const { data } = await supabase
+  const { data, error: selectError } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
+
+  if (selectError && selectError.code !== 'PGRST116') {
+    console.error('Error finding member by Stripe customer ID:', selectError);
+  }
 
   const member = data as Member | null;
 
   if (!member) return;
 
   // Record the contribution
-  await supabase.from('rlc_contributions').insert({
+  const { error: insertError } = await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: 'membership',
     amount: (invoice.amount_paid || 0) / 100,
@@ -204,6 +262,11 @@ async function handleInvoicePaid(
     payment_status: 'completed',
     is_recurring: true,
   } as never);
+
+  if (insertError) {
+    console.error(`Failed to record contribution for member ${member.id}:`, insertError);
+    throw insertError;
+  }
 
   console.log(`Invoice paid for member ${member.id}`);
 }
@@ -215,18 +278,22 @@ async function handleInvoiceFailed(
   const customerId = invoice.customer as string;
 
   // Find member by Stripe customer ID
-  const { data } = await supabase
+  const { data, error: selectError } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
+
+  if (selectError && selectError.code !== 'PGRST116') {
+    console.error('Error finding member by Stripe customer ID:', selectError);
+  }
 
   const member = data as Member | null;
 
   if (!member) return;
 
   // Record the failed contribution
-  await supabase.from('rlc_contributions').insert({
+  const { error: insertError } = await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: 'membership',
     amount: (invoice.amount_due || 0) / 100,
@@ -235,6 +302,11 @@ async function handleInvoiceFailed(
     payment_status: 'failed',
     is_recurring: true,
   } as never);
+
+  if (insertError) {
+    console.error(`Failed to record failed contribution for member ${member.id}:`, insertError);
+    throw insertError;
+  }
 
   console.log(`Invoice failed for member ${member.id}`);
 }

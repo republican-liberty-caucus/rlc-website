@@ -3,8 +3,23 @@ import { NextResponse } from 'next/server';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import type { Database } from '@/lib/supabase/client';
+import { z } from 'zod';
 
 type MemberUpdate = Database['public']['Tables']['rlc_members']['Update'];
+
+// Input validation schema for profile updates
+const profileUpdateSchema = z.object({
+  firstName: z.string().min(1, 'First name is required').max(100).optional(),
+  lastName: z.string().min(1, 'Last name is required').max(100).optional(),
+  phone: z.string().max(20).nullable().optional(),
+  addressLine1: z.string().max(200).nullable().optional(),
+  addressLine2: z.string().max(200).nullable().optional(),
+  city: z.string().max(100).nullable().optional(),
+  state: z.string().max(50).nullable().optional(),
+  postalCode: z.string().max(20).nullable().optional(),
+  emailOptIn: z.boolean().optional(),
+  smsOptIn: z.boolean().optional(),
+});
 
 export async function GET() {
   const { userId } = await auth();
@@ -37,6 +52,16 @@ export async function PATCH(request: Request) {
 
   try {
     const body = await request.json();
+
+    // Validate input
+    const parseResult = profileUpdateSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parseResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+
     const {
       firstName,
       lastName,
@@ -48,7 +73,7 @@ export async function PATCH(request: Request) {
       postalCode,
       emailOptIn,
       smsOptIn,
-    } = body;
+    } = parseResult.data;
 
     const supabase = createServerClient();
 
