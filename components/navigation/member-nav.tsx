@@ -12,7 +12,7 @@ const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/profile', label: 'Profile', icon: User },
   { href: '/contributions', label: 'Contributions', icon: CreditCard },
-  { href: '/events', label: 'My Events', icon: Calendar },
+  { href: '/my-events', label: 'My Events', icon: Calendar },
 ];
 
 export function MemberNav() {
