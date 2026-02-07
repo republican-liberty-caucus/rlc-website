@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
 
 // Define public routes that don't require authentication
 const isPublicRoute = createRouteMatcher([
@@ -30,29 +31,22 @@ export default clerkMiddleware(async (auth, req) => {
     return;
   }
 
-  // Protect all other routes - require authentication
-  const session = await auth();
-  const { userId, sessionClaims } = session;
+  const { userId, sessionClaims } = await auth();
 
+  // Redirect unauthenticated users to sign-in
   if (!userId) {
     const signInUrl = new URL('/sign-in', req.url);
     signInUrl.searchParams.set('redirect_url', req.url);
-    return Response.redirect(signInUrl);
+    return NextResponse.redirect(signInUrl);
   }
 
-  // For admin routes, check user role
+  // For admin routes, check role
   if (isAdminRoute(req)) {
-    // Check for admin role in Clerk's public metadata
-    // This should be set when granting admin privileges via Clerk Dashboard or API
-    // Only use publicMetadata which is the secure, server-controlled path
     const publicMetadata = sessionClaims?.publicMetadata as { role?: string } | undefined;
     const role = publicMetadata?.role;
 
     if (!role || !ADMIN_ROLES.includes(role)) {
-      // User is not an admin - redirect to unauthorized page
-      const unauthorizedUrl = new URL('/unauthorized', req.url);
-      unauthorizedUrl.searchParams.set('from', req.url);
-      return Response.redirect(unauthorizedUrl);
+      return NextResponse.redirect(new URL('/unauthorized', req.url));
     }
   }
 });
