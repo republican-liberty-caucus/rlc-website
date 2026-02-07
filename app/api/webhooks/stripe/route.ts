@@ -95,14 +95,12 @@ async function handleCheckoutComplete(
   }
 
   // Update member with Stripe customer ID
-  // @ts-expect-error - Supabase types not generated for this table
   await supabase
     .from('rlc_members')
-    .update({ stripe_customer_id: customerId })
+    .update({ stripe_customer_id: customerId } as never)
     .eq('id', member.id);
 
   // Create contribution record
-  // @ts-expect-error - Supabase types not generated for this table
   await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: session.metadata?.type || 'donation',
@@ -111,7 +109,7 @@ async function handleCheckoutComplete(
     stripe_payment_intent_id: session.payment_intent as string,
     payment_status: 'completed',
     is_recurring: session.mode === 'subscription',
-  });
+  } as never);
 
   console.log(`Checkout completed for member ${member.id}`);
 }
@@ -140,7 +138,6 @@ async function handleSubscriptionChange(
   const membershipStatus = subscription.status === 'active' ? 'active' : 'pending';
   const membershipTier = 'sustaining'; // Subscriptions are sustaining members
 
-  // @ts-expect-error - Supabase types not generated for this table
   await supabase
     .from('rlc_members')
     .update({
@@ -148,7 +145,7 @@ async function handleSubscriptionChange(
       membership_tier: membershipTier,
       membership_start_date: new Date(subscription.current_period_start * 1000).toISOString(),
       membership_expiry_date: new Date(subscription.current_period_end * 1000).toISOString(),
-    })
+    } as never)
     .eq('id', member.id);
 
   console.log(`Subscription updated for member ${member.id}: ${subscription.status}`);
@@ -172,12 +169,9 @@ async function handleSubscriptionCancelled(
   if (!member) return;
 
   // Update membership status to expired
-  // @ts-expect-error - Supabase types not generated for this table
   await supabase
     .from('rlc_members')
-    .update({
-      membership_status: 'expired',
-    })
+    .update({ membership_status: 'expired' } as never)
     .eq('id', member.id);
 
   console.log(`Subscription cancelled for member ${member.id}`);
@@ -201,7 +195,6 @@ async function handleInvoicePaid(
   if (!member) return;
 
   // Record the contribution
-  // @ts-expect-error - Supabase types not generated for this table
   await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: 'membership',
@@ -210,7 +203,7 @@ async function handleInvoicePaid(
     stripe_payment_intent_id: invoice.payment_intent as string,
     payment_status: 'completed',
     is_recurring: true,
-  });
+  } as never);
 
   console.log(`Invoice paid for member ${member.id}`);
 }
@@ -233,7 +226,6 @@ async function handleInvoiceFailed(
   if (!member) return;
 
   // Record the failed contribution
-  // @ts-expect-error - Supabase types not generated for this table
   await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: 'membership',
@@ -242,7 +234,7 @@ async function handleInvoiceFailed(
     stripe_payment_intent_id: invoice.payment_intent as string,
     payment_status: 'failed',
     is_recurring: true,
-  });
+  } as never);
 
   console.log(`Invoice failed for member ${member.id}`);
 }

@@ -53,10 +53,9 @@ export async function upsertMemberFromClerk(clerkUser: {
     phone: primaryPhone || null,
   };
 
-  // @ts-expect-error - Supabase types not generated for this table
   const { data, error } = await supabase
     .from('rlc_members')
-    .upsert(upsertPayload, {
+    .upsert(upsertPayload as never, {
       onConflict: 'clerk_user_id',
     })
     .select()

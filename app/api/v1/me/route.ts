@@ -2,6 +2,9 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
+import type { Database } from '@/lib/supabase/client';
+
+type MemberUpdate = Database['public']['Tables']['rlc_members']['Update'];
 
 export async function GET() {
   const { userId } = await auth();
@@ -49,7 +52,7 @@ export async function PATCH(request: Request) {
 
     const supabase = createServerClient();
 
-    const updatePayload = {
+    const updatePayload: MemberUpdate = {
       first_name: firstName,
       last_name: lastName,
       phone: phone || null,
@@ -62,10 +65,9 @@ export async function PATCH(request: Request) {
       sms_opt_in: smsOptIn,
     };
 
-    // @ts-expect-error - Supabase types inference issue with chained methods
     const { data, error } = await supabase
       .from('rlc_members')
-      .update(updatePayload)
+      .update(updatePayload as never)
       .eq('id', member.id)
       .select()
       .single();

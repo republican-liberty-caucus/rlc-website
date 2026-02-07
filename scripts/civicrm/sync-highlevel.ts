@@ -232,7 +232,7 @@ async function main() {
     console.log(`\nProcessing batch ${Math.floor(i / batchSize) + 1}...`);
 
     for (const member of batch) {
-      const result = await syncMember(member as Member, dryRun);
+      const result = await syncMember(member as unknown as Member, dryRun);
       if (result.success) {
         success++;
       } else {

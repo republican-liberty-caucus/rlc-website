@@ -27,7 +27,12 @@ export default clerkMiddleware(async (auth, req) => {
   }
 
   // Protect all other routes - require authentication
-  await auth.protect();
+  const { userId } = await auth();
+  if (!userId) {
+    const signInUrl = new URL('/sign-in', req.url);
+    signInUrl.searchParams.set('redirect_url', req.url);
+    return Response.redirect(signInUrl);
+  }
 
   // For admin routes, could add additional role checks here
   // This would require checking the user's roles in the database

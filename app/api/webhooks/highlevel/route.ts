@@ -81,10 +81,9 @@ async function handleContactUpdate(
       ...(contact.phone && { phone: contact.phone }),
     };
 
-    // @ts-expect-error - Supabase types not generated for this table
     await supabase
       .from('rlc_members')
-      .update(updatePayload)
+      .update(updatePayload as never)
       .eq('id', supabaseMemberId);
 
     console.log(`Updated member ${supabaseMemberId} from HighLevel`);
@@ -100,12 +99,9 @@ async function handleContactUpdate(
 
     if (member) {
       // Link existing member to HighLevel contact
-      // @ts-expect-error - Supabase types not generated for this table
       await supabase
         .from('rlc_members')
-        .update({
-          highlevel_contact_id: contact.id,
-        })
+        .update({ highlevel_contact_id: contact.id } as never)
         .eq('id', member.id);
 
       console.log(`Linked member ${member.id} to HighLevel contact ${contact.id}`);
@@ -113,7 +109,6 @@ async function handleContactUpdate(
   }
 
   // Log the sync
-  // @ts-expect-error - Supabase types not generated for this table
   await supabase.from('rlc_highlevel_sync_log').insert({
     entity_type: 'contact',
     entity_id: supabaseMemberId || contact.email,
@@ -121,7 +116,7 @@ async function handleContactUpdate(
     action: 'inbound_update',
     status: 'completed',
     request_payload: contact,
-  });
+  } as never);
 }
 
 async function handleOpportunityCreated(
@@ -144,7 +139,6 @@ async function handleOpportunityCreated(
 
   // Create contribution if the opportunity has a monetary value
   if (opportunity.monetaryValue > 0) {
-    // @ts-expect-error - Supabase types not generated for this table
     await supabase.from('rlc_contributions').insert({
       member_id: member.id,
       contribution_type: 'donation',
@@ -154,7 +148,7 @@ async function handleOpportunityCreated(
         highlevel_opportunity_id: opportunity.id,
         source: 'highlevel',
       },
-    });
+    } as never);
 
     console.log(`Created contribution from HighLevel opportunity ${opportunity.id}`);
   }
