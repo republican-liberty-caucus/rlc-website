@@ -45,20 +45,20 @@ export async function upsertMemberFromClerk(clerkUser: {
   const primaryEmail = clerkUser.email_addresses[0]?.email_address;
   const primaryPhone = clerkUser.phone_numbers?.[0]?.phone_number;
 
+  const upsertPayload = {
+    clerk_user_id: clerkUser.id,
+    email: primaryEmail,
+    first_name: clerkUser.first_name || 'Unknown',
+    last_name: clerkUser.last_name || 'User',
+    phone: primaryPhone || null,
+  };
+
+  // @ts-expect-error - Supabase types not generated for this table
   const { data, error } = await supabase
     .from('rlc_members')
-    .upsert(
-      {
-        clerk_user_id: clerkUser.id,
-        email: primaryEmail,
-        first_name: clerkUser.first_name || 'Unknown',
-        last_name: clerkUser.last_name || 'User',
-        phone: primaryPhone || null,
-      },
-      {
-        onConflict: 'clerk_user_id',
-      }
-    )
+    .upsert(upsertPayload, {
+      onConflict: 'clerk_user_id',
+    })
     .select()
     .single();
 

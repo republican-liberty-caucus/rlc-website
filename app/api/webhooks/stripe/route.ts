@@ -1,6 +1,7 @@
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
 import { createServerClient } from '@/lib/supabase/server';
+import type { Member } from '@/types';
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2023-10-16',
@@ -80,11 +81,13 @@ async function handleCheckoutComplete(
   if (!memberEmail) return;
 
   // Find the member by email
-  const { data: member } = await supabase
+  const { data } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('email', memberEmail)
     .single();
+
+  const member = data as Member | null;
 
   if (!member) {
     console.error('Member not found for checkout session:', memberEmail);
@@ -92,12 +95,14 @@ async function handleCheckoutComplete(
   }
 
   // Update member with Stripe customer ID
+  // @ts-expect-error - Supabase types not generated for this table
   await supabase
     .from('rlc_members')
     .update({ stripe_customer_id: customerId })
     .eq('id', member.id);
 
   // Create contribution record
+  // @ts-expect-error - Supabase types not generated for this table
   await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: session.metadata?.type || 'donation',
@@ -118,11 +123,13 @@ async function handleSubscriptionChange(
   const customerId = subscription.customer as string;
 
   // Find member by Stripe customer ID
-  const { data: member } = await supabase
+  const { data } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
+
+  const member = data as Member | null;
 
   if (!member) {
     console.error('Member not found for subscription:', customerId);
@@ -133,6 +140,7 @@ async function handleSubscriptionChange(
   const membershipStatus = subscription.status === 'active' ? 'active' : 'pending';
   const membershipTier = 'sustaining'; // Subscriptions are sustaining members
 
+  // @ts-expect-error - Supabase types not generated for this table
   await supabase
     .from('rlc_members')
     .update({
@@ -153,15 +161,18 @@ async function handleSubscriptionCancelled(
   const customerId = subscription.customer as string;
 
   // Find member by Stripe customer ID
-  const { data: member } = await supabase
+  const { data } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
 
+  const member = data as Member | null;
+
   if (!member) return;
 
   // Update membership status to expired
+  // @ts-expect-error - Supabase types not generated for this table
   await supabase
     .from('rlc_members')
     .update({
@@ -179,15 +190,18 @@ async function handleInvoicePaid(
   const customerId = invoice.customer as string;
 
   // Find member by Stripe customer ID
-  const { data: member } = await supabase
+  const { data } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
 
+  const member = data as Member | null;
+
   if (!member) return;
 
   // Record the contribution
+  // @ts-expect-error - Supabase types not generated for this table
   await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: 'membership',
@@ -208,15 +222,18 @@ async function handleInvoiceFailed(
   const customerId = invoice.customer as string;
 
   // Find member by Stripe customer ID
-  const { data: member } = await supabase
+  const { data } = await supabase
     .from('rlc_members')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
 
+  const member = data as Member | null;
+
   if (!member) return;
 
   // Record the failed contribution
+  // @ts-expect-error - Supabase types not generated for this table
   await supabase.from('rlc_contributions').insert({
     member_id: member.id,
     contribution_type: 'membership',

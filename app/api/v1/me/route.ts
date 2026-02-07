@@ -49,20 +49,23 @@ export async function PATCH(request: Request) {
 
     const supabase = createServerClient();
 
-    const { data: updatedMember, error } = await supabase
+    const updatePayload = {
+      first_name: firstName,
+      last_name: lastName,
+      phone: phone || null,
+      address_line1: addressLine1 || null,
+      address_line2: addressLine2 || null,
+      city: city || null,
+      state: state || null,
+      postal_code: postalCode || null,
+      email_opt_in: emailOptIn,
+      sms_opt_in: smsOptIn,
+    };
+
+    // @ts-expect-error - Supabase types not generated for this table
+    const { data, error } = await supabase
       .from('rlc_members')
-      .update({
-        first_name: firstName,
-        last_name: lastName,
-        phone: phone || null,
-        address_line1: addressLine1 || null,
-        address_line2: addressLine2 || null,
-        city: city || null,
-        state: state || null,
-        postal_code: postalCode || null,
-        email_opt_in: emailOptIn,
-        sms_opt_in: smsOptIn,
-      })
+      .update(updatePayload)
       .eq('id', member.id)
       .select()
       .single();
@@ -70,6 +73,8 @@ export async function PATCH(request: Request) {
     if (error) {
       throw error;
     }
+
+    const updatedMember = data as typeof member;
 
     // Sync updated info to HighLevel
     try {

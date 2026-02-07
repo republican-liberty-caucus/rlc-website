@@ -21,6 +21,10 @@ interface HighLevelWebhookPayload {
   };
 }
 
+interface MemberIdRow {
+  id: string;
+}
+
 export async function POST(req: Request) {
   // Verify webhook signature (if configured)
   const headersList = await headers();
@@ -70,28 +74,33 @@ async function handleContactUpdate(
 
   if (supabaseMemberId) {
     // Update existing member
+    const updatePayload = {
+      highlevel_contact_id: contact.id,
+      ...(contact.firstName && { first_name: contact.firstName }),
+      ...(contact.lastName && { last_name: contact.lastName }),
+      ...(contact.phone && { phone: contact.phone }),
+    };
+
+    // @ts-expect-error - Supabase types not generated for this table
     await supabase
       .from('rlc_members')
-      .update({
-        highlevel_contact_id: contact.id,
-        // Only update fields if they have values
-        ...(contact.firstName && { first_name: contact.firstName }),
-        ...(contact.lastName && { last_name: contact.lastName }),
-        ...(contact.phone && { phone: contact.phone }),
-      })
+      .update(updatePayload)
       .eq('id', supabaseMemberId);
 
     console.log(`Updated member ${supabaseMemberId} from HighLevel`);
   } else {
     // Try to find by email
-    const { data: member } = await supabase
+    const { data } = await supabase
       .from('rlc_members')
       .select('id')
       .eq('email', contact.email)
       .single();
 
+    const member = data as MemberIdRow | null;
+
     if (member) {
       // Link existing member to HighLevel contact
+      // @ts-expect-error - Supabase types not generated for this table
       await supabase
         .from('rlc_members')
         .update({
@@ -104,6 +113,7 @@ async function handleContactUpdate(
   }
 
   // Log the sync
+  // @ts-expect-error - Supabase types not generated for this table
   await supabase.from('rlc_highlevel_sync_log').insert({
     entity_type: 'contact',
     entity_id: supabaseMemberId || contact.email,
@@ -119,11 +129,13 @@ async function handleOpportunityCreated(
   opportunity: NonNullable<HighLevelWebhookPayload['opportunity']>
 ) {
   // Find member by HighLevel contact ID
-  const { data: member } = await supabase
+  const { data } = await supabase
     .from('rlc_members')
     .select('id')
     .eq('highlevel_contact_id', opportunity.contactId)
     .single();
+
+  const member = data as MemberIdRow | null;
 
   if (!member) {
     console.log(`No member found for HighLevel contact ${opportunity.contactId}`);
@@ -132,6 +144,7 @@ async function handleOpportunityCreated(
 
   // Create contribution if the opportunity has a monetary value
   if (opportunity.monetaryValue > 0) {
+    // @ts-expect-error - Supabase types not generated for this table
     await supabase.from('rlc_contributions').insert({
       member_id: member.id,
       contribution_type: 'donation',
