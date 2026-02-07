@@ -4,16 +4,26 @@ import { createServerClient } from '@/lib/supabase/server';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar, MapPin, Users, Video } from 'lucide-react';
+import { Event } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Events - Admin',
   description: 'Manage RLC events',
 };
 
-async function getEvents() {
+interface EventRow extends Event {
+  chapter?: { id: string; name: string } | null;
+  organizer?: { first_name: string; last_name: string } | null;
+}
+
+interface EventWithCount extends EventRow {
+  registrationCount: number;
+}
+
+async function getEvents(): Promise<EventWithCount[]> {
   const supabase = createServerClient();
 
-  const { data: events } = await supabase
+  const { data } = await supabase
     .from('rlc_events')
     .select(`
       *,
@@ -22,9 +32,11 @@ async function getEvents() {
     `)
     .order('start_date', { ascending: false });
 
+  const events = (data || []) as EventRow[];
+
   // Get registration counts
   const eventsWithCounts = await Promise.all(
-    (events || []).map(async (event) => {
+    events.map(async (event) => {
       const { count } = await supabase
         .from('rlc_event_registrations')
         .select('*', { count: 'exact', head: true })

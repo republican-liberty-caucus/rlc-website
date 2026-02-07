@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './client';
+import type { Member } from '@/types';
 
 // Server-side Supabase client (uses service role key for admin operations)
 export function createServerClient() {
@@ -15,7 +16,7 @@ export function createServerClient() {
 }
 
 // Helper to get a member by Clerk user ID
-export async function getMemberByClerkId(clerkUserId: string) {
+export async function getMemberByClerkId(clerkUserId: string): Promise<Member | null> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('rlc_members')
@@ -28,7 +29,7 @@ export async function getMemberByClerkId(clerkUserId: string) {
     return null;
   }
 
-  return data;
+  return data as Member;
 }
 
 // Helper to create or update a member from Clerk webhook
@@ -38,7 +39,7 @@ export async function upsertMemberFromClerk(clerkUser: {
   first_name: string | null;
   last_name: string | null;
   phone_numbers?: Array<{ phone_number: string }>;
-}) {
+}): Promise<Member> {
   const supabase = createServerClient();
 
   const primaryEmail = clerkUser.email_addresses[0]?.email_address;
@@ -66,5 +67,5 @@ export async function upsertMemberFromClerk(clerkUser: {
     throw error;
   }
 
-  return data;
+  return data as Member;
 }

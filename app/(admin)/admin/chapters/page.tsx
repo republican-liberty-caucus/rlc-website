@@ -3,26 +3,30 @@ import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
 import { Button } from '@/components/ui/button';
 import { Plus, ExternalLink } from 'lucide-react';
+import { Chapter } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Chapters - Admin',
   description: 'Manage RLC chapters',
 };
 
-async function getChapters() {
+interface ChapterWithCount extends Chapter {
+  memberCount: number;
+}
+
+async function getChapters(): Promise<ChapterWithCount[]> {
   const supabase = createServerClient();
 
-  const { data: chapters } = await supabase
+  const { data } = await supabase
     .from('rlc_chapters')
-    .select(`
-      *,
-      member_count:rlc_members(count)
-    `)
+    .select('*')
     .order('name');
+
+  const chapters = (data || []) as Chapter[];
 
   // Get member counts per chapter
   const chaptersWithCounts = await Promise.all(
-    (chapters || []).map(async (chapter) => {
+    chapters.map(async (chapter) => {
       const { count } = await supabase
         .from('rlc_members')
         .select('*', { count: 'exact', head: true })

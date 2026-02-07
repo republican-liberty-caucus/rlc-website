@@ -4,61 +4,62 @@ export type MembershipStatus = 'pending' | 'active' | 'expired' | 'cancelled' | 
 export type ContributionType = 'membership' | 'donation' | 'event_registration' | 'merchandise';
 export type UserRole = 'member' | 'chapter_admin' | 'state_chair' | 'national_board' | 'super_admin';
 
+// Database row types (snake_case to match Supabase)
 export interface Member {
   id: string;
-  clerkUserId: string | null;
+  clerk_user_id: string | null;
   email: string;
-  firstName: string;
-  lastName: string;
+  first_name: string;
+  last_name: string;
   phone: string | null;
-  addressLine1: string | null;
-  addressLine2: string | null;
+  address_line1: string | null;
+  address_line2: string | null;
   city: string | null;
   state: string | null;
-  postalCode: string | null;
+  postal_code: string | null;
   country: string;
-  membershipTier: MembershipTier;
-  membershipStatus: MembershipStatus;
-  membershipStartDate: Date | null;
-  membershipExpiryDate: Date | null;
-  primaryChapterId: string | null;
-  highlevelContactId: string | null;
-  stripeCustomerId: string | null;
-  emailOptIn: boolean;
-  smsOptIn: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  membership_tier: MembershipTier;
+  membership_status: MembershipStatus;
+  membership_start_date: string | null;
+  membership_expiry_date: string | null;
+  primary_chapter_id: string | null;
+  highlevel_contact_id: string | null;
+  stripe_customer_id: string | null;
+  email_opt_in: boolean;
+  sms_opt_in: boolean;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Chapter {
   id: string;
   name: string;
   slug: string;
-  stateCode: string | null;
+  state_code: string | null;
   region: string | null;
   status: string;
-  websiteUrl: string | null;
-  contactEmail: string | null;
+  website_url: string | null;
+  contact_email: string | null;
   leadership: Record<string, unknown>;
   metadata: Record<string, unknown>;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface Contribution {
   id: string;
-  memberId: string | null;
-  contributionType: ContributionType;
+  member_id: string | null;
+  contribution_type: ContributionType;
   amount: number;
   currency: string;
-  stripePaymentIntentId: string | null;
-  stripeSubscriptionId: string | null;
-  paymentStatus: string;
-  chapterId: string | null;
-  campaignId: string | null;
-  isRecurring: boolean;
-  recurringInterval: string | null;
-  createdAt: Date;
+  stripe_payment_intent_id: string | null;
+  stripe_subscription_id: string | null;
+  payment_status: string;
+  chapter_id: string | null;
+  campaign_id: string | null;
+  is_recurring: boolean;
+  recurring_interval: string | null;
+  created_at: string;
 }
 
 export interface Event {
@@ -66,38 +67,38 @@ export interface Event {
   title: string;
   slug: string;
   description: string | null;
-  eventType: string | null;
-  startDate: Date;
-  endDate: Date | null;
+  event_type: string | null;
+  start_date: string;
+  end_date: string | null;
   timezone: string;
-  isVirtual: boolean;
-  locationName: string | null;
+  is_virtual: boolean;
+  location_name: string | null;
   address: string | null;
   city: string | null;
   state: string | null;
-  postalCode: string | null;
-  virtualUrl: string | null;
-  registrationRequired: boolean;
-  maxAttendees: number | null;
-  registrationFee: number | null;
-  registrationDeadline: Date | null;
-  chapterId: string | null;
-  organizerId: string | null;
+  postal_code: string | null;
+  virtual_url: string | null;
+  registration_required: boolean;
+  max_attendees: number | null;
+  registration_fee: number | null;
+  registration_deadline: string | null;
+  chapter_id: string | null;
+  organizer_id: string | null;
   status: string;
-  createdAt: Date;
-  updatedAt: Date;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface EventRegistration {
   id: string;
-  eventId: string;
-  memberId: string | null;
-  guestEmail: string | null;
-  guestName: string | null;
-  registrationStatus: string;
-  checkedInAt: Date | null;
-  contributionId: string | null;
-  createdAt: Date;
+  event_id: string;
+  member_id: string | null;
+  guest_email: string | null;
+  guest_name: string | null;
+  registration_status: string;
+  checked_in_at: string | null;
+  contribution_id: string | null;
+  created_at: string;
 }
 
 export interface Post {
@@ -106,17 +107,17 @@ export interface Post {
   slug: string;
   content: string | null;
   excerpt: string | null;
-  featuredImageUrl: string | null;
-  authorId: string | null;
-  chapterId: string | null;
+  featured_image_url: string | null;
+  author_id: string | null;
+  chapter_id: string | null;
   status: string;
-  publishedAt: Date | null;
+  published_at: string | null;
   categories: string[];
   tags: string[];
-  seoTitle: string | null;
-  seoDescription: string | null;
-  createdAt: Date;
-  updatedAt: Date;
+  seo_title: string | null;
+  seo_description: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 // API Response types

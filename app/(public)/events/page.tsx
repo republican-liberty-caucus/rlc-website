@@ -11,10 +11,22 @@ export const metadata: Metadata = {
   description: 'Upcoming Republican Liberty Caucus events, meetings, and conventions.',
 };
 
-async function getEvents() {
+interface EventWithChapter {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  start_date: string;
+  is_virtual: boolean;
+  city: string | null;
+  state: string | null;
+  chapter: { name: string; slug: string } | null;
+}
+
+async function getEvents(): Promise<EventWithChapter[]> {
   try {
     const supabase = createServerClient();
-    const { data: events } = await supabase
+    const { data } = await supabase
       .from('rlc_events')
       .select(`
         *,
@@ -25,7 +37,7 @@ async function getEvents() {
       .order('start_date', { ascending: true })
       .limit(20);
 
-    return events || [];
+    return (data || []) as EventWithChapter[];
   } catch {
     return [];
   }
@@ -69,7 +81,7 @@ export default async function EventsPage() {
                         )}
                         {event.chapter && (
                           <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
-                            {(event.chapter as { name: string }).name}
+                            {event.chapter.name}
                           </span>
                         )}
                       </div>

@@ -40,16 +40,17 @@ async function getDashboardStats() {
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const { data: monthlyContributions } = await supabase
+  const { data } = await supabase
     .from('rlc_contributions')
     .select('amount')
     .eq('payment_status', 'completed')
     .gte('created_at', startOfMonth.toISOString());
 
-  const monthlyTotal = monthlyContributions?.reduce(
+  const monthlyContributions = (data || []) as { amount: number }[];
+  const monthlyTotal = monthlyContributions.reduce(
     (sum, c) => sum + Number(c.amount),
     0
-  ) || 0;
+  );
 
   // Get new members this month
   const { count: newMembersThisMonth } = await supabase
@@ -67,18 +68,36 @@ async function getDashboardStats() {
   };
 }
 
+interface RecentMember {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  created_at: string;
+  membership_tier: string;
+}
+
+interface RecentContribution {
+  id: string;
+  amount: number;
+  contribution_type: string;
+  payment_status: string;
+  created_at: string;
+  member: { first_name: string; last_name: string } | null;
+}
+
 async function getRecentActivity() {
   const supabase = createServerClient();
 
   // Recent members
-  const { data: recentMembers } = await supabase
+  const { data: memberData } = await supabase
     .from('rlc_members')
     .select('id, first_name, last_name, email, created_at, membership_tier')
     .order('created_at', { ascending: false })
     .limit(5);
 
   // Recent contributions
-  const { data: recentContributions } = await supabase
+  const { data: contributionData } = await supabase
     .from('rlc_contributions')
     .select(`
       id, amount, contribution_type, payment_status, created_at,
@@ -89,8 +108,8 @@ async function getRecentActivity() {
     .limit(5);
 
   return {
-    recentMembers: recentMembers || [],
-    recentContributions: recentContributions || [],
+    recentMembers: (memberData || []) as RecentMember[],
+    recentContributions: (contributionData || []) as RecentContribution[],
   };
 }
 
@@ -216,7 +235,7 @@ export default async function AdminDashboardPage() {
                     <div>
                       <p className="font-medium">
                         {contribution.member
-                          ? `${(contribution.member as { first_name: string; last_name: string }).first_name} ${(contribution.member as { first_name: string; last_name: string }).last_name}`
+                          ? `${contribution.member.first_name} ${contribution.member.last_name}`
                           : 'Anonymous'}
                       </p>
                       <p className="text-sm capitalize text-muted-foreground">

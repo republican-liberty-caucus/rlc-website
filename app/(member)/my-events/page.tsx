@@ -13,10 +13,27 @@ export const metadata: Metadata = {
   description: 'View your RLC event registrations',
 };
 
-async function getEventRegistrations(memberId: string) {
+interface EventData {
+  id: string;
+  title: string;
+  slug: string;
+  start_date: string;
+  is_virtual: boolean;
+  city: string | null;
+  state: string | null;
+}
+
+interface RegistrationWithEvent {
+  id: string;
+  registration_status: string;
+  checked_in_at: string | null;
+  event: EventData | null;
+}
+
+async function getEventRegistrations(memberId: string): Promise<RegistrationWithEvent[]> {
   try {
     const supabase = createServerClient();
-    const { data: registrations } = await supabase
+    const { data } = await supabase
       .from('rlc_event_registrations')
       .select(`
         *,
@@ -25,7 +42,7 @@ async function getEventRegistrations(memberId: string) {
       .eq('member_id', memberId)
       .order('created_at', { ascending: false });
 
-    return registrations || [];
+    return (data || []) as RegistrationWithEvent[];
   } catch {
     return [];
   }

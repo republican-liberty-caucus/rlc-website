@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Search, Download, Filter } from 'lucide-react';
+import { MembershipTier, MembershipStatus } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Members - Admin',
@@ -15,6 +16,21 @@ interface SearchParams {
   search?: string;
   status?: string;
   tier?: string;
+}
+
+interface MemberRow {
+  id: string;
+  email: string;
+  first_name: string;
+  last_name: string;
+  phone: string | null;
+  city: string | null;
+  state: string | null;
+  membership_tier: MembershipTier;
+  membership_status: MembershipStatus;
+  membership_expiry_date: string | null;
+  created_at: string;
+  primary_chapter: { name: string } | null;
 }
 
 async function getMembers(searchParams: SearchParams) {
@@ -46,10 +62,11 @@ async function getMembers(searchParams: SearchParams) {
     query = query.eq('membership_tier', searchParams.tier);
   }
 
-  const { data: members, count } = await query;
+  const { data, count } = await query;
+  const members = (data || []) as MemberRow[];
 
   return {
-    members: members || [],
+    members,
     total: count || 0,
     page,
     totalPages: Math.ceil((count || 0) / limit),
@@ -156,9 +173,7 @@ export default async function AdminMembersPage({
                   </td>
                   <td className="px-4 py-3 text-sm">{member.email}</td>
                   <td className="px-4 py-3 text-sm">
-                    {member.primary_chapter
-                      ? (member.primary_chapter as { name: string }).name
-                      : '-'}
+                    {member.primary_chapter?.name || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm capitalize">{member.membership_tier}</td>
                   <td className="px-4 py-3">

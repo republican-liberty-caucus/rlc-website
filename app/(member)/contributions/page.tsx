@@ -12,16 +12,26 @@ export const metadata: Metadata = {
   description: 'View your RLC contribution history',
 };
 
-async function getContributions(memberId: string) {
+interface ContributionRow {
+  id: string;
+  contribution_type: string;
+  amount: number;
+  currency: string;
+  payment_status: string;
+  is_recurring: boolean;
+  created_at: string;
+}
+
+async function getContributions(memberId: string): Promise<ContributionRow[]> {
   try {
     const supabase = createServerClient();
-    const { data: contributions } = await supabase
+    const { data } = await supabase
       .from('rlc_contributions')
       .select('*')
       .eq('member_id', memberId)
       .order('created_at', { ascending: false });
 
-    return contributions || [];
+    return (data || []) as ContributionRow[];
   } catch {
     return [];
   }

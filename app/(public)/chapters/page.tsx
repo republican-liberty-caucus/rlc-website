@@ -10,30 +10,36 @@ export const metadata: Metadata = {
   description: 'Find your local Republican Liberty Caucus chapter and connect with liberty-minded Republicans in your state.',
 };
 
+interface ChapterRow {
+  slug: string;
+  name: string;
+  state_code: string | null;
+}
+
 // This would be fetched from the database in production
-const placeholderChapters = [
-  { slug: 'alabama', name: 'Alabama RLC', stateCode: 'AL' },
-  { slug: 'arizona', name: 'Arizona RLC', stateCode: 'AZ' },
-  { slug: 'california', name: 'California RLC', stateCode: 'CA' },
-  { slug: 'florida', name: 'Florida RLC', stateCode: 'FL' },
-  { slug: 'georgia', name: 'Georgia RLC', stateCode: 'GA' },
-  { slug: 'iowa', name: 'Iowa RLC', stateCode: 'IA' },
-  { slug: 'michigan', name: 'Michigan RLC', stateCode: 'MI' },
-  { slug: 'new-hampshire', name: 'New Hampshire RLC', stateCode: 'NH' },
-  { slug: 'ohio', name: 'Ohio RLC', stateCode: 'OH' },
-  { slug: 'texas', name: 'Texas RLC', stateCode: 'TX' },
+const placeholderChapters: ChapterRow[] = [
+  { slug: 'alabama', name: 'Alabama RLC', state_code: 'AL' },
+  { slug: 'arizona', name: 'Arizona RLC', state_code: 'AZ' },
+  { slug: 'california', name: 'California RLC', state_code: 'CA' },
+  { slug: 'florida', name: 'Florida RLC', state_code: 'FL' },
+  { slug: 'georgia', name: 'Georgia RLC', state_code: 'GA' },
+  { slug: 'iowa', name: 'Iowa RLC', state_code: 'IA' },
+  { slug: 'michigan', name: 'Michigan RLC', state_code: 'MI' },
+  { slug: 'new-hampshire', name: 'New Hampshire RLC', state_code: 'NH' },
+  { slug: 'ohio', name: 'Ohio RLC', state_code: 'OH' },
+  { slug: 'texas', name: 'Texas RLC', state_code: 'TX' },
 ];
 
-async function getChapters() {
+async function getChapters(): Promise<ChapterRow[]> {
   try {
     const supabase = createServerClient();
-    const { data: chapters } = await supabase
+    const { data } = await supabase
       .from('rlc_chapters')
       .select('*')
       .eq('status', 'active')
       .order('name');
 
-    return chapters || placeholderChapters;
+    return (data || placeholderChapters) as ChapterRow[];
   } catch {
     // Return placeholder data if database is not set up yet
     return placeholderChapters;
@@ -77,7 +83,7 @@ export default async function ChaptersPage() {
               >
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rlc-red/10 text-sm font-bold text-rlc-red">
-                    {chapter.stateCode || chapter.slug.substring(0, 2).toUpperCase()}
+                    {chapter.state_code || chapter.slug.substring(0, 2).toUpperCase()}
                   </div>
                   <div>
                     <h3 className="font-semibold group-hover:text-rlc-red">
