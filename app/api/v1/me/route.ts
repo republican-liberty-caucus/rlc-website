@@ -62,7 +62,6 @@ export async function PATCH(request: Request) {
       sms_opt_in: smsOptIn,
     };
 
-    // @ts-expect-error - Supabase types not generated for this table
     const { data, error } = await supabase
       .from('rlc_members')
       .update(updatePayload)
