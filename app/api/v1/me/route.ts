@@ -62,6 +62,7 @@ export async function PATCH(request: Request) {
       sms_opt_in: smsOptIn,
     };
 
+    // @ts-expect-error - Supabase types inference issue with chained methods
     const { data, error } = await supabase
       .from('rlc_members')
       .update(updatePayload)
