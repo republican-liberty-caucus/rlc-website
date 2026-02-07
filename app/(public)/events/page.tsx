@@ -1,0 +1,130 @@
+import { Metadata } from 'next';
+import Link from 'next/link';
+import { MainNav } from '@/components/navigation/main-nav';
+import { Footer } from '@/components/layout/footer';
+import { Button } from '@/components/ui/button';
+import { formatDate } from '@/lib/utils';
+import { createServerClient } from '@/lib/supabase/server';
+
+export const metadata: Metadata = {
+  title: 'Events',
+  description: 'Upcoming Republican Liberty Caucus events, meetings, and conventions.',
+};
+
+async function getEvents() {
+  try {
+    const supabase = createServerClient();
+    const { data: events } = await supabase
+      .from('rlc_events')
+      .select(`
+        *,
+        chapter:rlc_chapters(name, slug)
+      `)
+      .eq('status', 'published')
+      .gte('start_date', new Date().toISOString())
+      .order('start_date', { ascending: true })
+      .limit(20);
+
+    return events || [];
+  } catch {
+    return [];
+  }
+}
+
+export default async function EventsPage() {
+  const events = await getEvents();
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <MainNav />
+
+      {/* Hero Section */}
+      <section className="bg-rlc-blue py-16 text-white">
+        <div className="container mx-auto px-4">
+          <h1 className="text-4xl font-bold">Upcoming Events</h1>
+          <p className="mt-4 text-xl text-white/90">
+            Join us at our next meeting, convention, or event
+          </p>
+        </div>
+      </section>
+
+      {/* Events List */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          {events.length > 0 ? (
+            <div className="grid gap-6">
+              {events.map((event) => (
+                <Link
+                  key={event.id}
+                  href={`/events/${event.slug}`}
+                  className="group rounded-lg border bg-card p-6 transition-colors hover:border-rlc-red"
+                >
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <div className="mb-2 flex items-center gap-2">
+                        {event.is_virtual && (
+                          <span className="rounded-full bg-rlc-blue/10 px-2 py-1 text-xs font-medium text-rlc-blue">
+                            Virtual
+                          </span>
+                        )}
+                        {event.chapter && (
+                          <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
+                            {(event.chapter as { name: string }).name}
+                          </span>
+                        )}
+                      </div>
+                      <h2 className="text-xl font-semibold group-hover:text-rlc-red">
+                        {event.title}
+                      </h2>
+                      {event.description && (
+                        <p className="mt-2 line-clamp-2 text-muted-foreground">
+                          {event.description}
+                        </p>
+                      )}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className="text-lg font-semibold text-rlc-red">
+                        {formatDate(event.start_date)}
+                      </div>
+                      {!event.is_virtual && event.city && event.state && (
+                        <div className="mt-1 text-sm text-muted-foreground">
+                          {event.city}, {event.state}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-muted/50 p-12 text-center">
+              <h2 className="mb-4 text-2xl font-semibold">No Upcoming Events</h2>
+              <p className="mb-6 text-muted-foreground">
+                Check back soon for upcoming RLC events and meetings.
+              </p>
+              <Button asChild variant="outline">
+                <Link href="/chapters">Find Your Local Chapter</Link>
+              </Button>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Host an Event CTA */}
+      <section className="bg-muted py-16">
+        <div className="container mx-auto px-4 text-center">
+          <h2 className="mb-4 text-2xl font-bold">Want to Host an Event?</h2>
+          <p className="mb-6 text-muted-foreground">
+            If you&apos;re a chapter leader or member interested in organizing an RLC event, contact
+            your state chapter or the national office.
+          </p>
+          <Button asChild className="bg-rlc-red hover:bg-rlc-red/90">
+            <Link href="/contact">Contact Us</Link>
+          </Button>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}

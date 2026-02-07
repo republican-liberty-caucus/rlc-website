@@ -1,0 +1,70 @@
+import { createClient } from '@supabase/supabase-js';
+import type { Database } from './client';
+
+// Server-side Supabase client (uses service role key for admin operations)
+export function createServerClient() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+
+  return createClient<Database>(supabaseUrl, supabaseServiceKey, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+}
+
+// Helper to get a member by Clerk user ID
+export async function getMemberByClerkId(clerkUserId: string) {
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from('rlc_members')
+    .select('*')
+    .eq('clerk_user_id', clerkUserId)
+    .single();
+
+  if (error) {
+    console.error('Error fetching member:', error);
+    return null;
+  }
+
+  return data;
+}
+
+// Helper to create or update a member from Clerk webhook
+export async function upsertMemberFromClerk(clerkUser: {
+  id: string;
+  email_addresses: Array<{ email_address: string }>;
+  first_name: string | null;
+  last_name: string | null;
+  phone_numbers?: Array<{ phone_number: string }>;
+}) {
+  const supabase = createServerClient();
+
+  const primaryEmail = clerkUser.email_addresses[0]?.email_address;
+  const primaryPhone = clerkUser.phone_numbers?.[0]?.phone_number;
+
+  const { data, error } = await supabase
+    .from('rlc_members')
+    .upsert(
+      {
+        clerk_user_id: clerkUser.id,
+        email: primaryEmail,
+        first_name: clerkUser.first_name || 'Unknown',
+        last_name: clerkUser.last_name || 'User',
+        phone: primaryPhone || null,
+      },
+      {
+        onConflict: 'clerk_user_id',
+      }
+    )
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Error upserting member:', error);
+    throw error;
+  }
+
+  return data;
+}
