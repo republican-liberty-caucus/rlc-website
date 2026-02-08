@@ -36,7 +36,9 @@
     "prepare": "husky install",
     "migrate:civicrm": "tsx scripts/migrate-civicrm.ts",
     "migrate:civicrm:dry-run": "tsx scripts/migrate-civicrm.ts --dry-run",
-    "sync:highlevel": "tsx scripts/sync-highlevel.ts"
+    "sync:highlevel": "tsx scripts/sync-highlevel.ts",
+    "migrate:wordpress": "tsx scripts/wordpress/migrate-wordpress.ts",
+    "migrate:wordpress:dry-run": "tsx scripts/wordpress/migrate-wordpress.ts --dry-run"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.38",
@@ -82,6 +84,7 @@
     "zustand": "^4.5.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.1",
     "@playwright/test": "^1.57.0",
     "@testing-library/jest-dom": "^6.4.0",
     "@testing-library/react": "^14.2.0",

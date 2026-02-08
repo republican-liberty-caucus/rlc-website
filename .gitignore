@@ -42,6 +42,9 @@ next-env.d.ts
 # CiviCRM migration data (PII — never commit)
 scripts/civicrm/data/
 
+# WordPress migration data (raw content — never commit)
+scripts/wordpress/data/*.json
+
 # Misc
 .eslintcache
 *.pem
