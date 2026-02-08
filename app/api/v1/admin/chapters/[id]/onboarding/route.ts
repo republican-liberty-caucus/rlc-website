@@ -4,6 +4,11 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { STEP_ORDER } from '@/lib/onboarding/constants';
 import { logger } from '@/lib/logger';
+import { z } from 'zod';
+
+const createOnboardingSchema = z.object({
+  coordinatorId: z.string().uuid().optional(),
+});
 
 export async function GET(
   _request: Request,
@@ -91,14 +96,19 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to check existing onboarding' }, { status: 500 });
   }
 
-  let body: { coordinatorId?: string };
+  let rawBody: unknown;
   try {
-    body = await request.json();
+    rawBody = await request.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const coordinatorId = body.coordinatorId || ctx.member.id;
+  const parseResult = createOnboardingSchema.safeParse(rawBody);
+  if (!parseResult.success) {
+    return NextResponse.json({ error: 'Invalid input', details: parseResult.error.flatten() }, { status: 400 });
+  }
+
+  const coordinatorId = parseResult.data.coordinatorId || ctx.member.id;
 
   // Create onboarding record
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

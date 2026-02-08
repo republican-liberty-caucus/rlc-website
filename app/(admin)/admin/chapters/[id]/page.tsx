@@ -7,6 +7,7 @@ import { formatDate } from '@/lib/utils';
 import { ChapterDetailForm } from '@/components/admin/chapter-detail-form';
 import { ChapterOfficersCard } from '@/components/admin/chapter-officers-card';
 import { ArrowLeft } from 'lucide-react';
+import { logger } from '@/lib/logger';
 import type { Chapter, OfficerTitle } from '@/types';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
@@ -89,6 +90,11 @@ export default async function AdminChapterDetailPage({
       .order('is_active', { ascending: false })
       .order('started_at', { ascending: false }),
   ]);
+
+  if (subChaptersRes.error) logger.error('Error fetching sub-chapters:', subChaptersRes.error);
+  if (membersRes.error) logger.error('Error fetching chapter members:', membersRes.error);
+  if (memberCountRes.error) logger.error('Error fetching member count:', memberCountRes.error);
+  if (officersRes.error) logger.error('Error fetching officers:', officersRes.error);
 
   const subChapters = (subChaptersRes.data || []) as { id: string; name: string; status: string; state_code: string | null }[];
   const members = (membersRes.data || []) as { id: string; first_name: string; last_name: string; email: string; membership_status: string }[];

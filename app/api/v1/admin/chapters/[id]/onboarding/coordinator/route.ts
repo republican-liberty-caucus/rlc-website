@@ -62,7 +62,7 @@ export async function POST(
     .single();
 
   if (error || !data) {
-    if (error && error.code === 'PGRST116') {
+    if (!error || error.code === 'PGRST116') {
       return NextResponse.json({ error: 'No onboarding found for this chapter' }, { status: 404 });
     }
     logger.error('Error updating coordinator:', error);

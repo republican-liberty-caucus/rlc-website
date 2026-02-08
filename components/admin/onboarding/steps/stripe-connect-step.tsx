@@ -133,8 +133,9 @@ export function StripeConnectStep({
         requiresReview={false}
         isNational={isNational}
         saving={saving}
+        canComplete={Boolean(stripeAccountId && onboardingComplete)}
         onSaveDraft={() => onSaveDraft({ stripe_account_id: stripeAccountId, onboarding_complete: onboardingComplete })}
-        onComplete={() => onComplete({ stripe_account_id: stripeAccountId, onboarding_complete: true })}
+        onComplete={() => onComplete({ stripe_account_id: stripeAccountId, onboarding_complete: onboardingComplete })}
       />
     </div>
   );

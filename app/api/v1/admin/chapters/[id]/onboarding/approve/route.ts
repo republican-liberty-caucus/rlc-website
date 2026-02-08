@@ -71,6 +71,22 @@ export async function POST(
     return NextResponse.json({ error: 'Failed to approve onboarding' }, { status: 500 });
   }
 
+  // Verify chapter is still in forming status before activation
+  const { data: chapterRow, error: chapterFetchError } = await supabase
+    .from('rlc_chapters')
+    .select('status')
+    .eq('id', chapterId)
+    .single();
+
+  if (chapterFetchError || !chapterRow) {
+    logger.error('Error fetching chapter for approval:', chapterFetchError);
+    return NextResponse.json({ error: 'Failed to verify chapter status' }, { status: 500 });
+  }
+
+  if ((chapterRow as { status: string }).status !== 'forming') {
+    return NextResponse.json({ error: 'Chapter is no longer in forming status' }, { status: 409 });
+  }
+
   // Transition chapter from forming → active
   const { error: chapterError } = await supabase
     .from('rlc_chapters')

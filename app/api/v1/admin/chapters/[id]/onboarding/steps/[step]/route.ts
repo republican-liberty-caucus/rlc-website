@@ -78,6 +78,10 @@ export async function PATCH(
 
   const { id: chapterId, step: stepName } = await params;
 
+  if (ctx.visibleChapterIds !== null && !ctx.visibleChapterIds.includes(chapterId)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   let body: { action: string; data?: Record<string, unknown>; reviewNotes?: string };
   try {
     body = await request.json();
@@ -205,6 +209,10 @@ export async function PATCH(
         }
         if (officerErrors.length > 0) {
           logger.error('Some officer positions failed to create:', { chapterId, errors: officerErrors });
+          return NextResponse.json(
+            { error: `Failed to create officer positions: ${officerErrors.join('; ')}` },
+            { status: 500 }
+          );
         }
       }
     }

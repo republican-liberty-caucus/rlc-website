@@ -9,6 +9,7 @@ interface StepActionsProps {
   requiresReview: boolean;
   isNational: boolean;
   saving: boolean;
+  canComplete?: boolean;
   onSaveDraft: () => void;
   onComplete: () => void;
   onApprove?: () => void;
@@ -20,13 +21,15 @@ export function StepActions({
   requiresReview,
   isNational,
   saving,
+  canComplete: canCompleteProp,
   onSaveDraft,
   onComplete,
   onApprove,
   onReject,
 }: StepActionsProps) {
   const isEditable = isStepEditable(status);
-  const canComplete = status === 'not_started' || status === 'in_progress';
+  const statusAllowsComplete = status === 'not_started' || status === 'in_progress';
+  const canComplete = statusAllowsComplete && (canCompleteProp ?? true);
   const canReview = isNational && status === 'completed' && requiresReview;
   const isDone = status === 'approved' || (status === 'completed' && !requiresReview);
 

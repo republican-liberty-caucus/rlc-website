@@ -10,7 +10,10 @@ import type { Chapter, ChapterOnboarding, ChapterOnboardingStep } from '@/types'
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const supabase = createServerClient();
-  const { data } = await supabase.from('rlc_chapters').select('name').eq('id', id).single();
+  const { data, error } = await supabase.from('rlc_chapters').select('name').eq('id', id).single();
+  if (error && error.code !== 'PGRST116') {
+    console.error('generateMetadata: Error fetching chapter name:', error);
+  }
   const chapter = data as { name: string } | null;
   return { title: chapter ? `Onboarding — ${chapter.name}` : 'Onboarding' };
 }

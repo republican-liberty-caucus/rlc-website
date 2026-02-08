@@ -10,6 +10,7 @@ import { MemberPositionsCard } from '@/components/admin/member-positions-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Shield, CreditCard as CreditCardIcon, Users, Calendar } from 'lucide-react';
+import { logger } from '@/lib/logger';
 import type { Member, Chapter, Contribution, OfficerTitle } from '@/types';
 import type { AdminRole } from '@/lib/admin/permissions';
 
@@ -100,6 +101,11 @@ export default async function AdminMemberDetailPage({
       .order('is_active', { ascending: false })
       .order('started_at', { ascending: false }),
   ]);
+
+  if (chaptersRes.error) logger.error('Error fetching chapters:', chaptersRes.error);
+  if (contributionsRes.error) logger.error('Error fetching contributions:', contributionsRes.error);
+  if (rolesRes.error) logger.error('Error fetching member roles:', rolesRes.error);
+  if (positionsRes.error) logger.error('Error fetching member positions:', positionsRes.error);
 
   const chapters = (chaptersRes.data || []) as Pick<Chapter, 'id' | 'name'>[];
   const contributions = (contributionsRes.data || []) as Contribution[];
