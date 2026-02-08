@@ -6,6 +6,8 @@
  * Version Header: 2021-07-28
  */
 
+import { logger } from '@/lib/logger';
+
 const HIGHLEVEL_BASE_URL = 'https://services.leadconnectorhq.com';
 const HIGHLEVEL_API_VERSION = '2021-07-28';
 
@@ -93,7 +95,7 @@ async function fetchHighLevel<T>(
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('HighLevel API error:', errorText);
+      logger.error('HighLevel API error:', errorText);
       return {
         success: false,
         error: `API error: ${response.status} - ${errorText}`,
@@ -103,7 +105,7 @@ async function fetchHighLevel<T>(
     const data = await response.json();
     return { success: true, data };
   } catch (error) {
-    console.error('HighLevel fetch error:', error);
+    logger.error('HighLevel fetch error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Unknown error',
