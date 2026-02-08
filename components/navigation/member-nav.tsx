@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { UserButton } from '@clerk/nextjs';
-import { LayoutDashboard, User, CreditCard, Calendar, Menu, X } from 'lucide-react';
+import { LayoutDashboard, User, CreditCard, Calendar, Menu, X, Shield } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import { useState } from 'react';
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/profile', label: 'Profile', icon: User },
+  { href: '/membership', label: 'Membership', icon: Shield },
   { href: '/contributions', label: 'Contributions', icon: CreditCard },
   { href: '/my-events', label: 'My Events', icon: Calendar },
 ];

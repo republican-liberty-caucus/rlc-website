@@ -1,0 +1,67 @@
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { createCheckoutSession, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
+import { getMemberByClerkId } from '@/lib/supabase/server';
+import type { MembershipTier } from '@/types';
+
+const validTiers = MEMBERSHIP_TIERS.map((t) => t.tier) as [string, ...string[]];
+
+const checkoutSchema = z.object({
+  tier: z.enum(validTiers as [MembershipTier, ...MembershipTier[]]),
+  email: z.string().email().optional(),
+});
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const parseResult = checkoutSchema.safeParse(body);
+
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid request', details: parseResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { tier } = parseResult.data;
+    const origin = new URL(request.url).origin;
+
+    // Check if user is authenticated
+    const { userId } = await auth();
+    let memberEmail = parseResult.data.email;
+    let memberId: string | undefined;
+
+    // If authenticated, use their member record
+    if (userId) {
+      const member = await getMemberByClerkId(userId);
+      if (member) {
+        memberEmail = member.email;
+        memberId = member.id;
+      }
+    }
+
+    if (!memberEmail) {
+      return NextResponse.json(
+        { error: 'Email is required for unauthenticated checkout' },
+        { status: 400 }
+      );
+    }
+
+    const session = await createCheckoutSession({
+      tier: tier as MembershipTier,
+      memberEmail,
+      memberId,
+      successUrl: `${origin}/join/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancelUrl: `${origin}/join?cancelled=true`,
+    });
+
+    return NextResponse.json({ url: session.url });
+  } catch (error) {
+    console.error('Checkout session creation failed:', error);
+    return NextResponse.json(
+      { error: 'Failed to create checkout session' },
+      { status: 500 }
+    );
+  }
+}

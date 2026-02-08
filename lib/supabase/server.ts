@@ -4,8 +4,11 @@ import type { Member } from '@/types';
 
 // Server-side Supabase client (uses service role key for admin operations)
 export function createServerClient() {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseServiceKey) {
+    throw new Error('Missing Supabase environment variables (NEXT_PUBLIC_SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY)');
+  }
 
   return createClient<Database>(supabaseUrl, supabaseServiceKey, {
     auth: {
@@ -25,8 +28,12 @@ export async function getMemberByClerkId(clerkUserId: string): Promise<Member | 
     .single();
 
   if (error) {
-    console.error('Error fetching member:', error);
-    return null;
+    // PGRST116 = "Searched for exactly one row but found 0" — genuinely not found
+    if (error.code === 'PGRST116') {
+      return null;
+    }
+    console.error(`Database error fetching member for clerk_user_id="${clerkUserId}":`, error);
+    throw new Error(`Failed to fetch member: ${error.message}`);
   }
 
   return data as Member;
@@ -67,4 +74,22 @@ export async function upsertMemberFromClerk(clerkUser: {
   }
 
   return data as Member;
+}
+
+// Helper to get total completed contributions for a member
+export async function getMemberContributionTotal(memberId: string): Promise<number> {
+  const supabase = createServerClient();
+  const { data, error } = await supabase
+    .from('rlc_contributions')
+    .select('amount')
+    .eq('member_id', memberId)
+    .eq('payment_status', 'completed');
+
+  if (error) {
+    console.error('Error fetching contribution total:', error);
+    return 0;
+  }
+
+  const rows = data as Array<{ amount: number }> | null;
+  return (rows || []).reduce((sum, row) => sum + (row.amount || 0), 0);
 }

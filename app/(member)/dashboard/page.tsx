@@ -3,8 +3,10 @@ import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { getMemberByClerkId } from '@/lib/supabase/server';
+import { getMemberByClerkId, getMemberContributionTotal } from '@/lib/supabase/server';
+import { getTierConfig } from '@/lib/stripe/client';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import type { MembershipTier } from '@/types';
 import { User, CreditCard, Calendar, ArrowRight } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -38,6 +40,10 @@ export default async function DashboardPage() {
     );
   }
 
+  const contributionTotal = await getMemberContributionTotal(member.id);
+  const tierConfig = getTierConfig(member.membership_tier as MembershipTier);
+  const tierDisplayName = tierConfig?.name || member.membership_tier;
+
   const membershipStatusColors: Record<string, string> = {
     new_member: 'bg-blue-100 text-blue-800',
     current: 'bg-green-100 text-green-800',
@@ -68,16 +74,14 @@ export default async function DashboardPage() {
             <h2 className="text-lg font-semibold">Membership Status</h2>
             <div className="mt-2 flex items-center gap-3">
               <span
-                className={`rounded-full px-3 py-1 text-sm font-medium capitalize ${
+                className={`rounded-full px-3 py-1 text-sm font-medium ${
                   membershipStatusColors[member.membership_status] || 'bg-gray-100'
                 }`}
               >
-                {member.membership_status}
+                {member.membership_status === 'new_member' ? 'New' : member.membership_status.charAt(0).toUpperCase() + member.membership_status.slice(1)}
               </span>
               <span className="text-sm text-muted-foreground">
-                {member.membership_tier.charAt(0).toUpperCase() +
-                  member.membership_tier.slice(1)}{' '}
-                Member
+                {tierDisplayName} Member
               </span>
             </div>
             {member.membership_expiry_date && (
@@ -106,9 +110,11 @@ export default async function DashboardPage() {
             <div>
               <p className="text-sm text-muted-foreground">Member Since</p>
               <p className="font-semibold">
-                {member.membership_start_date
-                  ? formatDate(member.membership_start_date)
-                  : formatDate(member.created_at)}
+                {member.membership_join_date
+                  ? formatDate(member.membership_join_date)
+                  : member.membership_start_date
+                    ? formatDate(member.membership_start_date)
+                    : formatDate(member.created_at)}
               </p>
             </div>
           </div>
@@ -121,7 +127,7 @@ export default async function DashboardPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Total Contributions</p>
-              <p className="font-semibold">{formatCurrency(0)}</p>
+              <p className="font-semibold">{formatCurrency(contributionTotal)}</p>
             </div>
           </div>
         </div>
@@ -141,6 +147,19 @@ export default async function DashboardPage() {
 
       {/* Quick Links */}
       <div className="grid gap-4 md:grid-cols-2">
+        <Link
+          href="/membership"
+          className="group flex items-center justify-between rounded-lg border bg-card p-6 transition-colors hover:border-rlc-red"
+        >
+          <div>
+            <h3 className="font-semibold group-hover:text-rlc-red">Manage Membership</h3>
+            <p className="text-sm text-muted-foreground">
+              View your tier, renewal date, and upgrade options
+            </p>
+          </div>
+          <ArrowRight className="h-5 w-5 text-muted-foreground group-hover:text-rlc-red" />
+        </Link>
+
         <Link
           href="/profile"
           className="group flex items-center justify-between rounded-lg border bg-card p-6 transition-colors hover:border-rlc-red"
@@ -168,7 +187,7 @@ export default async function DashboardPage() {
         </Link>
 
         <Link
-          href="/events"
+          href="/my-events"
           className="group flex items-center justify-between rounded-lg border bg-card p-6 transition-colors hover:border-rlc-red"
         >
           <div>
