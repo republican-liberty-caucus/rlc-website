@@ -6,6 +6,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext, applyMemberFilters } from '@/lib/admin/permissions';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Download } from 'lucide-react';
 import { MemberFilters } from '@/components/admin/member-filters';
 import type { MembershipTier, MembershipStatus } from '@/types';
@@ -106,35 +108,21 @@ export default async function AdminMembersPage({
     ctx.visibleChapterIds
   );
 
-  const statusColors: Record<string, string> = {
-    new_member: 'bg-blue-100 text-blue-800',
-    current: 'bg-green-100 text-green-800',
-    grace: 'bg-yellow-100 text-yellow-800',
-    expired: 'bg-red-100 text-red-800',
-    pending: 'bg-yellow-100 text-yellow-800',
-    cancelled: 'bg-gray-100 text-gray-800',
-    deceased: 'bg-gray-100 text-gray-800',
-    expiring: 'bg-orange-100 text-orange-800',
-  };
-
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Members</h1>
-          <p className="mt-2 text-muted-foreground">
-            {total.toLocaleString()} total members
-          </p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Members"
+        count={total}
+        className="mb-8"
+        action={
           <a href={buildExportUrl(params)}>
             <Button variant="outline">
               <Download className="mr-2 h-4 w-4" />
               Export
             </Button>
           </a>
-        </div>
-      </div>
+        }
+      />
 
       {/* Filters */}
       <MemberFilters />
@@ -173,13 +161,7 @@ export default async function AdminMembersPage({
                   </td>
                   <td className="px-4 py-3 text-sm capitalize">{member.membership_tier}</td>
                   <td className="px-4 py-3">
-                    <span
-                      className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${
-                        statusColors[member.membership_status] || 'bg-gray-100'
-                      }`}
-                    >
-                      {member.membership_status}
-                    </span>
+                    <StatusBadge status={member.membership_status} type="membership" />
                   </td>
                   <td className="px-4 py-3 text-sm">{formatDate(member.created_at)}</td>
                   <td className="px-4 py-3">

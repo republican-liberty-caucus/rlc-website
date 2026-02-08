@@ -4,6 +4,11 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { formatCurrency } from '@/lib/utils';
+import { StatCard } from '@/components/ui/stat-card';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { Users, UserPlus, CreditCard, RefreshCw } from 'lucide-react';
 import { ReportFilters } from '@/components/admin/report-filters';
 
 export const metadata: Metadata = {
@@ -163,158 +168,166 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Reports</h1>
-        <p className="mt-2 text-muted-foreground">
-          {startDate.toLocaleDateString()} &mdash; {endDate.toLocaleDateString()}
-          {ctx.isNational ? ' (National)' : ` (${ctx.visibleChapterIds?.length || 0} chapters)`}
-        </p>
-      </div>
+      <PageHeader
+        title="Reports"
+        description={`${startDate.toLocaleDateString()} \u2014 ${endDate.toLocaleDateString()}${ctx.isNational ? ' (National)' : ` (${ctx.visibleChapterIds?.length || 0} chapters)`}`}
+        className="mb-8"
+      />
 
       <ReportFilters />
 
       {/* Summary KPIs */}
-      <div className="mb-8 grid gap-4 md:grid-cols-4">
-        <div className="rounded-lg border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Total Members</p>
-          <p className="text-2xl font-bold">{totalMembers.toLocaleString()}</p>
-        </div>
-        <div className="rounded-lg border bg-card p-6">
-          <p className="text-sm text-muted-foreground">New Members</p>
-          <p className="text-2xl font-bold">{(newMembersResult.count || 0).toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">in date range</p>
-        </div>
-        <div className="rounded-lg border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Total Contributions</p>
-          <p className="text-2xl font-bold">{formatCurrency(totalContributions)}</p>
-          <p className="text-xs text-muted-foreground">{contributions.length} payments</p>
-        </div>
-        <div className="rounded-lg border bg-card p-6">
-          <p className="text-sm text-muted-foreground">Retention Rate</p>
-          <p className="text-2xl font-bold">{retentionRate}%</p>
-          <p className="text-xs text-muted-foreground">
-            {retainedCount} active / {lapsedCount} lapsed
-          </p>
-        </div>
+      <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <StatCard
+          label="Total Members"
+          value={totalMembers.toLocaleString()}
+          icon={<Users className="h-5 w-5 text-rlc-red" />}
+        />
+        <StatCard
+          label="New Members"
+          value={(newMembersResult.count || 0).toLocaleString()}
+          icon={<UserPlus className="h-5 w-5 text-rlc-blue" />}
+          description="in date range"
+        />
+        <StatCard
+          label="Total Contributions"
+          value={formatCurrency(totalContributions)}
+          icon={<CreditCard className="h-5 w-5 text-green-600" />}
+          description={`${contributions.length} payments`}
+        />
+        <StatCard
+          label="Retention Rate"
+          value={`${retentionRate}%`}
+          icon={<RefreshCw className="h-5 w-5 text-purple-600" />}
+          description={`${retainedCount} active / ${lapsedCount} lapsed`}
+        />
       </div>
 
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Members by Tier */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold">Members by Tier</h2>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2 text-left text-sm font-medium">Tier</th>
-                <th className="py-2 text-right text-sm font-medium">Count</th>
-                <th className="py-2 text-right text-sm font-medium">%</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold">Members by Tier</h2>
+            <div className="space-y-3">
               {Object.entries(TIER_LABELS).map(([key, label]) => {
                 const count = membersByTier[key] || 0;
+                const pct = totalMembers > 0 ? (count / totalMembers) * 100 : 0;
                 return (
-                  <tr key={key} className="border-b last:border-0">
-                    <td className="py-2 text-sm">{label}</td>
-                    <td className="py-2 text-right text-sm font-medium">{count}</td>
-                    <td className="py-2 text-right text-sm text-muted-foreground">
-                      {totalMembers > 0 ? Math.round((count / totalMembers) * 100) : 0}%
-                    </td>
-                  </tr>
+                  <div key={key}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span>{label}</span>
+                      <span className="font-medium">{count} <span className="text-muted-foreground">({Math.round(pct)}%)</span></span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div
+                        className="h-2 rounded-full bg-rlc-red transition-all"
+                        style={{ width: `${Math.max(pct, count > 0 ? 2 : 0)}%` }}
+                      />
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Members by Status */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold">Members by Status</h2>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2 text-left text-sm font-medium">Status</th>
-                <th className="py-2 text-right text-sm font-medium">Count</th>
-                <th className="py-2 text-right text-sm font-medium">%</th>
-              </tr>
-            </thead>
-            <tbody>
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold">Members by Status</h2>
+            <div className="space-y-3">
               {Object.entries(membersByStatus)
                 .sort(([, a], [, b]) => b - a)
-                .map(([status, count]) => (
-                  <tr key={status} className="border-b last:border-0">
-                    <td className="py-2 text-sm capitalize">{status.replace(/_/g, ' ')}</td>
-                    <td className="py-2 text-right text-sm font-medium">{count}</td>
-                    <td className="py-2 text-right text-sm text-muted-foreground">
-                      {totalMembers > 0 ? Math.round((count / totalMembers) * 100) : 0}%
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
+                .map(([status, count]) => {
+                  const pct = totalMembers > 0 ? (count / totalMembers) * 100 : 0;
+                  return (
+                    <div key={status}>
+                      <div className="mb-1 flex items-center justify-between text-sm">
+                        <StatusBadge status={status} type="membership" />
+                        <span className="font-medium">{count} <span className="text-muted-foreground">({Math.round(pct)}%)</span></span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted">
+                        <div
+                          className="h-2 rounded-full bg-rlc-blue transition-all"
+                          style={{ width: `${Math.max(pct, count > 0 ? 2 : 0)}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Contributions by Type */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold">Contributions by Type</h2>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2 text-left text-sm font-medium">Type</th>
-                <th className="py-2 text-right text-sm font-medium">Count</th>
-                <th className="py-2 text-right text-sm font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.entries(contribByType)
-                .sort(([, a], [, b]) => b.total - a.total)
-                .map(([type, data]) => (
-                  <tr key={type} className="border-b last:border-0">
-                    <td className="py-2 text-sm capitalize">{type.replace(/_/g, ' ')}</td>
-                    <td className="py-2 text-right text-sm">{data.count}</td>
-                    <td className="py-2 text-right text-sm font-medium">{formatCurrency(data.total)}</td>
-                  </tr>
-                ))}
-              {Object.keys(contribByType).length === 0 && (
-                <tr>
-                  <td colSpan={3} className="py-4 text-center text-sm text-muted-foreground">
-                    No contributions in this period
-                  </td>
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold">Contributions by Type</h2>
+            <table className="w-full">
+              <thead>
+                <tr className="border-b">
+                  <th className="py-2 text-left text-sm font-medium">Type</th>
+                  <th className="py-2 text-right text-sm font-medium">Count</th>
+                  <th className="py-2 text-right text-sm font-medium">Total</th>
                 </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {Object.entries(contribByType)
+                  .sort(([, a], [, b]) => b.total - a.total)
+                  .map(([type, data]) => (
+                    <tr key={type} className="border-b last:border-0">
+                      <td className="py-2 text-sm capitalize">{type.replace(/_/g, ' ')}</td>
+                      <td className="py-2 text-right text-sm">{data.count}</td>
+                      <td className="py-2 text-right text-sm font-medium">{formatCurrency(data.total)}</td>
+                    </tr>
+                  ))}
+                {Object.keys(contribByType).length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="py-4 text-center text-sm text-muted-foreground">
+                      No contributions in this period
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </CardContent>
+        </Card>
 
         {/* Members by Chapter */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold">Members by Chapter</h2>
-          <table className="w-full">
-            <thead>
-              <tr className="border-b">
-                <th className="py-2 text-left text-sm font-medium">Chapter</th>
-                <th className="py-2 text-right text-sm font-medium">Members</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.values(membersByChapter)
-                .sort((a, b) => b.count - a.count)
-                .map((ch) => (
-                  <tr key={ch.name} className="border-b last:border-0">
-                    <td className="py-2 text-sm">{ch.name}</td>
-                    <td className="py-2 text-right text-sm font-medium">{ch.count}</td>
-                  </tr>
-                ))}
-              {Object.keys(membersByChapter).length === 0 && (
-                <tr>
-                  <td colSpan={2} className="py-4 text-center text-sm text-muted-foreground">
-                    No chapter data available
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-4 font-heading text-lg font-semibold">Members by Chapter</h2>
+            {(() => {
+              const sortedChapters = Object.values(membersByChapter).sort((a, b) => b.count - a.count);
+              const topCount = sortedChapters[0]?.count || 1;
+              return sortedChapters.length > 0 ? (
+                <div className="space-y-3">
+                  {sortedChapters.map((ch) => {
+                    const pct = (ch.count / topCount) * 100;
+                    return (
+                      <div key={ch.name}>
+                        <div className="mb-1 flex items-center justify-between text-sm">
+                          <span>{ch.name}</span>
+                          <span className="font-medium">{ch.count}</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-muted">
+                          <div
+                            className="h-2 rounded-full bg-rlc-red/70 transition-all"
+                            style={{ width: `${Math.max(pct, ch.count > 0 ? 2 : 0)}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="py-4 text-center text-sm text-muted-foreground">
+                  No chapter data available
+                </p>
+              );
+            })()}
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

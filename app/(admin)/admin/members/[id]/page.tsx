@@ -6,7 +6,9 @@ import { getAdminContext, canManageRoles, canViewMember } from '@/lib/admin/perm
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { MemberDetailForm } from '@/components/admin/member-detail-form';
 import { MemberRolesCard } from '@/components/admin/member-roles-card';
-import { ArrowLeft } from 'lucide-react';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Card, CardContent } from '@/components/ui/card';
+import { ArrowLeft, Shield, CreditCard as CreditCardIcon, Users, Calendar } from 'lucide-react';
 import type { Member, Chapter, Contribution } from '@/types';
 import type { AdminRole } from '@/lib/admin/permissions';
 
@@ -128,78 +130,97 @@ export default async function AdminMemberDetailPage({
         {/* Right Column: Info Cards (1/3 width) */}
         <div className="space-y-6">
           {/* Membership Info Card */}
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="mb-4 font-semibold">Membership Info</h2>
-            <dl className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-muted-foreground">Member Since</dt>
-                <dd>{member.membership_join_date ? formatDate(member.membership_join_date) : formatDate(member.created_at)}</dd>
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-4 flex items-center gap-2">
+                <Shield className="h-5 w-5 text-rlc-red" />
+                <h2 className="font-heading font-semibold">Membership Info</h2>
               </div>
-              {member.membership_start_date && (
+              <div className="mb-3 flex items-center gap-2">
+                <StatusBadge status={member.membership_status} type="membership" />
+                <span className="text-sm capitalize text-muted-foreground">{member.membership_tier}</span>
+              </div>
+              <dl className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Period Start</dt>
-                  <dd>{formatDate(member.membership_start_date)}</dd>
+                  <dt className="text-muted-foreground">Member Since</dt>
+                  <dd>{member.membership_join_date ? formatDate(member.membership_join_date) : formatDate(member.created_at)}</dd>
                 </div>
-              )}
-              {member.membership_expiry_date && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Expiry Date</dt>
-                  <dd>{formatDate(member.membership_expiry_date)}</dd>
-                </div>
-              )}
-              {member.stripe_customer_id && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">Stripe ID</dt>
-                  <dd className="font-mono text-xs">{member.stripe_customer_id}</dd>
-                </div>
-              )}
-              {member.highlevel_contact_id && (
-                <div className="flex justify-between">
-                  <dt className="text-muted-foreground">HighLevel ID</dt>
-                  <dd className="font-mono text-xs">{member.highlevel_contact_id}</dd>
-                </div>
-              )}
-            </dl>
-          </div>
+                {member.membership_start_date && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Period Start</dt>
+                    <dd>{formatDate(member.membership_start_date)}</dd>
+                  </div>
+                )}
+                {member.membership_expiry_date && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Expiry Date</dt>
+                    <dd>{formatDate(member.membership_expiry_date)}</dd>
+                  </div>
+                )}
+                {member.stripe_customer_id && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">Stripe ID</dt>
+                    <dd className="font-mono text-xs">{member.stripe_customer_id}</dd>
+                  </div>
+                )}
+                {member.highlevel_contact_id && (
+                  <div className="flex justify-between">
+                    <dt className="text-muted-foreground">HighLevel ID</dt>
+                    <dd className="font-mono text-xs">{member.highlevel_contact_id}</dd>
+                  </div>
+                )}
+              </dl>
+            </CardContent>
+          </Card>
 
           {/* Household Card */}
           {householdMembers.length > 0 && (
-            <div className="rounded-lg border bg-card p-6">
-              <h2 className="mb-4 font-semibold">Household</h2>
-              <ul className="space-y-2">
-                {householdMembers.map((hm) => (
-                  <li key={hm.id} className="flex items-center justify-between text-sm">
-                    <Link href={`/admin/members/${hm.id}`} className="text-rlc-red hover:underline">
-                      {hm.first_name} {hm.last_name}
-                    </Link>
-                    <span className="capitalize text-muted-foreground">{hm.household_role}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
+            <Card>
+              <CardContent className="p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <Users className="h-5 w-5 text-rlc-blue" />
+                  <h2 className="font-heading font-semibold">Household</h2>
+                </div>
+                <ul className="space-y-2">
+                  {householdMembers.map((hm) => (
+                    <li key={hm.id} className="flex items-center justify-between text-sm">
+                      <Link href={`/admin/members/${hm.id}`} className="text-rlc-red hover:underline">
+                        {hm.first_name} {hm.last_name}
+                      </Link>
+                      <span className="capitalize text-muted-foreground">{hm.household_role}</span>
+                    </li>
+                  ))}
+                </ul>
+              </CardContent>
+            </Card>
           )}
 
           {/* Contributions Card */}
-          <div className="rounded-lg border bg-card p-6">
-            <h2 className="mb-4 font-semibold">Recent Contributions</h2>
-            {contributions.length > 0 ? (
-              <ul className="space-y-2">
-                {contributions.map((c) => (
-                  <li key={c.id} className="flex items-center justify-between text-sm">
-                    <div>
-                      <span className="capitalize">{c.contribution_type.replace(/_/g, ' ')}</span>
-                      <span className="ml-2 text-muted-foreground">{formatDate(c.created_at)}</span>
-                    </div>
-                    <span className="font-medium text-green-600">
-                      {formatCurrency(Number(c.amount))}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground">No contributions</p>
-            )}
-          </div>
+          <Card>
+            <CardContent className="p-6">
+              <div className="mb-4 flex items-center gap-2">
+                <CreditCardIcon className="h-5 w-5 text-green-600" />
+                <h2 className="font-heading font-semibold">Recent Contributions</h2>
+              </div>
+              {contributions.length > 0 ? (
+                <ul className="space-y-2">
+                  {contributions.map((c) => (
+                    <li key={c.id} className="flex items-center justify-between text-sm">
+                      <div>
+                        <span className="capitalize">{c.contribution_type.replace(/_/g, ' ')}</span>
+                        <span className="ml-2 text-muted-foreground">{formatDate(c.created_at)}</span>
+                      </div>
+                      <span className="font-medium text-green-600">
+                        {formatCurrency(Number(c.amount))}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-sm text-muted-foreground">No contributions</p>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Roles Card */}
           {showRoleManagement ? (
@@ -210,17 +231,22 @@ export default async function AdminMemberDetailPage({
             />
           ) : (
             memberRoles.length > 0 && (
-              <div className="rounded-lg border bg-card p-6">
-                <h2 className="mb-4 font-semibold">Roles</h2>
-                <ul className="space-y-2">
-                  {memberRoles.map((r) => (
-                    <li key={r.id} className="flex items-center justify-between text-sm">
-                      <span className="capitalize">{r.role.replace(/_/g, ' ')}</span>
-                      <span className="text-muted-foreground">{r.chapter?.name || 'National'}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <Card>
+                <CardContent className="p-6">
+                  <div className="mb-4 flex items-center gap-2">
+                    <Calendar className="h-5 w-5 text-purple-600" />
+                    <h2 className="font-heading font-semibold">Roles</h2>
+                  </div>
+                  <ul className="space-y-2">
+                    {memberRoles.map((r) => (
+                      <li key={r.id} className="flex items-center justify-between text-sm">
+                        <span className="capitalize">{r.role.replace(/_/g, ' ')}</span>
+                        <span className="text-muted-foreground">{r.chapter?.name || 'National'}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
             )
           )}
         </div>

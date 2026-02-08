@@ -6,6 +6,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Plus } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -46,27 +48,21 @@ export default async function AdminScorecardsPage() {
 
   const sessions = (data || []) as SessionRow[];
 
-  const statusColors: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-800',
-    active: 'bg-blue-100 text-blue-800',
-    published: 'bg-green-100 text-green-800',
-    archived: 'bg-amber-100 text-amber-800',
-  };
-
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Liberty Scorecards</h1>
-          <p className="mt-2 text-muted-foreground">{sessions.length} scorecard sessions</p>
-        </div>
-        <Link href="/admin/scorecards/new">
-          <Button className="bg-rlc-red hover:bg-rlc-red/90">
-            <Plus className="mr-2 h-4 w-4" />
-            New Session
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Liberty Scorecards"
+        count={sessions.length}
+        className="mb-8"
+        action={
+          <Link href="/admin/scorecards/new">
+            <Button className="bg-rlc-red hover:bg-rlc-red/90">
+              <Plus className="mr-2 h-4 w-4" />
+              New Session
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="rounded-lg border bg-card">
         <div className="overflow-x-auto">
@@ -90,9 +86,7 @@ export default async function AdminScorecardsPage() {
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">{session.session_year}</td>
                   <td className="px-4 py-3 text-sm">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${statusColors[session.status] || 'bg-gray-100'}`}>
-                      {session.status}
-                    </span>
+                    <StatusBadge status={session.status} type="scorecard" />
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {formatDate(session.created_at)}
