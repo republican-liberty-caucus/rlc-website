@@ -27,7 +27,7 @@ const isPublicRoute = createRouteMatcher([
 const isAdminRoute = createRouteMatcher(['/admin(.*)']);
 
 // Admin roles that grant access to /admin routes
-const ADMIN_ROLES = ['super_admin', 'national_board', 'state_chair', 'chapter_admin'];
+const ADMIN_ROLES = ['super_admin', 'national_board', 'regional_coordinator', 'state_chair', 'chapter_admin'];
 
 export default clerkMiddleware(async (auth, req) => {
   // Allow public routes
