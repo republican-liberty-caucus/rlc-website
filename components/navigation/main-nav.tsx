@@ -103,10 +103,11 @@ function NavDropdown({
       <button
         onClick={() => setOpen(!open)}
         className={cn(
-          'flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors outline-none',
+          'flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold transition-all duration-150 outline-none',
           isActive(item.href)
-            ? 'text-foreground'
-            : 'text-muted-foreground hover:text-foreground'
+            ? 'bg-rlc-blue/10 text-rlc-blue'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+          open && !isActive(item.href) && 'bg-muted text-foreground'
         )}
         aria-expanded={open}
         aria-haspopup="true"
@@ -118,7 +119,6 @@ function NavDropdown({
             open && 'rotate-180'
           )}
         />
-        {/* Active indicator bar */}
         {isActive(item.href) && (
           <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-rlc-red" />
         )}
@@ -237,10 +237,10 @@ export function MainNav() {
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'relative rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'relative rounded-md px-3 py-2 text-sm font-semibold transition-all duration-150',
                     isActive(item.href)
-                      ? 'text-foreground'
-                      : 'text-muted-foreground hover:text-foreground'
+                      ? 'bg-rlc-blue/10 text-rlc-blue'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   )}
                 >
                   {item.label}
@@ -258,10 +258,10 @@ export function MainNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'relative rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  'relative rounded-md px-3 py-2 text-sm font-semibold transition-all duration-150',
                   isActive(item.href)
-                    ? 'text-foreground'
-                    : 'text-muted-foreground hover:text-foreground'
+                    ? 'bg-rlc-blue/10 text-rlc-blue'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                 )}
               >
                 {item.label}
