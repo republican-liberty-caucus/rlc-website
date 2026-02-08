@@ -22,6 +22,73 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
 };
 
 /**
+ * Promote <strong>-wrapped headings to proper HTML heading elements.
+ * WordPress content often uses bold text for structural headings (Article, Section,
+ * Rule, topic names) instead of proper <h2>/<h3>. This runs BEFORE wpautop()
+ * so the block-level headings get proper paragraph separation.
+ */
+function promoteHeadings(html: string): string {
+  if (!html) return '';
+  try {
+    let output = html;
+
+    // Normalize line endings for consistent matching
+    output = output.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+    // Remove empty/whitespace-only bold tags
+    output = output.replace(/<strong>(?:\s|&nbsp;)*<\/strong>/gi, '');
+
+    // --- Content WITH <p> tags (committees, speakers, etc.) ---
+    // <p><strong>Title</strong></p> → <h3> (or <h2> for Articles)
+    // Skip if inner content contains <img> or nested <strong>
+    output = output.replace(
+      /<p[^>]*>\s*<strong>([\s\S]*?)<\/strong>(?:\s|&nbsp;)*<\/p>/gi,
+      (_match, inner: string) => {
+        if (/<img/i.test(inner)) return _match;
+        if (/<strong/i.test(inner)) return _match;
+        const clean = inner.replace(/<br\s*\/?>/gi, '').replace(/&nbsp;/gi, ' ').trim();
+        if (!clean) return '';
+        if (/^Article\s+/i.test(clean)) return `<h2>${clean}</h2>`;
+        return `<h3>${clean}</h3>`;
+      },
+    );
+
+    // --- Content WITHOUT <p> tags (bylaws, principles) ---
+
+    // Article / "Caucus Rules" → <h2>
+    output = output.replace(
+      /<strong>((?:Article\s+[^<]+|Caucus Rules))<\/strong>/gi,
+      '\n\n<h2>$1</h2>\n\n',
+    );
+
+    // Rule / Section headings → <h3>
+    // Section is often followed immediately by text: <strong>Section 1:</strong>Text here...
+    // The inserted newlines let wpautop wrap the trailing text in its own <p>.
+    output = output.replace(
+      /<strong>((?:Rule\s+\d+\.\s+[^<]+|Section\s+\d+\s*:))<\/strong>/gi,
+      '\n\n<h3>$1</h3>\n\n',
+    );
+
+    // Standalone bold topic headers on their own line (principles: "Bill of Rights", "Taxation", etc.)
+    // Must be >4 chars, start with uppercase, alone on a line, and not a letter label (A. B.)
+    output = output.replace(
+      /^<strong>([A-Z][^<]{4,})<\/strong>$/gm,
+      (_match, inner: string) => {
+        const trimmed = inner.trim();
+        if (/^[A-Z]\.\s/.test(trimmed)) return _match;
+        return `<h3>${trimmed}</h3>`;
+      },
+    );
+
+    return output;
+  } catch {
+    // Return original HTML rather than crashing the page render
+    console.error('[promoteHeadings] Failed to transform content, returning original HTML');
+    return html;
+  }
+}
+
+/**
  * Port of WordPress's wpautop() — converts double newlines to <p> tags
  * and single newlines to <br>. Skips content already wrapped in block-level
  * HTML elements.
@@ -75,7 +142,7 @@ function wpautop(text: string): string {
 
 /** Sanitize WordPress HTML for safe rendering */
 export function sanitizeWPContent(html: string): string {
-  return sanitizeHtml(wpautop(html), SANITIZE_OPTIONS);
+  return sanitizeHtml(wpautop(promoteHeadings(html)), SANITIZE_OPTIONS);
 }
 
 interface WPPage {

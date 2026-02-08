@@ -1,4 +1,4 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+import { clerkClient, clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
 // Define public routes that don't require authentication
@@ -19,6 +19,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/v1/posts(.*)',
   '/scorecards(.*)',
   '/action-center(.*)',
+  '/endorsements(.*)',
   '/candidate-surveys(.*)',
 ]);
 
@@ -45,8 +46,23 @@ export default clerkMiddleware(async (auth, req) => {
 
   // For admin routes, check role
   if (isAdminRoute(req)) {
-    const publicMetadata = sessionClaims?.publicMetadata as { role?: string } | undefined;
-    const role = publicMetadata?.role;
+    // Try JWT claims first (fast path — requires session token template config in Clerk Dashboard).
+    // Fall back to fetching the user directly from Clerk API if claims are missing.
+    let role = (sessionClaims?.publicMetadata as { role?: string } | undefined)?.role;
+
+    if (!role) {
+      try {
+        const clerk = await clerkClient();
+        const user = await clerk.users.getUser(userId);
+        role = (user.publicMetadata as { role?: string })?.role;
+      } catch (error) {
+        console.error('[middleware] Clerk API role lookup failed:', {
+          userId,
+          error: error instanceof Error ? error.message : error,
+        });
+        return NextResponse.redirect(new URL('/unauthorized', req.url));
+      }
+    }
 
     if (!role || !ADMIN_ROLES.includes(role)) {
       return NextResponse.redirect(new URL('/unauthorized', req.url));
