@@ -225,6 +225,13 @@ export async function POST(req: Request) {
       .single();
 
     if (insertError) {
+      // Handle unique partial index violation (concurrent spouse add)
+      if (insertError.code === '23505' && insertError.message?.includes('idx_one_spouse_per_household')) {
+        return NextResponse.json(
+          { error: 'Your household already has a spouse member' },
+          { status: 409 }
+        );
+      }
       console.error('Error creating household member:', insertError);
       return NextResponse.json({ error: 'Failed to add household member' }, { status: 500 });
     }

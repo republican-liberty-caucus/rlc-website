@@ -1,10 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
+import { getAdminContext } from '@/lib/admin/permissions';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Plus, Calendar, MapPin, Users, Video } from 'lucide-react';
-import { Event } from '@/types';
+import type { Event } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Events - Admin',
@@ -20,10 +23,10 @@ interface EventWithCount extends EventRow {
   registrationCount: number;
 }
 
-async function getEvents(): Promise<EventWithCount[]> {
+async function getEvents(visibleChapterIds: string[] | null): Promise<EventWithCount[]> {
   const supabase = createServerClient();
 
-  const { data } = await supabase
+  let query = supabase
     .from('rlc_events')
     .select(`
       *,
@@ -32,25 +35,46 @@ async function getEvents(): Promise<EventWithCount[]> {
     `)
     .order('start_date', { ascending: false });
 
+  if (visibleChapterIds !== null && visibleChapterIds.length > 0) {
+    query = query.in('chapter_id', visibleChapterIds);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Failed to fetch events: ${error.message}`);
+  }
+
   const events = (data || []) as EventRow[];
+  if (events.length === 0) return [];
 
-  // Get registration counts
-  const eventsWithCounts = await Promise.all(
-    events.map(async (event) => {
-      const { count } = await supabase
-        .from('rlc_event_registrations')
-        .select('*', { count: 'exact', head: true })
-        .eq('event_id', event.id);
+  // Single aggregated query for registration counts (avoids N+1)
+  const { data: regRows, error: regError } = await supabase
+    .from('rlc_event_registrations')
+    .select('event_id')
+    .in('event_id', events.map((e) => e.id));
 
-      return { ...event, registrationCount: count || 0 };
-    })
-  );
+  if (regError) {
+    throw new Error(`Failed to fetch registration counts: ${regError.message}`);
+  }
 
-  return eventsWithCounts;
+  const countMap: Record<string, number> = {};
+  for (const row of (regRows || []) as { event_id: string }[]) {
+    countMap[row.event_id] = (countMap[row.event_id] || 0) + 1;
+  }
+
+  return events.map((event) => ({
+    ...event,
+    registrationCount: countMap[event.id] || 0,
+  }));
 }
 
 export default async function AdminEventsPage() {
-  const events = await getEvents();
+  const { userId } = await auth();
+  if (!userId) redirect('/sign-in');
+  const ctx = await getAdminContext(userId);
+  if (!ctx) redirect('/dashboard?error=unauthorized');
+
+  const events = await getEvents(ctx.visibleChapterIds);
 
   const now = new Date();
   const upcomingEvents = events.filter((e) => new Date(e.start_date) >= now);
@@ -132,10 +156,12 @@ export default async function AdminEventsPage() {
             {events.length} total events
           </p>
         </div>
-        <Button className="bg-rlc-red hover:bg-rlc-red/90">
-          <Plus className="mr-2 h-4 w-4" />
-          Create Event
-        </Button>
+        <Link href="/admin/events/new">
+          <Button className="bg-rlc-red hover:bg-rlc-red/90">
+            <Plus className="mr-2 h-4 w-4" />
+            Create Event
+          </Button>
+        </Link>
       </div>
 
       {/* Upcoming Events */}

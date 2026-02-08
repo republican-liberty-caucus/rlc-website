@@ -16,34 +16,15 @@ interface ChapterRow {
   state_code: string | null;
 }
 
-// This would be fetched from the database in production
-const placeholderChapters: ChapterRow[] = [
-  { slug: 'alabama', name: 'Alabama RLC', state_code: 'AL' },
-  { slug: 'arizona', name: 'Arizona RLC', state_code: 'AZ' },
-  { slug: 'california', name: 'California RLC', state_code: 'CA' },
-  { slug: 'florida', name: 'Florida RLC', state_code: 'FL' },
-  { slug: 'georgia', name: 'Georgia RLC', state_code: 'GA' },
-  { slug: 'iowa', name: 'Iowa RLC', state_code: 'IA' },
-  { slug: 'michigan', name: 'Michigan RLC', state_code: 'MI' },
-  { slug: 'new-hampshire', name: 'New Hampshire RLC', state_code: 'NH' },
-  { slug: 'ohio', name: 'Ohio RLC', state_code: 'OH' },
-  { slug: 'texas', name: 'Texas RLC', state_code: 'TX' },
-];
-
 async function getChapters(): Promise<ChapterRow[]> {
-  try {
-    const supabase = createServerClient();
-    const { data } = await supabase
-      .from('rlc_chapters')
-      .select('*')
-      .eq('status', 'active')
-      .order('name');
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from('rlc_chapters')
+    .select('slug, name, state_code')
+    .eq('status', 'active')
+    .order('name');
 
-    return (data || placeholderChapters) as ChapterRow[];
-  } catch {
-    // Return placeholder data if database is not set up yet
-    return placeholderChapters;
-  }
+  return (data || []) as ChapterRow[];
 }
 
 export default async function ChaptersPage() {

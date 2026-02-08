@@ -12,6 +12,7 @@ const navItems = [
   { href: '/about', label: 'About' },
   { href: '/chapters', label: 'Chapters' },
   { href: '/events', label: 'Events' },
+  { href: '/blog', label: 'Blog' },
   { href: '/join', label: 'Join' },
   { href: '/donate', label: 'Donate' },
 ];
