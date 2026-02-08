@@ -39,7 +39,9 @@ export async function getMemberByClerkId(clerkUserId: string): Promise<Member | 
   return data as Member;
 }
 
-// Helper to create or update a member from Clerk webhook
+// Helper to create or update a member from Clerk webhook.
+// Checks for existing member by email first (handles CiviCRM-migrated members
+// who don't have a clerk_user_id yet), then falls back to upsert by clerk_user_id.
 export async function upsertMemberFromClerk(clerkUser: {
   id: string;
   email_addresses: Array<{ email_address: string }>;
@@ -52,6 +54,51 @@ export async function upsertMemberFromClerk(clerkUser: {
   const primaryEmail = clerkUser.email_addresses[0]?.email_address;
   const primaryPhone = clerkUser.phone_numbers?.[0]?.phone_number;
 
+  if (!primaryEmail) {
+    throw new Error(`Clerk user ${clerkUser.id} has no email address`);
+  }
+
+  // Check if member already exists by email (e.g. migrated from CiviCRM without clerk_user_id)
+  const { data: existingByEmail, error: emailLookupError } = await supabase
+    .from('rlc_members')
+    .select('*')
+    .eq('email', primaryEmail)
+    .single();
+
+  if (emailLookupError && emailLookupError.code !== 'PGRST116') {
+    console.error(`Database error looking up member by email="${primaryEmail}":`, emailLookupError);
+    throw new Error(`Failed to look up member by email: ${emailLookupError.message}`);
+  }
+
+  // If found by email but missing clerk_user_id, link the Clerk account
+  if (existingByEmail) {
+    const member = existingByEmail as Member;
+    const updatePayload: Record<string, unknown> = {
+      clerk_user_id: clerkUser.id,
+      first_name: clerkUser.first_name || member.first_name,
+      last_name: clerkUser.last_name || member.last_name,
+    };
+    if (primaryPhone) {
+      updatePayload.phone = primaryPhone;
+    }
+
+    const { data, error } = await supabase
+      .from('rlc_members')
+      .update(updatePayload as never)
+      .eq('id', member.id)
+      .select()
+      .single();
+
+    if (error) {
+      console.error(`Error linking Clerk user ${clerkUser.id} to member ${member.id}:`, error);
+      throw error;
+    }
+
+    console.log(`Linked Clerk user ${clerkUser.id} to existing member ${member.id} (${primaryEmail})`);
+    return data as Member;
+  }
+
+  // No existing member — create new via upsert on clerk_user_id
   const upsertPayload = {
     clerk_user_id: clerkUser.id,
     email: primaryEmail,
