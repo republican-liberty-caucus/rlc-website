@@ -6,10 +6,11 @@ import { getAdminContext, canManageRoles, canViewMember } from '@/lib/admin/perm
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { MemberDetailForm } from '@/components/admin/member-detail-form';
 import { MemberRolesCard } from '@/components/admin/member-roles-card';
+import { MemberPositionsCard } from '@/components/admin/member-positions-card';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Shield, CreditCard as CreditCardIcon, Users, Calendar } from 'lucide-react';
-import type { Member, Chapter, Contribution } from '@/types';
+import type { Member, Chapter, Contribution, OfficerTitle } from '@/types';
 import type { AdminRole } from '@/lib/admin/permissions';
 
 interface MemberRoleRow extends AdminRole {
@@ -60,8 +61,8 @@ export default async function AdminMemberDetailPage({
     redirect('/admin/members?error=forbidden');
   }
 
-  // Fetch chapters, contributions, roles, and household in parallel
-  const [chaptersRes, contributionsRes, rolesRes, householdRes] = await Promise.all([
+  // Fetch chapters, contributions, roles, household, and positions in parallel
+  const [chaptersRes, contributionsRes, rolesRes, householdRes, positionsRes] = await Promise.all([
     (ctx.visibleChapterIds !== null
       ? supabase.from('rlc_chapters').select('id, name').in('id', ctx.visibleChapterIds).order('name')
       : supabase.from('rlc_chapters').select('id, name').order('name')
@@ -87,6 +88,17 @@ export default async function AdminMemberDetailPage({
           .eq('household_id', member.household_id)
           .neq('id', id)
       : Promise.resolve({ data: [] }),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('rlc_officer_positions')
+      .select(`
+        id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
+        chapter:rlc_chapters(id, name),
+        appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
+      `)
+      .eq('member_id', id)
+      .order('is_active', { ascending: false })
+      .order('started_at', { ascending: false }),
   ]);
 
   const chapters = (chaptersRes.data || []) as Pick<Chapter, 'id' | 'name'>[];
@@ -98,6 +110,16 @@ export default async function AdminMemberDetailPage({
     last_name: string;
     email: string;
     household_role: string | null;
+  }[];
+  const memberPositions = (positionsRes.data || []) as {
+    id: string;
+    title: OfficerTitle;
+    committee_name: string | null;
+    started_at: string;
+    ended_at: string | null;
+    is_active: boolean;
+    chapter: { id: string; name: string } | null;
+    appointed_by: { first_name: string; last_name: string } | null;
   }[];
 
   const showRoleManagement = canManageRoles(ctx);
@@ -221,6 +243,9 @@ export default async function AdminMemberDetailPage({
               )}
             </CardContent>
           </Card>
+
+          {/* Officer Positions Card */}
+          <MemberPositionsCard positions={memberPositions} />
 
           {/* Roles Card */}
           {showRoleManagement ? (

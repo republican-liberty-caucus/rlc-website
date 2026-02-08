@@ -2,11 +2,12 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { getAdminContext, canManageRoles } from '@/lib/admin/permissions';
 import { formatDate } from '@/lib/utils';
 import { ChapterDetailForm } from '@/components/admin/chapter-detail-form';
+import { ChapterOfficersCard } from '@/components/admin/chapter-officers-card';
 import { ArrowLeft } from 'lucide-react';
-import type { Chapter } from '@/types';
+import type { Chapter, OfficerTitle } from '@/types';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -52,8 +53,8 @@ export default async function AdminChapterDetailPage({
   if (chapterError || !chapterData) notFound();
   const chapter = chapterData as Chapter;
 
-  // Fetch sub-chapters, member preview, parent, and member count in parallel
-  const [subChaptersRes, membersRes, parentRes, memberCountRes] = await Promise.all([
+  // Fetch sub-chapters, member preview, parent, member count, and officers in parallel
+  const [subChaptersRes, membersRes, parentRes, memberCountRes, officersRes] = await Promise.all([
     supabase
       .from('rlc_chapters')
       .select('id, name, status, state_code')
@@ -76,12 +77,36 @@ export default async function AdminChapterDetailPage({
       .from('rlc_members')
       .select('*', { count: 'exact', head: true })
       .eq('primary_chapter_id', id),
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (supabase as any)
+      .from('rlc_officer_positions')
+      .select(`
+        id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
+        member:rlc_members!rlc_officer_positions_member_id_fkey(id, first_name, last_name, email),
+        appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
+      `)
+      .eq('chapter_id', id)
+      .order('is_active', { ascending: false })
+      .order('started_at', { ascending: false }),
   ]);
 
   const subChapters = (subChaptersRes.data || []) as { id: string; name: string; status: string; state_code: string | null }[];
   const members = (membersRes.data || []) as { id: string; first_name: string; last_name: string; email: string; membership_status: string }[];
   const parentChapter = parentRes.data as { id: string; name: string } | null;
   const memberCount = memberCountRes.count;
+  const officers = (officersRes.data || []) as {
+    id: string;
+    title: OfficerTitle;
+    committee_name: string | null;
+    started_at: string;
+    ended_at: string | null;
+    is_active: boolean;
+    notes: string | null;
+    member: { id: string; first_name: string; last_name: string; email: string } | null;
+    appointed_by: { first_name: string; last_name: string } | null;
+  }[];
+
+  const showOfficerManagement = canManageRoles(ctx);
 
   const statusColors: Record<string, string> = {
     active: 'bg-green-100 text-green-800',
@@ -122,6 +147,22 @@ export default async function AdminChapterDetailPage({
           </div>
         </div>
       </div>
+
+      {/* Onboarding Banner for forming chapters */}
+      {chapter.status === 'forming' && (
+        <div className="mb-8 rounded-lg border bg-yellow-50 p-4 flex items-center justify-between">
+          <div>
+            <p className="font-medium text-yellow-800">This chapter is in the onboarding process</p>
+            <p className="text-sm text-yellow-700">Complete the 8-step onboarding wizard to activate this chapter.</p>
+          </div>
+          <Link
+            href={`/admin/chapters/${id}/onboarding`}
+            className="rounded-md bg-rlc-red px-4 py-2 text-sm font-medium text-white hover:bg-rlc-red/90"
+          >
+            Continue Onboarding
+          </Link>
+        </div>
+      )}
 
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Left Column: Edit Form (2/3 width) */}
@@ -173,6 +214,15 @@ export default async function AdminChapterDetailPage({
                 ))}
               </ul>
             </div>
+          )}
+
+          {/* Officers Card */}
+          {showOfficerManagement && (
+            <ChapterOfficersCard
+              chapterId={id}
+              officers={officers}
+              members={members.map((m) => ({ id: m.id, first_name: m.first_name, last_name: m.last_name }))}
+            />
           )}
 
           {/* Members Preview Card */}
