@@ -1,185 +1,289 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
+import { Button } from '@/components/ui/button';
+import { HeroSection } from '@/components/home/hero-section';
+import { UrgencyBar } from '@/components/home/urgency-bar';
+import { ActivityFeed } from '@/components/home/activity-feed';
+import { ScorecardSpotlight } from '@/components/home/scorecard-spotlight';
+import { CampaignGrid } from '@/components/home/campaign-grid';
+import { StatsBar } from '@/components/home/stats-bar';
+import { EventPreview } from '@/components/home/event-preview';
+import { createServerClient } from '@/lib/supabase/server';
 
-export default function HomePage() {
+async function getHomePageData() {
+  const supabase = createServerClient();
+
+  const [
+    membersResult,
+    chaptersResult,
+    campaignsResult,
+    campaignCountResult,
+    eventsResult,
+    postsResult,
+    scorecardResult,
+  ] = await Promise.all([
+    // Active member count + distinct states
+    supabase
+      .from('rlc_members')
+      .select('state', { count: 'exact', head: false })
+      .in('membership_status', ['current', 'new_member', 'grace']),
+
+    // Chapter count
+    supabase
+      .from('rlc_chapters')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active'),
+
+    // Active campaigns with participation counts
+    supabase
+      .from('rlc_action_campaigns')
+      .select('id, title, slug, description, status')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(3),
+
+    // Total active campaign count (for urgency bar)
+    supabase
+      .from('rlc_action_campaigns')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'active'),
+
+    // Next 3 upcoming events
+    supabase
+      .from('rlc_events')
+      .select('id, title, slug, start_date, is_virtual, city, state')
+      .eq('status', 'published')
+      .gte('start_date', new Date().toISOString())
+      .order('start_date', { ascending: true })
+      .limit(3),
+
+    // Latest 3 blog posts
+    supabase
+      .from('rlc_posts')
+      .select('id, title, slug, excerpt, published_at')
+      .eq('status', 'published')
+      .not('published_at', 'is', null)
+      .order('published_at', { ascending: false })
+      .limit(3),
+
+    // Latest published scorecard session
+    supabase
+      .from('rlc_scorecard_sessions')
+      .select('id, name, slug')
+      .eq('status', 'published')
+      .order('session_year', { ascending: false })
+      .limit(1)
+      .single(),
+  ]);
+
+  // Log any Supabase query errors (non-fatal — we fall back to empty data)
+  if (membersResult.error) console.error('[homepage] members query:', membersResult.error.message);
+  if (chaptersResult.error) console.error('[homepage] chapters query:', chaptersResult.error.message);
+  if (campaignsResult.error) console.error('[homepage] campaigns query:', campaignsResult.error.message);
+  if (campaignCountResult.error) console.error('[homepage] campaign count query:', campaignCountResult.error.message);
+  if (eventsResult.error) console.error('[homepage] events query:', eventsResult.error.message);
+  if (postsResult.error) console.error('[homepage] posts query:', postsResult.error.message);
+  // scorecardResult.error is expected when no published sessions exist (PGRST116)
+
+  // Get distinct states from members
+  const memberRows = (membersResult.data || []) as Array<{ state: string | null }>;
+  const distinctStates = new Set(memberRows.map((m) => m.state).filter(Boolean));
+
+  // Get participation counts for campaigns
+  const campaigns = (campaignsResult.data || []) as Array<{
+    id: string;
+    title: string;
+    slug: string;
+    description: string | null;
+    status: string;
+  }>;
+
+  const campaignsWithCounts = await Promise.all(
+    campaigns.map(async (campaign) => {
+      const { count } = await supabase
+        .from('rlc_campaign_participations')
+        .select('id', { count: 'exact', head: true })
+        .eq('campaign_id', campaign.id);
+      return { ...campaign, participation_count: count || 0 };
+    })
+  );
+
+  // Get top/bottom legislators for scorecard spotlight
+  let champions: Array<{
+    id: string;
+    name: string;
+    party: string;
+    state_code: string;
+    current_score: number | null;
+  }> = [];
+  let worstOffenders: typeof champions = [];
+  let sessionName = '';
+  let sessionSlug = '';
+
+  const scorecardData = scorecardResult.data as { id: string; name: string; slug: string } | null;
+  if (scorecardData) {
+    sessionName = scorecardData.name;
+    sessionSlug = scorecardData.slug;
+
+    const [topResult, bottomResult] = await Promise.all([
+      supabase
+        .from('rlc_legislators')
+        .select('id, name, party, state_code, current_score')
+        .not('current_score', 'is', null)
+        .order('current_score', { ascending: false })
+        .limit(3),
+      supabase
+        .from('rlc_legislators')
+        .select('id, name, party, state_code, current_score')
+        .not('current_score', 'is', null)
+        .order('current_score', { ascending: true })
+        .limit(3),
+    ]);
+
+    champions = (topResult.data || []) as typeof champions;
+    worstOffenders = (bottomResult.data || []) as typeof worstOffenders;
+  }
+
+  return {
+    memberCount: membersResult.count || 0,
+    stateCount: distinctStates.size,
+    chapterCount: chaptersResult.count || 0,
+    activeCampaignCount: campaignCountResult.count || 0,
+    campaigns: campaignsWithCounts,
+    events: (eventsResult.data || []) as Array<{
+      id: string;
+      title: string;
+      slug: string;
+      start_date: string;
+      is_virtual: boolean;
+      city: string | null;
+      state: string | null;
+    }>,
+    posts: (postsResult.data || []) as Array<{
+      id: string;
+      title: string;
+      slug: string;
+      excerpt: string | null;
+      published_at: string | null;
+    }>,
+    champions,
+    worstOffenders,
+    sessionName,
+    sessionSlug,
+  };
+}
+
+export default async function HomePage() {
+  let data;
+  try {
+    data = await getHomePageData();
+  } catch (err) {
+    console.error('[homepage] Failed to load homepage data:', err);
+    data = {
+      memberCount: 0,
+      stateCount: 0,
+      chapterCount: 0,
+      activeCampaignCount: 0,
+      campaigns: [],
+      events: [],
+      posts: [],
+      champions: [],
+      worstOffenders: [],
+      sessionName: '',
+      sessionSlug: '',
+    };
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <MainNav />
 
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-rlc-blue via-rlc-blue to-rlc-red py-24 text-white">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-4xl text-center">
-            <h1 className="mb-6 text-4xl font-bold tracking-tight sm:text-5xl md:text-6xl">
-              Defending Liberty Within the GOP
-            </h1>
-            <p className="mb-8 text-xl text-white/90">
-              The Republican Liberty Caucus is a grassroots organization working to advance the
-              principles of individual rights, limited government, and free markets within the
-              Republican Party.
-            </p>
-            <div className="flex flex-col justify-center gap-4 sm:flex-row">
-              <Button asChild size="lg" className="bg-rlc-gold hover:bg-rlc-gold/90 text-black">
-                <Link href="/join">Join the RLC</Link>
+      <HeroSection
+        memberCount={data.memberCount}
+        campaignCount={data.activeCampaignCount}
+        stateCount={data.stateCount}
+      />
+
+      <UrgencyBar activeCampaignCount={data.activeCampaignCount} />
+
+      <ActivityFeed />
+
+      <ScorecardSpotlight
+        champions={data.champions}
+        worstOffenders={data.worstOffenders}
+        sessionName={data.sessionName}
+        sessionSlug={data.sessionSlug}
+      />
+
+      <CampaignGrid campaigns={data.campaigns} />
+
+      <EventPreview events={data.events} />
+
+      {/* Latest Blog Posts */}
+      {data.posts.length > 0 && (
+        <section className="py-16">
+          <div className="container mx-auto px-4">
+            <div className="mb-8 flex items-center justify-between">
+              <h2 className="font-heading text-3xl font-bold">Latest News</h2>
+              <Button asChild variant="outline">
+                <Link href="/blog">View All Posts</Link>
               </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white/10"
-              >
-                <Link href="/about">Learn More</Link>
-              </Button>
+            </div>
+            <div className="grid gap-6 md:grid-cols-3">
+              {data.posts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.slug}`}
+                  className="group rounded-lg border bg-card p-6 transition-all hover:border-rlc-red hover:shadow-md"
+                >
+                  <h3 className="mb-2 font-heading text-lg font-semibold group-hover:text-rlc-red">
+                    {post.title}
+                  </h3>
+                  {post.excerpt && (
+                    <p className="line-clamp-2 text-sm text-muted-foreground">{post.excerpt}</p>
+                  )}
+                </Link>
+              ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/* Mission Section */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-6 text-3xl font-bold text-rlc-blue">Our Mission</h2>
-            <p className="mb-8 text-lg text-muted-foreground">
-              We believe that the proper role of government is to protect life, liberty, and
-              property. We work within the Republican Party to elect liberty-minded candidates and
-              advance policies that respect individual rights and limit government power.
-            </p>
-          </div>
-
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
-            <div className="rounded-lg border bg-card p-6 text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rlc-red/10">
-                  <svg
-                    className="h-6 w-6 text-rlc-red"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="mb-2 text-xl font-semibold">Individual Rights</h3>
-              <p className="text-muted-foreground">
-                We defend the rights of individuals as protected by the Constitution, including free
-                speech, due process, and property rights.
-              </p>
-            </div>
-
-            <div className="rounded-lg border bg-card p-6 text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rlc-blue/10">
-                  <svg
-                    className="h-6 w-6 text-rlc-blue"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="mb-2 text-xl font-semibold">Limited Government</h3>
-              <p className="text-muted-foreground">
-                We advocate for a federal government limited to its constitutional powers, with most
-                governance occurring at the state and local level.
-              </p>
-            </div>
-
-            <div className="rounded-lg border bg-card p-6 text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rlc-gold/10">
-                  <svg
-                    className="h-6 w-6 text-rlc-gold"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                </div>
-              </div>
-              <h3 className="mb-2 text-xl font-semibold">Free Markets</h3>
-              <p className="text-muted-foreground">
-                We support economic freedom, low taxes, reduced regulation, and policies that allow
-                individuals and businesses to thrive.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* State Chapters CTA */}
-      <section className="bg-muted py-16">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col items-center justify-between gap-8 md:flex-row">
-            <div>
-              <h2 className="mb-2 text-3xl font-bold text-rlc-blue">Find Your State Chapter</h2>
-              <p className="text-lg text-muted-foreground">
-                Connect with liberty-minded Republicans in your state.
-              </p>
-            </div>
-            <Button asChild size="lg" className="bg-rlc-red hover:bg-rlc-red/90">
-              <Link href="/chapters">Browse Chapters</Link>
-            </Button>
-          </div>
-        </div>
-      </section>
-
-      {/* Events Preview */}
-      <section className="py-16">
-        <div className="container mx-auto px-4">
-          <div className="mb-8 flex items-center justify-between">
-            <h2 className="text-3xl font-bold text-rlc-blue">Upcoming Events</h2>
-            <Button asChild variant="outline">
-              <Link href="/events">View All Events</Link>
-            </Button>
-          </div>
-          <div className="rounded-lg border bg-card p-8 text-center">
-            <p className="text-muted-foreground">
-              Check back soon for upcoming RLC events and meetings.
-            </p>
-          </div>
-        </div>
-      </section>
+      <StatsBar
+        stats={[
+          { value: data.memberCount, label: 'Active Members', suffix: '+' },
+          { value: data.chapterCount, label: 'State Chapters' },
+          { value: data.stateCount, label: 'States Active' },
+          { value: data.activeCampaignCount, label: 'Active Campaigns' },
+        ]}
+      />
 
       {/* Join CTA */}
-      <section className="bg-rlc-blue py-16 text-white">
+      <section className="bg-gradient-to-br from-rlc-red to-rlc-red/80 py-16 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="mb-4 text-3xl font-bold">Ready to Make a Difference?</h2>
-          <p className="mb-8 text-lg text-white/90">
-            Join thousands of liberty-minded Republicans working to advance freedom within the GOP.
+          <h2 className="mb-4 font-heading text-3xl font-bold uppercase">
+            Ready to Defend Liberty?
+          </h2>
+          <p className="mx-auto mb-8 max-w-2xl text-lg text-white/90">
+            Join {data.memberCount > 0 ? `${data.memberCount.toLocaleString()}+ ` : ''}liberty-minded
+            Republicans working to advance freedom within the GOP.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
-            <Button asChild size="lg" className="bg-rlc-gold hover:bg-rlc-gold/90 text-black">
+            <Button
+              asChild
+              size="lg"
+              className="bg-white text-rlc-red hover:bg-white/90 font-semibold text-base px-8"
+            >
               <Link href="/join">Become a Member</Link>
             </Button>
             <Button
               asChild
               size="lg"
               variant="outline"
-              className="border-white text-white hover:bg-white/10"
+              className="border-white text-white hover:bg-white/10 text-base"
             >
-              <Link href="/donate">Donate</Link>
+              <Link href="/donate">Support Our Mission</Link>
             </Button>
           </div>
         </div>
