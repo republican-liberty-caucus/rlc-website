@@ -325,6 +325,62 @@ export interface CampaignParticipation {
   created_at: string;
 }
 
+// Dues Sharing types
+
+export type DisbursementModel = 'national_managed' | 'state_managed';
+export type StripeConnectStatus = 'not_started' | 'onboarding' | 'active' | 'disabled';
+export type SplitLedgerStatus = 'pending' | 'transferred' | 'reversed' | 'failed';
+export type SplitSourceType = 'membership' | 'donation' | 'event_registration';
+
+export interface ChapterStripeAccount {
+  id: string;
+  chapter_id: string;
+  stripe_account_id: string;
+  status: StripeConnectStatus;
+  charges_enabled: boolean;
+  payouts_enabled: boolean;
+  onboarding_completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChapterSplitConfig {
+  id: string;
+  chapter_id: string;
+  disbursement_model: DisbursementModel;
+  is_active: boolean;
+  updated_by_id: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChapterSplitRule {
+  id: string;
+  config_id: string;
+  recipient_chapter_id: string;
+  percentage: number;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SplitLedgerEntry {
+  id: string;
+  contribution_id: string;
+  source_type: SplitSourceType;
+  recipient_chapter_id: string;
+  amount: number;
+  currency: string;
+  status: SplitLedgerStatus;
+  stripe_transfer_id: string | null;
+  stripe_transfer_group_id: string | null;
+  transferred_at: string | null;
+  reversal_of_id: string | null;
+  split_rule_snapshot: Record<string, unknown>;
+  created_at: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data?: T;

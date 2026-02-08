@@ -16,6 +16,7 @@ import {
   ClipboardList,
   Target,
   Megaphone,
+  Split,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -61,6 +62,7 @@ const navSections: NavSection[] = [
     label: 'Operations',
     items: [
       { href: '/admin/contributions', label: 'Contributions', icon: CreditCard },
+      { href: '/admin/dues-sharing', label: 'Dues Sharing', icon: Split },
       { href: '/admin/reports', label: 'Reports', icon: BarChart },
       { href: '/admin/settings', label: 'Settings', icon: Settings },
     ],
