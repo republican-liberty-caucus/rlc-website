@@ -13,6 +13,7 @@ const navItems = [
   { href: '/chapters', label: 'Chapters' },
   { href: '/events', label: 'Events' },
   { href: '/blog', label: 'Blog' },
+  { href: '/scorecards', label: 'Scorecards' },
   { href: '/join', label: 'Join' },
   { href: '/donate', label: 'Donate' },
 ];

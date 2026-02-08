@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { surveySubmissionSchema } from '@/lib/validations/survey';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   let body: unknown;
@@ -95,7 +96,7 @@ export async function POST(request: Request) {
     .insert(answerRows as never[]);
 
   if (answersError) {
-    console.error('Error saving answers:', answersError);
+    logger.error('Error saving answers:', answersError);
     return NextResponse.json({ error: 'Failed to save answers' }, { status: 500 });
   }
 
@@ -116,7 +117,7 @@ export async function POST(request: Request) {
     .eq('id', candidateResponse.id);
 
   if (updateError) {
-    console.error('Error updating candidate response:', updateError);
+    logger.error('Error updating candidate response:', updateError);
   }
 
   return NextResponse.json({

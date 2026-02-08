@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext, canManageRoles, getHighestRole, getRoleWeight } from '@/lib/admin/permissions';
 import { roleAssignmentSchema } from '@/lib/validations/admin';
 import type { AdminRole } from '@/lib/admin/permissions';
+import { logger } from '@/lib/logger';
 
 interface MemberRef {
   id: string;
@@ -44,7 +45,7 @@ async function trySyncRoleToClerk(
     });
     return null;
   } catch (clerkError) {
-    console.error('Failed to sync role to Clerk:', clerkError);
+    logger.error('Failed to sync role to Clerk:', clerkError);
     return 'Role saved but Clerk sync failed. User may need to log out and back in.';
   }
 }
@@ -113,7 +114,7 @@ export async function POST(
     if (insertError.code === '23505') {
       return NextResponse.json({ error: 'This role is already assigned' }, { status: 409 });
     }
-    console.error('Error assigning role:', insertError);
+    logger.error('Error assigning role:', insertError);
     return NextResponse.json({ error: 'Failed to assign role' }, { status: 500 });
   }
 
@@ -171,7 +172,7 @@ export async function DELETE(
     .eq('id', roleId);
 
   if (deleteError) {
-    console.error('Error revoking role:', deleteError);
+    logger.error('Error revoking role:', deleteError);
     return NextResponse.json({ error: 'Failed to revoke role' }, { status: 500 });
   }
 

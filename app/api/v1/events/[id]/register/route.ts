@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { eventRegistrationSchema } from '@/lib/validations/event';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: Request,
@@ -136,7 +137,7 @@ export async function POST(
     .single();
 
   if (insertError) {
-    console.error('Error creating registration:', insertError);
+    logger.error('Error creating registration:', insertError);
     return NextResponse.json({ error: 'Failed to register' }, { status: 500 });
   }
 

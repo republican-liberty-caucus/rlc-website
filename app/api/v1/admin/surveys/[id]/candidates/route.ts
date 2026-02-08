@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { candidateCreateSchema } from '@/lib/validations/survey';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export async function POST(
   request: Request,
@@ -68,7 +69,7 @@ export async function POST(
     .single();
 
   if (insertError) {
-    console.error('Error adding candidate:', insertError);
+    logger.error('Error adding candidate:', insertError);
     return NextResponse.json({ error: 'Failed to add candidate' }, { status: 500 });
   }
 

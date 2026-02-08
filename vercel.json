@@ -3,6 +3,10 @@
     {
       "path": "/api/cron/membership-status",
       "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/cron/scorecard-votes",
+      "schedule": "0 7 * * *"
     }
   ]
 }

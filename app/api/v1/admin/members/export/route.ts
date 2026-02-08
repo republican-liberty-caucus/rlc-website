@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext, applyMemberFilters } from '@/lib/admin/permissions';
 import { formatDate } from '@/lib/utils';
 import type { MembershipTier, MembershipStatus } from '@/types';
+import { logger } from '@/lib/logger';
 
 interface ExportRow {
   first_name: string;
@@ -60,7 +61,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
 
   if (error) {
-    console.error('Export query error:', error);
+    logger.error('Export query error:', error);
     return NextResponse.json({ error: 'Export failed' }, { status: 500 });
   }
 

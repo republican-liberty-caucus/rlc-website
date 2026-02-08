@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getStripe, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import type { Member, MembershipTier, MembershipStatus } from '@/types';
+import { logger } from '@/lib/logger';
 
 const VALID_TIERS = new Set(MEMBERSHIP_TIERS.map((t) => t.tier));
 
@@ -37,11 +38,11 @@ async function findMemberByCustomerId(
   if (error) {
     if (error.code === 'PGRST116') {
       // Genuinely not found
-      console.error(`${context}: No member found for stripe_customer_id="${customerId}"`);
+      logger.error(`${context}: No member found for stripe_customer_id="${customerId}"`);
       return null;
     }
     // Real database error — throw so webhook returns 500 and Stripe retries
-    console.error(`${context}: Database error looking up customer "${customerId}":`, error);
+    logger.error(`${context}: Database error looking up customer "${customerId}":`, error);
     throw new Error(`Database error in ${context}: ${error.message}`);
   }
 
@@ -54,13 +55,13 @@ export async function POST(req: Request) {
   const signature = headersList.get('stripe-signature');
 
   if (!signature) {
-    console.error('Stripe webhook: Missing stripe-signature header');
+    logger.error('Stripe webhook: Missing stripe-signature header');
     return new Response('', { status: 400 });
   }
 
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error('Stripe webhook: STRIPE_WEBHOOK_SECRET not configured');
+    logger.error('Stripe webhook: STRIPE_WEBHOOK_SECRET not configured');
     return new Response('', { status: 500 });
   }
 
@@ -70,7 +71,7 @@ export async function POST(req: Request) {
     const stripe = getStripe();
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
-    console.error('Stripe webhook signature verification failed:', err);
+    logger.error('Stripe webhook signature verification failed:', err);
     return new Response('', { status: 400 });
   }
 
@@ -110,10 +111,10 @@ export async function POST(req: Request) {
       }
 
       default:
-        console.log(`Unhandled event type: ${event.type}`);
+        logger.info(`Unhandled event type: ${event.type}`);
     }
   } catch (error) {
-    console.error('Error processing Stripe webhook:', error);
+    logger.error('Error processing Stripe webhook:', error);
     return new Response('', { status: 500 });
   }
 
@@ -137,13 +138,13 @@ async function handleCheckoutComplete(
   const memberId = session.metadata?.member_id;
 
   if (!memberEmail) {
-    console.error(`Checkout session ${session.id} has no customer_email`);
+    logger.error(`Checkout session ${session.id} has no customer_email`);
     throw new Error(`Checkout session ${session.id} missing customer_email`);
   }
 
   // Validate tier from metadata — do not silently fall back
   if (!tier || !isValidTier(tier)) {
-    console.error(
+    logger.error(
       `Checkout session ${session.id} has invalid/missing tier metadata: "${tier}". ` +
       `Customer: ${memberEmail}, Payment: ${session.payment_intent}`
     );
@@ -179,7 +180,7 @@ async function handleCheckoutComplete(
   }
 
   if (!member) {
-    console.error(
+    logger.error(
       `Member not found for checkout session ${session.id}: email=${memberEmail}, member_id=${memberId}`
     );
     throw new Error(`Member not found for checkout session ${session.id}`);
@@ -195,7 +196,7 @@ async function handleCheckoutComplete(
       .single();
 
     if (existing) {
-      console.log(`Checkout already processed for payment_intent ${paymentIntentId}, skipping`);
+      logger.info(`Checkout already processed for payment_intent ${paymentIntentId}, skipping`);
       return;
     }
   }
@@ -219,7 +220,7 @@ async function handleCheckoutComplete(
     .eq('id', member.id);
 
   if (updateError) {
-    console.error(`Failed to update member ${member.id}:`, updateError);
+    logger.error(`Failed to update member ${member.id}:`, updateError);
     throw updateError;
   }
 
@@ -235,7 +236,7 @@ async function handleCheckoutComplete(
   } as never);
 
   if (insertError) {
-    console.error(`Failed to create contribution for member ${member.id}:`, insertError);
+    logger.error(`Failed to create contribution for member ${member.id}:`, insertError);
     throw insertError;
   }
 
@@ -258,10 +259,10 @@ async function handleCheckoutComplete(
       membershipJoinDate: member.membership_join_date || now.toISOString(),
     });
   } catch (hlError) {
-    console.error('HighLevel sync failed (non-fatal):', hlError);
+    logger.error('HighLevel sync failed (non-fatal):', hlError);
   }
 
-  console.log(`Checkout completed for member ${member.id}: tier=${membershipTier}`);
+  logger.info(`Checkout completed for member ${member.id}: tier=${membershipTier}`);
 }
 
 async function handleSubscriptionChange(
@@ -287,11 +288,11 @@ async function handleSubscriptionChange(
     .eq('id', member.id);
 
   if (updateError) {
-    console.error(`Failed to update subscription for member ${member.id}:`, updateError);
+    logger.error(`Failed to update subscription for member ${member.id}:`, updateError);
     throw updateError;
   }
 
-  console.log(`Subscription updated for member ${member.id}: ${subscription.status} → ${membershipStatus}`);
+  logger.info(`Subscription updated for member ${member.id}: ${subscription.status} → ${membershipStatus}`);
 }
 
 async function handleSubscriptionCancelled(
@@ -311,11 +312,11 @@ async function handleSubscriptionCancelled(
     .eq('id', member.id);
 
   if (updateError) {
-    console.error(`Failed to cancel subscription for member ${member.id}:`, updateError);
+    logger.error(`Failed to cancel subscription for member ${member.id}:`, updateError);
     throw updateError;
   }
 
-  console.log(`Subscription cancelled for member ${member.id}`);
+  logger.info(`Subscription cancelled for member ${member.id}`);
 }
 
 async function handleInvoicePaid(
@@ -339,7 +340,7 @@ async function handleInvoicePaid(
       .single();
 
     if (existing) {
-      console.log(`Invoice already processed for payment_intent ${paymentIntentId}, skipping`);
+      logger.info(`Invoice already processed for payment_intent ${paymentIntentId}, skipping`);
       return;
     }
   }
@@ -355,11 +356,11 @@ async function handleInvoicePaid(
   } as never);
 
   if (insertError) {
-    console.error(`Failed to record contribution for member ${member.id}:`, insertError);
+    logger.error(`Failed to record contribution for member ${member.id}:`, insertError);
     throw insertError;
   }
 
-  console.log(`Invoice paid for member ${member.id}`);
+  logger.info(`Invoice paid for member ${member.id}`);
 }
 
 async function handleInvoiceFailed(
@@ -384,11 +385,11 @@ async function handleInvoiceFailed(
   } as never);
 
   if (insertError) {
-    console.error(`Failed to record failed contribution for member ${member.id}:`, insertError);
+    logger.error(`Failed to record failed contribution for member ${member.id}:`, insertError);
     throw insertError;
   }
 
-  console.log(`Invoice failed for member ${member.id}`);
+  logger.info(`Invoice failed for member ${member.id}`);
 }
 
 async function handleDonationCheckout(
@@ -402,7 +403,7 @@ async function handleDonationCheckout(
   const paymentIntentId = (session.payment_intent as string | null) || null;
 
   if (!memberEmail) {
-    console.error(`Donation checkout ${session.id} has no customer_email`);
+    logger.error(`Donation checkout ${session.id} has no customer_email`);
     throw new Error(`Donation checkout ${session.id} missing customer_email`);
   }
 
@@ -415,7 +416,7 @@ async function handleDonationCheckout(
       .single();
 
     if (existing) {
-      console.log(`Donation already processed for payment_intent ${paymentIntentId}, skipping`);
+      logger.info(`Donation already processed for payment_intent ${paymentIntentId}, skipping`);
       return;
     }
   }
@@ -446,9 +447,9 @@ async function handleDonationCheckout(
   } as never);
 
   if (insertError) {
-    console.error(`Failed to record donation:`, insertError);
+    logger.error(`Failed to record donation:`, insertError);
     throw insertError;
   }
 
-  console.log(`Donation completed: $${(session.amount_total || 0) / 100} from ${memberEmail}`);
+  logger.info(`Donation completed: $${(session.amount_total || 0) / 100} from ${memberEmail}`);
 }

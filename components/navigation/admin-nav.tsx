@@ -13,6 +13,8 @@ import {
   CreditCard,
   BarChart,
   ClipboardList,
+  Target,
+  Megaphone,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -24,6 +26,8 @@ const navItems = [
   { href: '/admin/posts', label: 'Posts', icon: FileText },
   { href: '/admin/contributions', label: 'Contributions', icon: CreditCard },
   { href: '/admin/surveys', label: 'Surveys', icon: ClipboardList },
+  { href: '/admin/scorecards', label: 'Scorecards', icon: Target },
+  { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
   { href: '/admin/reports', label: 'Reports', icon: BarChart },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];

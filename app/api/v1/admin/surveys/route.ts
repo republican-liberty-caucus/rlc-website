@@ -4,6 +4,7 @@ import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { surveyCreateSchema } from '@/lib/validations/survey';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
     if (surveyError.code === '23505') {
       return NextResponse.json({ error: 'A survey with this slug already exists' }, { status: 409 });
     }
-    console.error('Error creating survey:', surveyError);
+    logger.error('Error creating survey:', surveyError);
     return NextResponse.json({ error: 'Failed to create survey' }, { status: 500 });
   }
 
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
     .insert(questions as never[]);
 
   if (questionsError) {
-    console.error('Error creating survey questions:', questionsError);
+    logger.error('Error creating survey questions:', questionsError);
     return NextResponse.json({ error: 'Survey created but questions failed' }, { status: 500 });
   }
 

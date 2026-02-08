@@ -4,6 +4,7 @@ import { createServerClient, getMemberByClerkId, upsertMemberFromClerk } from '@
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import type { Database } from '@/lib/supabase/client';
 import { z } from 'zod';
+import { logger } from '@/lib/logger';
 
 type MemberUpdate = Database['public']['Tables']['rlc_members']['Update'];
 
@@ -48,7 +49,7 @@ export async function GET() {
     const member = await getOrCreateMember(userId);
     return NextResponse.json({ member });
   } catch (error) {
-    console.error('Error getting/creating member:', error);
+    logger.error('Error getting/creating member:', error);
     return NextResponse.json({ error: 'Failed to load profile' }, { status: 500 });
   }
 }
@@ -130,13 +131,13 @@ export async function PATCH(request: Request) {
         membershipStatus: updatedMember.membership_status,
       });
     } catch (hlError) {
-      console.error('Failed to sync to HighLevel:', hlError);
+      logger.error('Failed to sync to HighLevel:', hlError);
       // Don't fail the request if HighLevel sync fails
     }
 
     return NextResponse.json({ member: updatedMember });
   } catch (error) {
-    console.error('Error updating member:', error);
+    logger.error('Error updating member:', error);
     return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
   }
 }

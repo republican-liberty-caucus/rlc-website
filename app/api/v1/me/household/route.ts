@@ -6,6 +6,7 @@ import { getTierConfig } from '@/lib/stripe/client';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import type { MembershipTier, Member } from '@/types';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 const addMemberSchema = z.object({
   firstName: z.string().min(1).max(100),
@@ -50,7 +51,7 @@ export async function GET() {
       .order('created_at');
 
     if (error) {
-      console.error('Error fetching household members:', error);
+      logger.error('Error fetching household members:', error);
       return NextResponse.json({ error: 'Failed to fetch household members' }, { status: 500 });
     }
 
@@ -62,7 +63,7 @@ export async function GET() {
       },
     });
   } catch (err) {
-    console.error('Unexpected error in GET /api/v1/me/household:', err);
+    logger.error('Unexpected error in GET /api/v1/me/household:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
@@ -142,7 +143,7 @@ export async function POST(req: Request) {
         .maybeSingle();
 
       if (updateError) {
-        console.error('Error setting primary household fields:', updateError);
+        logger.error('Error setting primary household fields:', updateError);
         return NextResponse.json({ error: 'Failed to initialize household' }, { status: 500 });
       }
 
@@ -169,7 +170,7 @@ export async function POST(req: Request) {
       .neq('id', member.id);
 
     if (countError) {
-      console.error('Error counting household members:', countError);
+      logger.error('Error counting household members:', countError);
       return NextResponse.json({ error: 'Failed to check household limits' }, { status: 500 });
     }
 
@@ -193,7 +194,7 @@ export async function POST(req: Request) {
       .single();
 
     if (emailError && emailError.code !== 'PGRST116') {
-      console.error('Error checking email:', emailError);
+      logger.error('Error checking email:', emailError);
       return NextResponse.json({ error: 'Failed to validate email' }, { status: 500 });
     }
 
@@ -232,7 +233,7 @@ export async function POST(req: Request) {
           { status: 409 }
         );
       }
-      console.error('Error creating household member:', insertError);
+      logger.error('Error creating household member:', insertError);
       return NextResponse.json({ error: 'Failed to add household member' }, { status: 500 });
     }
 
@@ -253,14 +254,14 @@ export async function POST(req: Request) {
         membershipJoinDate: created.membership_join_date || undefined,
       });
     } catch (hlError) {
-      console.error(`HighLevel sync failed for household member ${created.id} (non-fatal):`, hlError);
+      logger.error(`HighLevel sync failed for household member ${created.id} (non-fatal):`, hlError);
     }
 
-    console.log(`Household member added: ${created.id} (${role}) to household ${householdId} by ${member.id}`);
+    logger.info(`Household member added: ${created.id} (${role}) to household ${householdId} by ${member.id}`);
 
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (err) {
-    console.error('Unexpected error in POST /api/v1/me/household:', err);
+    logger.error('Unexpected error in POST /api/v1/me/household:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

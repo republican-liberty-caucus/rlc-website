@@ -230,6 +230,101 @@ export interface SurveyAnswer {
   score: number | null;
 }
 
+// Phase 5: Liberty Scorecard & Action Center types
+
+export type Jurisdiction = 'federal' | 'state';
+export type ScorecardSessionStatus = 'draft' | 'active' | 'published' | 'archived';
+export type LibertyPosition = 'yea' | 'nay';
+export type BillTrackingStatus = 'tracking' | 'voted' | 'no_vote';
+export type VoteChoice = 'yea' | 'nay' | 'not_voting' | 'absent';
+export type LegislativeChamber = 'us_house' | 'us_senate' | 'state_house' | 'state_senate';
+export type CampaignStatus = 'draft' | 'active' | 'completed' | 'cancelled';
+
+export interface Legislator {
+  id: string;
+  legiscan_people_id: number | null;
+  name: string;
+  party: string;
+  chamber: LegislativeChamber;
+  state_code: string;
+  district: string | null;
+  photo_url: string | null;
+  current_score: number | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScorecardSession {
+  id: string;
+  name: string;
+  slug: string;
+  jurisdiction: Jurisdiction;
+  state_code: string | null;
+  chapter_id: string | null;
+  session_year: number;
+  status: ScorecardSessionStatus;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScorecardBill {
+  id: string;
+  session_id: string;
+  legiscan_bill_id: number | null;
+  bill_number: string;
+  title: string;
+  description: string | null;
+  liberty_position: LibertyPosition;
+  ai_suggested_position: LibertyPosition | null;
+  ai_analysis: string | null;
+  category: string;
+  weight: number;
+  vote_date: string | null;
+  bill_status: BillTrackingStatus;
+  legiscan_roll_call_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ScorecardVote {
+  id: string;
+  bill_id: string;
+  legislator_id: string;
+  vote: VoteChoice;
+  aligned_with_liberty: boolean;
+  created_at: string;
+}
+
+export interface ActionCampaign {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  bill_id: string | null;
+  chapter_id: string | null;
+  target_chamber: LegislativeChamber | null;
+  target_state_code: string | null;
+  message_template: string | null;
+  status: CampaignStatus;
+  created_by: string | null;
+  starts_at: string | null;
+  ends_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CampaignParticipation {
+  id: string;
+  campaign_id: string;
+  member_id: string;
+  action: string;
+  legislator_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data?: T;

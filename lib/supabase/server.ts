@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './client';
 import type { Member } from '@/types';
+import { logger } from '@/lib/logger';
 
 // Server-side Supabase client (uses service role key for admin operations)
 export function createServerClient() {
@@ -32,7 +33,7 @@ export async function getMemberByClerkId(clerkUserId: string): Promise<Member | 
     if (error.code === 'PGRST116') {
       return null;
     }
-    console.error(`Database error fetching member for clerk_user_id="${clerkUserId}":`, error);
+    logger.error(`Database error fetching member for clerk_user_id="${clerkUserId}":`, error);
     throw new Error(`Failed to fetch member: ${error.message}`);
   }
 
@@ -66,7 +67,7 @@ export async function upsertMemberFromClerk(clerkUser: {
     .single();
 
   if (emailLookupError && emailLookupError.code !== 'PGRST116') {
-    console.error(`Database error looking up member by email="${primaryEmail}":`, emailLookupError);
+    logger.error(`Database error looking up member by email="${primaryEmail}":`, emailLookupError);
     throw new Error(`Failed to look up member by email: ${emailLookupError.message}`);
   }
 
@@ -90,11 +91,11 @@ export async function upsertMemberFromClerk(clerkUser: {
       .single();
 
     if (error) {
-      console.error(`Error linking Clerk user ${clerkUser.id} to member ${member.id}:`, error);
+      logger.error(`Error linking Clerk user ${clerkUser.id} to member ${member.id}:`, error);
       throw error;
     }
 
-    console.log(`Linked Clerk user ${clerkUser.id} to existing member ${member.id} (${primaryEmail})`);
+    logger.info(`Linked Clerk user ${clerkUser.id} to existing member ${member.id} (${primaryEmail})`);
     return data as Member;
   }
 
@@ -116,7 +117,7 @@ export async function upsertMemberFromClerk(clerkUser: {
     .single();
 
   if (error) {
-    console.error('Error upserting member:', error);
+    logger.error('Error upserting member:', error);
     throw error;
   }
 
@@ -133,7 +134,7 @@ export async function getMemberContributionTotal(memberId: string): Promise<numb
     .eq('payment_status', 'completed');
 
   if (error) {
-    console.error('Error fetching contribution total:', error);
+    logger.error('Error fetching contribution total:', error);
     return 0;
   }
 

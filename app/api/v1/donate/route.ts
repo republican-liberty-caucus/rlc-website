@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createDonationCheckoutSession } from '@/lib/stripe/client';
 import { getMemberByClerkId } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 const donateSchema = z.object({
   amount: z.number().int().min(100).max(10000000), // $1 to $100,000 in cents
@@ -56,7 +57,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Donation checkout creation failed:', error);
+    logger.error('Donation checkout creation failed:', error);
     return NextResponse.json(
       { error: 'Failed to create donation checkout' },
       { status: 500 }
