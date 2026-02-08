@@ -29,68 +29,63 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
  */
 function promoteHeadings(html: string): string {
   if (!html) return '';
-  let output = html;
+  try {
+    let output = html;
 
-  // Normalize line endings for consistent matching
-  output = output.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    // Normalize line endings for consistent matching
+    output = output.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 
-  // Remove empty/whitespace-only bold tags
-  output = output.replace(/<strong>(?:\s|&nbsp;)*<\/strong>/gi, '');
+    // Remove empty/whitespace-only bold tags
+    output = output.replace(/<strong>(?:\s|&nbsp;)*<\/strong>/gi, '');
 
-  // --- Content WITH <p> tags (committees, speakers, etc.) ---
-  // <p><strong>Title</strong></p> → <h3> (or <h2> for Articles)
-  // Skip if inner content contains <img> (speakers page has images in bold)
-  output = output.replace(
-    /<p[^>]*>\s*<strong>([\s\S]*?)<\/strong>(?:\s|&nbsp;)*<\/p>/gi,
-    (_match, inner: string) => {
-      if (/<img/i.test(inner)) return _match;
-      const clean = inner.replace(/<br\s*\/?>/gi, '').replace(/&nbsp;/gi, ' ').trim();
-      if (!clean) return '';
-      if (/^Article\s+/i.test(clean)) return `<h2>${clean}</h2>`;
-      return `<h3>${clean}</h3>`;
-    },
-  );
+    // --- Content WITH <p> tags (committees, speakers, etc.) ---
+    // <p><strong>Title</strong></p> → <h3> (or <h2> for Articles)
+    // Skip if inner content contains <img> or nested <strong>
+    output = output.replace(
+      /<p[^>]*>\s*<strong>([\s\S]*?)<\/strong>(?:\s|&nbsp;)*<\/p>/gi,
+      (_match, inner: string) => {
+        if (/<img/i.test(inner)) return _match;
+        if (/<strong/i.test(inner)) return _match;
+        const clean = inner.replace(/<br\s*\/?>/gi, '').replace(/&nbsp;/gi, ' ').trim();
+        if (!clean) return '';
+        if (/^Article\s+/i.test(clean)) return `<h2>${clean}</h2>`;
+        return `<h3>${clean}</h3>`;
+      },
+    );
 
-  // --- Content WITHOUT <p> tags (bylaws, principles) ---
+    // --- Content WITHOUT <p> tags (bylaws, principles) ---
 
-  // Article headings → <h2>
-  output = output.replace(
-    /<strong>(Article\s+[^<]+)<\/strong>/gi,
-    '\n\n<h2>$1</h2>\n\n',
-  );
+    // Article / "Caucus Rules" → <h2>
+    output = output.replace(
+      /<strong>((?:Article\s+[^<]+|Caucus Rules))<\/strong>/gi,
+      '\n\n<h2>$1</h2>\n\n',
+    );
 
-  // "Caucus Rules" major section → <h2>
-  output = output.replace(
-    /<strong>(Caucus Rules)<\/strong>/gi,
-    '\n\n<h2>$1</h2>\n\n',
-  );
+    // Rule / Section headings → <h3>
+    // Section is often followed immediately by text: <strong>Section 1:</strong>Text here...
+    // The inserted newlines let wpautop wrap the trailing text in its own <p>.
+    output = output.replace(
+      /<strong>((?:Rule\s+\d+\.\s+[^<]+|Section\s+\d+\s*:))<\/strong>/gi,
+      '\n\n<h3>$1</h3>\n\n',
+    );
 
-  // Rule headings → <h3>
-  output = output.replace(
-    /<strong>(Rule\s+\d+\.\s+[^<]+)<\/strong>/gi,
-    '\n\n<h3>$1</h3>\n\n',
-  );
+    // Standalone bold topic headers on their own line (principles: "Bill of Rights", "Taxation", etc.)
+    // Must be >4 chars, start with uppercase, alone on a line, and not a letter label (A. B.)
+    output = output.replace(
+      /^<strong>([A-Z][^<]{4,})<\/strong>$/gm,
+      (_match, inner: string) => {
+        const trimmed = inner.trim();
+        if (/^[A-Z]\.\s/.test(trimmed)) return _match;
+        return `<h3>${trimmed}</h3>`;
+      },
+    );
 
-  // Section headings → <h3>
-  // Often followed immediately by text: <strong>Section 1:</strong>Text here...
-  // Insert paragraph break so wpautop wraps the trailing text
-  output = output.replace(
-    /<strong>(Section\s+\d+\s*:)<\/strong>/gi,
-    '\n\n<h3>$1</h3>\n\n',
-  );
-
-  // Standalone bold topic headers on their own line (principles: "Bill of Rights", "Taxation", etc.)
-  // Must be >4 chars, start with uppercase, alone on a line, and not a letter label (A. B.)
-  output = output.replace(
-    /^<strong>([A-Z][^<]{4,})<\/strong>$/gm,
-    (_match, inner: string) => {
-      const trimmed = inner.trim();
-      if (/^[A-Z]\.\s/.test(trimmed)) return _match;
-      return `<h3>${trimmed}</h3>`;
-    },
-  );
-
-  return output;
+    return output;
+  } catch {
+    // Return original HTML rather than crashing the page render
+    console.error('[promoteHeadings] Failed to transform content, returning original HTML');
+    return html;
+  }
 }
 
 /**
