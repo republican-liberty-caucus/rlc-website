@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { getMemberByClerkId } from '@/lib/supabase/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate, formatCurrency } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/empty-state';
+import { CreditCard } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Contributions',
@@ -152,15 +154,12 @@ export default async function ContributionsPage() {
           </div>
         </div>
       ) : (
-        <div className="rounded-lg border bg-muted/50 p-12 text-center">
-          <h2 className="mb-4 text-xl font-semibold">No Contributions Yet</h2>
-          <p className="mb-6 text-muted-foreground">
-            Your contribution history will appear here once you make a donation or payment.
-          </p>
-          <Button asChild className="bg-rlc-red hover:bg-rlc-red/90">
-            <Link href="/donate">Make Your First Donation</Link>
-          </Button>
-        </div>
+        <EmptyState
+          icon={<CreditCard className="h-12 w-12" />}
+          title="No Contributions Yet"
+          description="Your contribution history will appear here once you make a donation or payment."
+          action={{ label: 'Make Your First Donation', href: '/donate' }}
+        />
       )}
     </div>
   );

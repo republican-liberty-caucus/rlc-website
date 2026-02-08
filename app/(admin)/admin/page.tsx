@@ -286,8 +286,8 @@ export default async function AdminDashboardPage() {
               <p className="text-sm text-muted-foreground">Upcoming Events</p>
               <p className="text-2xl font-bold">{stats.upcomingEvents}</p>
             </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rlc-gold/10">
-              <Calendar className="h-6 w-6 text-rlc-gold" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rlc-blue/10">
+              <Calendar className="h-6 w-6 text-rlc-blue" />
             </div>
           </div>
         </div>

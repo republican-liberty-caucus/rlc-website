@@ -65,7 +65,7 @@ export default async function DonatePage() {
               </p>
             </div>
             <div className="rounded-lg bg-card p-6 text-center">
-              <div className="mb-4 text-4xl font-bold text-rlc-gold">$500</div>
+              <div className="mb-4 text-4xl font-bold text-rlc-blue">$500</div>
               <p className="text-muted-foreground">
                 Funds candidate vetting and endorsement processes in your state
               </p>

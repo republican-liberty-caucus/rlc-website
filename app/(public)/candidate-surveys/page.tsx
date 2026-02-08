@@ -4,6 +4,8 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/empty-state';
+import { ClipboardList } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Candidate Surveys',
@@ -84,11 +86,12 @@ export default async function CandidateSurveysPage() {
               ))}
             </div>
           ) : (
-            <div className="text-center py-16">
-              <p className="text-lg text-muted-foreground">
-                No active surveys at this time. Check back soon!
-              </p>
-            </div>
+            <EmptyState
+              icon={<ClipboardList className="h-12 w-12" />}
+              title="No Active Surveys"
+              description="Candidate surveys are published during election season. Check back closer to election time."
+              action={{ label: 'View Scorecards', href: '/scorecards' }}
+            />
           )}
         </div>
       </section>

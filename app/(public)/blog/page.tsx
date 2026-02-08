@@ -5,6 +5,8 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/utils';
+import { EmptyState } from '@/components/ui/empty-state';
+import { FileText } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'News & Blog',
@@ -110,12 +112,12 @@ export default async function BlogPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border bg-muted/50 p-12 text-center">
-              <h2 className="mb-4 text-2xl font-semibold">No Posts Yet</h2>
-              <p className="text-muted-foreground">
-                Check back soon for news and updates from the RLC.
-              </p>
-            </div>
+            <EmptyState
+              icon={<FileText className="h-12 w-12" />}
+              title="No Posts Yet"
+              description="Follow us on social media for the latest news and updates from the RLC."
+              action={{ label: 'Visit Action Center', href: '/action-center' }}
+            />
           )}
         </div>
       </section>

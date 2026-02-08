@@ -134,8 +134,8 @@ export default async function DashboardPage() {
 
         <div className="rounded-lg border bg-card p-6">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rlc-gold/10">
-              <Calendar className="h-5 w-5 text-rlc-gold" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rlc-blue/10">
+              <Calendar className="h-5 w-5 text-rlc-blue" />
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Events Attended</p>
