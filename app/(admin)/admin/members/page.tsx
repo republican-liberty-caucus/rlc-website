@@ -1,10 +1,14 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
+import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
+import { getAdminContext, applyMemberFilters } from '@/lib/admin/permissions';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { Search, Download, Filter } from 'lucide-react';
-import { MembershipTier, MembershipStatus } from '@/types';
+import { Download } from 'lucide-react';
+import { MemberFilters } from '@/components/admin/member-filters';
+import type { MembershipTier, MembershipStatus } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Members - Admin',
@@ -33,7 +37,10 @@ interface MemberRow {
   primary_chapter: { name: string } | null;
 }
 
-async function getMembers(searchParams: SearchParams) {
+async function getMembers(
+  searchParams: SearchParams,
+  visibleChapterIds: string[] | null
+) {
   const supabase = createServerClient();
   const page = parseInt(searchParams.page || '1', 10);
   const limit = 20;
@@ -50,19 +57,12 @@ async function getMembers(searchParams: SearchParams) {
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  if (searchParams.search) {
-    query = query.or(`email.ilike.%${searchParams.search}%,first_name.ilike.%${searchParams.search}%,last_name.ilike.%${searchParams.search}%`);
-  }
+  query = applyMemberFilters(query, visibleChapterIds, searchParams);
 
-  if (searchParams.status) {
-    query = query.eq('membership_status', searchParams.status);
+  const { data, count, error } = await query;
+  if (error) {
+    throw new Error(`Failed to fetch members: ${error.message}`);
   }
-
-  if (searchParams.tier) {
-    query = query.eq('membership_tier', searchParams.tier);
-  }
-
-  const { data, count } = await query;
   const members = (data || []) as MemberRow[];
 
   return {
@@ -73,13 +73,38 @@ async function getMembers(searchParams: SearchParams) {
   };
 }
 
+function buildFilterParams(params: SearchParams, page?: number): URLSearchParams {
+  const sp = new URLSearchParams();
+  if (page) sp.set('page', String(page));
+  if (params.search) sp.set('search', params.search);
+  if (params.status) sp.set('status', params.status);
+  if (params.tier) sp.set('tier', params.tier);
+  return sp;
+}
+
+function buildPageUrl(params: SearchParams, page: number): string {
+  return `/admin/members?${buildFilterParams(params, page).toString()}`;
+}
+
+function buildExportUrl(params: SearchParams): string {
+  return `/api/v1/admin/members/export?${buildFilterParams(params).toString()}`;
+}
+
 export default async function AdminMembersPage({
   searchParams,
 }: {
   searchParams: Promise<SearchParams>;
 }) {
+  const { userId } = await auth();
+  if (!userId) redirect('/sign-in');
+  const ctx = await getAdminContext(userId);
+  if (!ctx) redirect('/dashboard?error=unauthorized');
+
   const params = await searchParams;
-  const { members, total, page, totalPages } = await getMembers(params);
+  const { members, total, page, totalPages } = await getMembers(
+    params,
+    ctx.visibleChapterIds
+  );
 
   const statusColors: Record<string, string> = {
     new_member: 'bg-blue-100 text-blue-800',
@@ -102,54 +127,17 @@ export default async function AdminMembersPage({
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button className="bg-rlc-red hover:bg-rlc-red/90">
-            Add Member
-          </Button>
+          <a href={buildExportUrl(params)}>
+            <Button variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export
+            </Button>
+          </a>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="mb-6 flex flex-wrap gap-4">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            placeholder="Search members..."
-            defaultValue={params.search}
-            className="w-full rounded-md border bg-background pl-10 pr-4 py-2 focus:border-rlc-red focus:outline-none focus:ring-1 focus:ring-rlc-red"
-          />
-        </div>
-        <select
-          defaultValue={params.status || ''}
-          className="rounded-md border bg-background px-3 py-2"
-        >
-          <option value="">All Statuses</option>
-          <option value="new_member">New</option>
-          <option value="current">Current</option>
-          <option value="grace">Grace</option>
-          <option value="expired">Expired</option>
-          <option value="pending">Pending</option>
-          <option value="cancelled">Cancelled</option>
-          <option value="expiring">Expiring</option>
-        </select>
-        <select
-          defaultValue={params.tier || ''}
-          className="rounded-md border bg-background px-3 py-2"
-        >
-          <option value="">All Tiers</option>
-          <option value="student_military">Student/Military</option>
-          <option value="individual">Individual</option>
-          <option value="premium">Premium</option>
-          <option value="sustaining">Sustaining</option>
-          <option value="patron">Patron</option>
-          <option value="benefactor">Benefactor</option>
-          <option value="roundtable">Roundtable</option>
-        </select>
-      </div>
+      <MemberFilters />
 
       {/* Members Table */}
       <div className="rounded-lg border bg-card">
@@ -204,6 +192,13 @@ export default async function AdminMembersPage({
                   </td>
                 </tr>
               ))}
+              {members.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                    No members found.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
@@ -217,7 +212,7 @@ export default async function AdminMembersPage({
             <div className="flex gap-2">
               {page > 1 && (
                 <Link
-                  href={`/admin/members?page=${page - 1}${params.search ? `&search=${params.search}` : ''}${params.status ? `&status=${params.status}` : ''}${params.tier ? `&tier=${params.tier}` : ''}`}
+                  href={buildPageUrl(params, page - 1)}
                   className="rounded border px-3 py-1 text-sm hover:bg-muted"
                 >
                   Previous
@@ -225,7 +220,7 @@ export default async function AdminMembersPage({
               )}
               {page < totalPages && (
                 <Link
-                  href={`/admin/members?page=${page + 1}${params.search ? `&search=${params.search}` : ''}${params.status ? `&status=${params.status}` : ''}${params.tier ? `&tier=${params.tier}` : ''}`}
+                  href={buildPageUrl(params, page + 1)}
                   className="rounded border px-3 py-1 text-sm hover:bg-muted"
                 >
                   Next

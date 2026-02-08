@@ -1,0 +1,230 @@
+import { auth } from '@clerk/nextjs/server';
+import { redirect, notFound } from 'next/navigation';
+import Link from 'next/link';
+import { createServerClient } from '@/lib/supabase/server';
+import { getAdminContext, canManageRoles, canViewMember } from '@/lib/admin/permissions';
+import { formatDate, formatCurrency } from '@/lib/utils';
+import { MemberDetailForm } from '@/components/admin/member-detail-form';
+import { MemberRolesCard } from '@/components/admin/member-roles-card';
+import { ArrowLeft } from 'lucide-react';
+import type { Member, Chapter, Contribution } from '@/types';
+import type { AdminRole } from '@/lib/admin/permissions';
+
+interface MemberRoleRow extends AdminRole {
+  chapter: { name: string } | null;
+  granter: { first_name: string; last_name: string } | null;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from('rlc_members')
+    .select('first_name, last_name')
+    .eq('id', id)
+    .single();
+
+  const member = data as { first_name: string; last_name: string } | null;
+  return {
+    title: member ? `${member.first_name} ${member.last_name} - Admin` : 'Member - Admin',
+  };
+}
+
+export default async function AdminMemberDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { userId } = await auth();
+  if (!userId) redirect('/sign-in');
+  const ctx = await getAdminContext(userId);
+  if (!ctx) redirect('/dashboard?error=unauthorized');
+
+  const { id } = await params;
+  const supabase = createServerClient();
+
+  // Fetch member
+  const { data: memberData, error: memberError } = await supabase
+    .from('rlc_members')
+    .select('*')
+    .eq('id', id)
+    .single();
+
+  if (memberError || !memberData) notFound();
+  const member = memberData as Member;
+
+  // Check chapter visibility
+  if (!canViewMember(ctx, member.primary_chapter_id)) {
+    redirect('/admin/members?error=forbidden');
+  }
+
+  // Fetch chapters, contributions, roles, and household in parallel
+  const [chaptersRes, contributionsRes, rolesRes, householdRes] = await Promise.all([
+    (ctx.visibleChapterIds !== null
+      ? supabase.from('rlc_chapters').select('id, name').in('id', ctx.visibleChapterIds).order('name')
+      : supabase.from('rlc_chapters').select('id, name').order('name')
+    ),
+    supabase
+      .from('rlc_contributions')
+      .select('*')
+      .eq('member_id', id)
+      .order('created_at', { ascending: false })
+      .limit(10),
+    supabase
+      .from('rlc_member_roles')
+      .select(`
+        id, role, chapter_id, granted_by, granted_at, expires_at,
+        chapter:rlc_chapters(name),
+        granter:rlc_members!rlc_member_roles_granted_by_fkey(first_name, last_name)
+      `)
+      .eq('member_id', id),
+    member.household_id
+      ? supabase
+          .from('rlc_members')
+          .select('id, first_name, last_name, email, household_role')
+          .eq('household_id', member.household_id)
+          .neq('id', id)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const chapters = (chaptersRes.data || []) as Pick<Chapter, 'id' | 'name'>[];
+  const contributions = (contributionsRes.data || []) as Contribution[];
+  const memberRoles = (rolesRes.data || []) as MemberRoleRow[];
+  const householdMembers = (householdRes.data || []) as {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string;
+    household_role: string | null;
+  }[];
+
+  const showRoleManagement = canManageRoles(ctx);
+
+  return (
+    <div>
+      <div className="mb-6">
+        <Link
+          href="/admin/members"
+          className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Members
+        </Link>
+      </div>
+
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">
+          {member.first_name} {member.last_name}
+        </h1>
+        <p className="mt-1 text-muted-foreground">{member.email}</p>
+      </div>
+
+      <div className="grid gap-8 lg:grid-cols-3">
+        {/* Left Column: Edit Form (2/3 width) */}
+        <div className="lg:col-span-2">
+          <MemberDetailForm member={member} chapters={chapters} isNational={ctx.isNational} />
+        </div>
+
+        {/* Right Column: Info Cards (1/3 width) */}
+        <div className="space-y-6">
+          {/* Membership Info Card */}
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="mb-4 font-semibold">Membership Info</h2>
+            <dl className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-muted-foreground">Member Since</dt>
+                <dd>{member.membership_join_date ? formatDate(member.membership_join_date) : formatDate(member.created_at)}</dd>
+              </div>
+              {member.membership_start_date && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Period Start</dt>
+                  <dd>{formatDate(member.membership_start_date)}</dd>
+                </div>
+              )}
+              {member.membership_expiry_date && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Expiry Date</dt>
+                  <dd>{formatDate(member.membership_expiry_date)}</dd>
+                </div>
+              )}
+              {member.stripe_customer_id && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">Stripe ID</dt>
+                  <dd className="font-mono text-xs">{member.stripe_customer_id}</dd>
+                </div>
+              )}
+              {member.highlevel_contact_id && (
+                <div className="flex justify-between">
+                  <dt className="text-muted-foreground">HighLevel ID</dt>
+                  <dd className="font-mono text-xs">{member.highlevel_contact_id}</dd>
+                </div>
+              )}
+            </dl>
+          </div>
+
+          {/* Household Card */}
+          {householdMembers.length > 0 && (
+            <div className="rounded-lg border bg-card p-6">
+              <h2 className="mb-4 font-semibold">Household</h2>
+              <ul className="space-y-2">
+                {householdMembers.map((hm) => (
+                  <li key={hm.id} className="flex items-center justify-between text-sm">
+                    <Link href={`/admin/members/${hm.id}`} className="text-rlc-red hover:underline">
+                      {hm.first_name} {hm.last_name}
+                    </Link>
+                    <span className="capitalize text-muted-foreground">{hm.household_role}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Contributions Card */}
+          <div className="rounded-lg border bg-card p-6">
+            <h2 className="mb-4 font-semibold">Recent Contributions</h2>
+            {contributions.length > 0 ? (
+              <ul className="space-y-2">
+                {contributions.map((c) => (
+                  <li key={c.id} className="flex items-center justify-between text-sm">
+                    <div>
+                      <span className="capitalize">{c.contribution_type.replace(/_/g, ' ')}</span>
+                      <span className="ml-2 text-muted-foreground">{formatDate(c.created_at)}</span>
+                    </div>
+                    <span className="font-medium text-green-600">
+                      {formatCurrency(Number(c.amount))}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground">No contributions</p>
+            )}
+          </div>
+
+          {/* Roles Card */}
+          {showRoleManagement ? (
+            <MemberRolesCard
+              memberId={member.id}
+              roles={memberRoles}
+              chapters={chapters}
+            />
+          ) : (
+            memberRoles.length > 0 && (
+              <div className="rounded-lg border bg-card p-6">
+                <h2 className="mb-4 font-semibold">Roles</h2>
+                <ul className="space-y-2">
+                  {memberRoles.map((r) => (
+                    <li key={r.id} className="flex items-center justify-between text-sm">
+                      <span className="capitalize">{r.role.replace(/_/g, ' ')}</span>
+                      <span className="text-muted-foreground">{r.chapter?.name || 'National'}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
