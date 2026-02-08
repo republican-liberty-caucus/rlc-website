@@ -19,6 +19,28 @@ const HIGHLEVEL_API_VERSION = '2021-07-28';
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
+// Tier tag mapping (matches lib/highlevel/client.ts)
+const TIER_TAGS: Record<string, string> = {
+  student_military: 'Student/Military Member',
+  individual: 'Individual Member',
+  premium: 'Premium Member',
+  sustaining: 'Sustaining Member',
+  patron: 'Patron Member',
+  benefactor: 'Benefactor Member',
+  roundtable: 'Roundtable Member',
+};
+
+const STATUS_TAGS: Record<string, string> = {
+  new_member: 'Membership: New',
+  current: 'Membership: Current',
+  grace: 'Membership: Grace',
+  expired: 'Membership: Expired',
+  pending: 'Membership: Pending',
+  cancelled: 'Membership: Cancelled',
+  deceased: 'Membership: Deceased',
+  expiring: 'Membership: Expiring',
+};
+
 interface Member {
   id: string;
   email: string;
@@ -31,8 +53,12 @@ interface Member {
   postal_code: string | null;
   membership_tier: string;
   membership_status: string;
+  membership_start_date: string | null;
+  membership_expiry_date: string | null;
+  membership_join_date: string | null;
+  civicrm_contact_id: number | null;
   highlevel_contact_id: string | null;
-  primary_chapter?: { slug: string } | null;
+  primary_chapter?: { slug: string; state_code: string | null } | null;
 }
 
 interface HighLevelContact {
@@ -117,17 +143,42 @@ async function syncMember(
   member: Member,
   dryRun: boolean = false
 ): Promise<{ success: boolean; highlevelId?: string; error?: string }> {
-  const tags = [
-    'RLC Member',
-    `RLC ${member.membership_tier.charAt(0).toUpperCase() + member.membership_tier.slice(1)}`,
-  ];
+  const tags = ['RLC Member'];
+
+  // Add tier tag
+  const tierTag = TIER_TAGS[member.membership_tier];
+  if (tierTag) tags.push(tierTag);
+
+  // Add status tag
+  const statusTag = STATUS_TAGS[member.membership_status];
+  if (statusTag) tags.push(statusTag);
 
   if (member.primary_chapter?.slug) {
     tags.push(`Chapter: ${member.primary_chapter.slug}`);
   }
 
-  if (member.membership_status === 'active') {
-    tags.push('Active Member');
+  // Build custom fields per PRD Section 6
+  const customFields: Record<string, string> = {
+    membership_type_id: member.membership_tier,
+    membership_status_id: member.membership_status,
+    membership_id: member.id,
+  };
+
+  if (member.membership_start_date) {
+    customFields.membership_start_date = member.membership_start_date;
+  }
+  if (member.membership_expiry_date) {
+    customFields.membership_end_date = member.membership_expiry_date;
+  }
+  if (member.membership_join_date) {
+    customFields.membership_join_date = member.membership_join_date;
+    customFields.membership_join_date_initial = member.membership_join_date;
+  }
+  if (member.civicrm_contact_id) {
+    customFields.civicrm_id = String(member.civicrm_contact_id);
+  }
+  if (member.primary_chapter?.state_code) {
+    customFields.charter_state = member.primary_chapter.state_code;
   }
 
   const contactData: HighLevelContact = {
@@ -141,16 +192,12 @@ async function syncMember(
     postalCode: member.postal_code || undefined,
     country: 'US',
     tags,
-    customField: {
-      membership_tier: member.membership_tier,
-      membership_status: member.membership_status,
-      supabase_member_id: member.id,
-    },
+    customField: customFields,
     locationId: HIGHLEVEL_LOCATION_ID,
   };
 
   if (dryRun) {
-    console.log(`[DRY RUN] Would sync: ${member.email}`);
+    console.log(`[DRY RUN] Would sync: ${member.email} (${member.membership_tier}/${member.membership_status})`);
     return { success: true };
   }
 
@@ -206,14 +253,16 @@ async function main() {
     process.exit(1);
   }
 
-  // Get members to sync
+  // Get members to sync — include new fields
   const { data: members, error } = await supabase
     .from('rlc_members')
     .select(`
       id, email, first_name, last_name, phone,
       address_line1, city, state, postal_code,
-      membership_tier, membership_status, highlevel_contact_id,
-      primary_chapter:rlc_chapters(slug)
+      membership_tier, membership_status,
+      membership_start_date, membership_expiry_date, membership_join_date,
+      civicrm_contact_id, highlevel_contact_id,
+      primary_chapter:rlc_chapters(slug, state_code)
     `)
     .order('created_at', { ascending: true });
 
@@ -240,7 +289,7 @@ async function main() {
         console.error(`  Failed: ${member.email} - ${result.error}`);
       }
 
-      // Rate limiting - HighLevel has API limits
+      // Rate limiting — HighLevel: 100 req/10s per location
       await new Promise((resolve) => setTimeout(resolve, 100));
     }
 

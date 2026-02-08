@@ -20,7 +20,7 @@ async function getDashboardStats() {
   const { count: activeMembers } = await supabase
     .from('rlc_members')
     .select('*', { count: 'exact', head: true })
-    .eq('membership_status', 'active');
+    .eq('membership_status', 'current');
 
   // Get chapter count
   const { count: totalChapters } = await supabase

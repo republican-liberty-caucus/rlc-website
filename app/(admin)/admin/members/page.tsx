@@ -82,11 +82,14 @@ export default async function AdminMembersPage({
   const { members, total, page, totalPages } = await getMembers(params);
 
   const statusColors: Record<string, string> = {
-    active: 'bg-green-100 text-green-800',
-    pending: 'bg-yellow-100 text-yellow-800',
+    new_member: 'bg-blue-100 text-blue-800',
+    current: 'bg-green-100 text-green-800',
+    grace: 'bg-yellow-100 text-yellow-800',
     expired: 'bg-red-100 text-red-800',
+    pending: 'bg-yellow-100 text-yellow-800',
     cancelled: 'bg-gray-100 text-gray-800',
-    suspended: 'bg-red-100 text-red-800',
+    deceased: 'bg-gray-100 text-gray-800',
+    expiring: 'bg-orange-100 text-orange-800',
   };
 
   return (
@@ -125,21 +128,26 @@ export default async function AdminMembersPage({
           className="rounded-md border bg-background px-3 py-2"
         >
           <option value="">All Statuses</option>
-          <option value="active">Active</option>
-          <option value="pending">Pending</option>
+          <option value="new_member">New</option>
+          <option value="current">Current</option>
+          <option value="grace">Grace</option>
           <option value="expired">Expired</option>
+          <option value="pending">Pending</option>
           <option value="cancelled">Cancelled</option>
+          <option value="expiring">Expiring</option>
         </select>
         <select
           defaultValue={params.tier || ''}
           className="rounded-md border bg-background px-3 py-2"
         >
           <option value="">All Tiers</option>
-          <option value="supporter">Supporter</option>
-          <option value="member">Member</option>
+          <option value="student_military">Student/Military</option>
+          <option value="individual">Individual</option>
+          <option value="premium">Premium</option>
           <option value="sustaining">Sustaining</option>
-          <option value="lifetime">Lifetime</option>
-          <option value="leadership">Leadership</option>
+          <option value="patron">Patron</option>
+          <option value="benefactor">Benefactor</option>
+          <option value="roundtable">Roundtable</option>
         </select>
       </div>
 

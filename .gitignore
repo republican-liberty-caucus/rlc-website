@@ -39,6 +39,9 @@ prisma/*.db-journal
 *.tsbuildinfo
 next-env.d.ts
 
+# CiviCRM migration data (PII — never commit)
+scripts/civicrm/data/
+
 # Misc
 .eslintcache
 *.pem

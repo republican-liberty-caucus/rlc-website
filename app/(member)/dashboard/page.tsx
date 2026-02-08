@@ -39,11 +39,14 @@ export default async function DashboardPage() {
   }
 
   const membershipStatusColors: Record<string, string> = {
-    active: 'bg-green-100 text-green-800',
-    pending: 'bg-yellow-100 text-yellow-800',
+    new_member: 'bg-blue-100 text-blue-800',
+    current: 'bg-green-100 text-green-800',
+    grace: 'bg-yellow-100 text-yellow-800',
     expired: 'bg-red-100 text-red-800',
+    pending: 'bg-yellow-100 text-yellow-800',
     cancelled: 'bg-gray-100 text-gray-800',
-    suspended: 'bg-red-100 text-red-800',
+    deceased: 'bg-gray-100 text-gray-800',
+    expiring: 'bg-orange-100 text-orange-800',
   };
 
   return (
@@ -79,13 +82,13 @@ export default async function DashboardPage() {
             </div>
             {member.membership_expiry_date && (
               <p className="mt-2 text-sm text-muted-foreground">
-                {member.membership_status === 'active'
+                {member.membership_status === 'current'
                   ? `Renews on ${formatDate(member.membership_expiry_date)}`
                   : `Expired on ${formatDate(member.membership_expiry_date)}`}
               </p>
             )}
           </div>
-          {member.membership_status !== 'active' && (
+          {member.membership_status !== 'current' && member.membership_status !== 'new_member' && (
             <Button asChild className="bg-rlc-red hover:bg-rlc-red/90">
               <Link href="/join">Renew Membership</Link>
             </Button>

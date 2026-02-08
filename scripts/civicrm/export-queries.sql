@@ -6,10 +6,24 @@
 --
 -- IMPORTANT: Review data before running migration scripts.
 -- These queries are for READ-ONLY export purposes.
+--
+-- Target files (save output as JSON to scripts/civicrm/data/):
+--   1. contacts.json
+--   2. memberships.json
+--   3. contributions.json
+--   4. events.json
+--   5. participants.json
+--   6. groups.json
+--   7. group_contacts.json
+--   8. (summary stats — not exported)
+--   9. relationships.json
+--  10. recurring_contributions.json
+--  11. campaigns.json
 -- ===========================================
 
 -- -----------------------------------------
--- 1. Export Contacts
+-- 1. Export Contacts (MEMBERS ONLY)
+-- Only contacts that have at least one membership or contribution
 -- -----------------------------------------
 SELECT
   c.id as civicrm_id,
@@ -39,6 +53,10 @@ LEFT JOIN civicrm_state_province sp ON a.state_province_id = sp.id
 LEFT JOIN civicrm_country co ON a.country_id = co.id
 WHERE c.is_deleted = 0
   AND c.contact_type = 'Individual'
+  AND (
+    c.id IN (SELECT DISTINCT contact_id FROM civicrm_membership WHERE is_test = 0)
+    OR c.id IN (SELECT DISTINCT contact_id FROM civicrm_contribution WHERE is_test = 0)
+  )
 ORDER BY c.id;
 
 -- -----------------------------------------
@@ -170,7 +188,8 @@ SELECT
   (SELECT COUNT(*) FROM civicrm_group_contact gc WHERE gc.group_id = g.id AND gc.status = 'Added') as member_count
 FROM civicrm_group g
 WHERE g.is_active = 1
-  AND (g.title LIKE '%RLC%' OR g.title LIKE '%Chapter%' OR g.name LIKE '%state%')
+  AND (g.title LIKE '%RLC%' OR g.title LIKE '%Chapter%' OR g.name LIKE '%state%'
+       OR g.title LIKE '%Republican Liberty%' OR g.title LIKE '%Caucus%')
 ORDER BY g.title;
 
 -- -----------------------------------------
@@ -190,8 +209,11 @@ ORDER BY gc.group_id, gc.contact_id;
 -- -----------------------------------------
 -- 8. Summary Statistics (for validation)
 -- -----------------------------------------
-SELECT 'contacts' as entity, COUNT(*) as count
-FROM civicrm_contact WHERE is_deleted = 0 AND contact_type = 'Individual'
+SELECT 'contacts_with_membership' as entity, COUNT(DISTINCT m.contact_id) as count
+FROM civicrm_membership m WHERE m.is_test = 0
+UNION ALL
+SELECT 'contacts_with_contribution', COUNT(DISTINCT c.contact_id)
+FROM civicrm_contribution c WHERE c.is_test = 0
 UNION ALL
 SELECT 'memberships', COUNT(*)
 FROM civicrm_membership WHERE is_test = 0
@@ -209,4 +231,70 @@ SELECT 'participants', COUNT(*)
 FROM civicrm_participant WHERE is_test = 0
 UNION ALL
 SELECT 'groups', COUNT(*)
-FROM civicrm_group WHERE is_active = 1;
+FROM civicrm_group WHERE is_active = 1
+UNION ALL
+SELECT 'relationships', COUNT(*)
+FROM civicrm_relationship WHERE is_active = 1;
+
+-- -----------------------------------------
+-- 9. Export Relationships (for Households)
+-- Spouse, child, and head-of-household relationships
+-- -----------------------------------------
+SELECT
+  r.id,
+  r.contact_id_a,
+  r.contact_id_b,
+  rt.name_a_b,
+  rt.name_b_a
+FROM civicrm_relationship r
+JOIN civicrm_relationship_type rt ON r.relationship_type_id = rt.id
+WHERE rt.name_a_b IN ('Spouse of', 'Child of', 'Head of Household for', 'Sibling of')
+  AND r.is_active = 1
+ORDER BY r.contact_id_a;
+
+-- -----------------------------------------
+-- 10. Export Recurring Contributions
+-- For mapping is_recurring flag
+-- -----------------------------------------
+SELECT
+  cr.id as civicrm_recur_id,
+  cr.contact_id as civicrm_contact_id,
+  cr.amount,
+  cr.currency,
+  cr.frequency_unit,
+  cr.frequency_interval,
+  cr.start_date,
+  cr.end_date,
+  cr.cancel_date,
+  cs.name as contribution_status,
+  cr.payment_instrument_id,
+  cr.is_test,
+  cr.cycle_day,
+  cr.next_sched_contribution_date,
+  cr.failure_count
+FROM civicrm_contribution_recur cr
+JOIN civicrm_contribution_status cs ON cr.contribution_status_id = cs.id
+WHERE cr.is_test = 0
+ORDER BY cr.contact_id;
+
+-- -----------------------------------------
+-- 11. Export Campaigns (for attribution)
+-- -----------------------------------------
+SELECT
+  c.id as civicrm_campaign_id,
+  c.name,
+  c.title,
+  c.description,
+  c.start_date,
+  c.end_date,
+  c.campaign_type_id,
+  ct.label as campaign_type,
+  c.status_id,
+  cs.label as campaign_status,
+  c.is_active
+FROM civicrm_campaign c
+LEFT JOIN civicrm_option_value ct ON c.campaign_type_id = ct.value
+  AND ct.option_group_id = (SELECT id FROM civicrm_option_group WHERE name = 'campaign_type')
+LEFT JOIN civicrm_option_value cs ON c.status_id = cs.value
+  AND cs.option_group_id = (SELECT id FROM civicrm_option_group WHERE name = 'campaign_status')
+ORDER BY c.start_date DESC;

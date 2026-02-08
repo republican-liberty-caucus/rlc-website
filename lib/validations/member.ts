@@ -11,12 +11,13 @@ export const profileUpdateSchema = z.object({
   postalCode: z.string().max(10).optional().nullable(),
   emailOptIn: z.boolean().default(true),
   smsOptIn: z.boolean().default(false),
+  doNotPhone: z.boolean().default(false),
 });
 
 export const memberSearchSchema = z.object({
   search: z.string().optional(),
-  status: z.enum(['pending', 'active', 'expired', 'cancelled', 'suspended']).optional(),
-  tier: z.enum(['supporter', 'member', 'sustaining', 'lifetime', 'leadership']).optional(),
+  status: z.enum(['new_member', 'current', 'grace', 'expired', 'pending', 'cancelled', 'deceased', 'expiring']).optional(),
+  tier: z.enum(['student_military', 'individual', 'premium', 'sustaining', 'patron', 'benefactor', 'roundtable']).optional(),
   chapterId: z.string().uuid().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(20),

@@ -1,6 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
+import { createServerClient, getMemberByClerkId, upsertMemberFromClerk } from '@/lib/supabase/server';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import type { Database } from '@/lib/supabase/client';
 import { z } from 'zod';
@@ -21,6 +21,22 @@ const profileUpdateSchema = z.object({
   smsOptIn: z.boolean().optional(),
 });
 
+// Get existing member or auto-create from Clerk user data
+async function getOrCreateMember(clerkUserId: string) {
+  const existing = await getMemberByClerkId(clerkUserId);
+  if (existing) return existing;
+
+  const clerk = await clerkClient();
+  const clerkUser = await clerk.users.getUser(clerkUserId);
+  return upsertMemberFromClerk({
+    id: clerkUser.id,
+    email_addresses: clerkUser.emailAddresses.map((e) => ({ email_address: e.emailAddress })),
+    first_name: clerkUser.firstName,
+    last_name: clerkUser.lastName,
+    phone_numbers: clerkUser.phoneNumbers.map((p) => ({ phone_number: p.phoneNumber })),
+  });
+}
+
 export async function GET() {
   const { userId } = await auth();
 
@@ -28,13 +44,13 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const member = await getMemberByClerkId(userId);
-
-  if (!member) {
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+  try {
+    const member = await getOrCreateMember(userId);
+    return NextResponse.json({ member });
+  } catch (error) {
+    console.error('Error getting/creating member:', error);
+    return NextResponse.json({ error: 'Failed to load profile' }, { status: 500 });
   }
-
-  return NextResponse.json({ member });
 }
 
 export async function PATCH(request: Request) {
@@ -44,13 +60,8 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const member = await getMemberByClerkId(userId);
-
-  if (!member) {
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
-  }
-
   try {
+    const member = await getOrCreateMember(userId);
     const body = await request.json();
 
     // Validate input

@@ -16,19 +16,24 @@ datasource db {
 // ===========================================
 
 enum MembershipTier {
-  supporter   // Free tier
-  member      // Basic paid
-  sustaining  // Monthly recurring
-  lifetime    // One-time lifetime
-  leadership  // Board/officers
+  student_military
+  individual
+  premium
+  sustaining
+  patron
+  benefactor
+  roundtable
 }
 
 enum MembershipStatus {
-  pending
-  active
+  new_member  // "new" is reserved in SQL, so we use new_member in Prisma but map to "new" in app logic
+  current
+  grace
   expired
+  pending
   cancelled
-  suspended
+  deceased
+  expiring
 }
 
 enum ContributionType {
@@ -38,10 +43,40 @@ enum ContributionType {
   merchandise
 }
 
+enum PaymentStatus {
+  pending
+  completed
+  failed
+  refunded
+  cancelled
+}
+
+enum ChapterLevel {
+  national
+  multi_state_region
+  state
+  intra_state_region
+  county
+}
+
+enum ChapterStatus {
+  active
+  inactive
+  forming
+}
+
+enum HouseholdRole {
+  primary
+  spouse
+  child
+}
+
 enum UserRole {
   member
+  chapter_officer
   chapter_admin
   state_chair
+  regional_coordinator
   national_board
   super_admin
 }
@@ -50,20 +85,24 @@ enum UserRole {
 // Core Tables
 // ===========================================
 
-/// State/Regional Chapters
+/// Organizational hierarchy (self-referential)
 model Chapter {
-  id            String   @id @default(uuid())
-  name          String
-  slug          String   @unique
-  stateCode     String?  @map("state_code") @db.Char(2)
-  region        String?
-  status        String   @default("active")
-  websiteUrl    String?  @map("website_url")
-  contactEmail  String?  @map("contact_email")
-  leadership    Json     @default("{}")
-  metadata      Json     @default("{}")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
+  id               String        @id @default(uuid())
+  name             String
+  slug             String        @unique
+  chapterLevel     ChapterLevel  @map("chapter_level")
+  parentChapterId  String?       @map("parent_chapter_id")
+  parent           Chapter?      @relation("ChapterHierarchy", fields: [parentChapterId], references: [id])
+  children         Chapter[]     @relation("ChapterHierarchy")
+  stateCode        String?       @map("state_code") @db.Char(2)
+  regionName       String?       @map("region_name")
+  status           ChapterStatus @default(active)
+  websiteUrl       String?       @map("website_url")
+  contactEmail     String?       @map("contact_email")
+  leadership       Json          @default("{}")
+  metadata         Json          @default("{}")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
 
   // Relations
   members       Member[]
@@ -79,7 +118,7 @@ model Chapter {
 model Member {
   id                   String           @id @default(uuid())
   clerkUserId          String?          @unique @map("clerk_user_id")
-  email                String
+  email                String           @unique
   firstName            String           @map("first_name")
   lastName             String           @map("last_name")
   phone                String?
@@ -91,10 +130,11 @@ model Member {
   country              String           @default("US")
 
   // Membership
-  membershipTier       MembershipTier   @default(supporter) @map("membership_tier")
+  membershipTier       MembershipTier   @default(individual) @map("membership_tier")
   membershipStatus     MembershipStatus @default(pending) @map("membership_status")
   membershipStartDate  DateTime?        @map("membership_start_date")
   membershipExpiryDate DateTime?        @map("membership_expiry_date")
+  membershipJoinDate   DateTime?        @map("membership_join_date")
 
   // Chapter affiliation
   primaryChapterId     String?          @map("primary_chapter_id")
@@ -102,12 +142,20 @@ model Member {
 
   // External IDs
   highlevelContactId   String?          @unique @map("highlevel_contact_id")
-  civicrmContactId     Int?             @map("civicrm_contact_id")
-  stripeCustomerId     String?          @map("stripe_customer_id")
+  civicrmContactId     Int?             @unique @map("civicrm_contact_id")
+  stripeCustomerId     String?          @unique @map("stripe_customer_id")
 
   // Preferences
   emailOptIn           Boolean          @default(true) @map("email_opt_in")
   smsOptIn             Boolean          @default(false) @map("sms_opt_in")
+  doNotPhone           Boolean          @default(false) @map("do_not_phone")
+
+  // Household / family members
+  householdId          String?          @map("household_id")
+  householdRole        HouseholdRole?   @map("household_role")
+  primaryMemberId      String?          @map("primary_member_id")
+  primaryMember        Member?          @relation("HouseholdMembers", fields: [primaryMemberId], references: [id])
+  householdMembers     Member[]         @relation("HouseholdMembers")
 
   metadata             Json             @default("{}")
   createdAt            DateTime         @default(now()) @map("created_at")
@@ -153,7 +201,8 @@ model Contribution {
   // Payment details
   stripePaymentIntentId String?          @map("stripe_payment_intent_id")
   stripeSubscriptionId  String?          @map("stripe_subscription_id")
-  paymentStatus         String           @default("pending") @map("payment_status")
+  paymentStatus         PaymentStatus    @default(pending) @map("payment_status")
+  paymentMethod         String?          @map("payment_method")
 
   // Attribution
   chapterId             String?          @map("chapter_id")
@@ -165,7 +214,9 @@ model Contribution {
   recurringInterval     String?          @map("recurring_interval")
 
   // CiviCRM migration reference
-  civicrmContributionId Int?             @map("civicrm_contribution_id")
+  civicrmContributionId Int?             @unique @map("civicrm_contribution_id")
+  transactionId         String?          @map("transaction_id")
+  source                String?
 
   metadata              Json             @default("{}")
   createdAt             DateTime         @default(now()) @map("created_at")
