@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Plus, ExternalLink } from 'lucide-react';
 import type { Chapter } from '@/types';
 
@@ -66,47 +69,35 @@ export default async function AdminChaptersPage() {
 
   const chapters = await getChapters(ctx.visibleChapterIds);
 
-  const statusColors: Record<string, string> = {
-    active: 'bg-green-100 text-green-800',
-    inactive: 'bg-gray-100 text-gray-800',
-    forming: 'bg-yellow-100 text-yellow-800',
-  };
-
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Chapters</h1>
-          <p className="mt-2 text-muted-foreground">
-            {chapters.length} chapters
-          </p>
-        </div>
-        {ctx.isNational && (
-          <Button className="bg-rlc-red hover:bg-rlc-red/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Add Chapter
-          </Button>
-        )}
-      </div>
+      <PageHeader
+        title="Chapters"
+        count={chapters.length}
+        className="mb-8"
+        action={
+          ctx.isNational ? (
+            <Button className="bg-rlc-red hover:bg-rlc-red/90">
+              <Plus className="mr-2 h-4 w-4" />
+              Add Chapter
+            </Button>
+          ) : undefined
+        }
+      />
 
       {/* Chapters Grid */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {chapters.map((chapter) => (
-          <div key={chapter.id} className="rounded-lg border bg-card p-6">
+          <Card key={chapter.id}>
+            <CardContent className="p-6">
             <div className="mb-4 flex items-start justify-between">
               <div>
-                <h3 className="font-semibold">{chapter.name}</h3>
+                <h3 className="font-heading font-semibold">{chapter.name}</h3>
                 {chapter.state_code && (
                   <p className="text-sm text-muted-foreground">{chapter.state_code}</p>
                 )}
               </div>
-              <span
-                className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${
-                  statusColors[chapter.status] || 'bg-gray-100'
-                }`}
-              >
-                {chapter.status}
-              </span>
+              <StatusBadge status={chapter.status} type="chapter" />
             </div>
 
             <div className="mb-4 space-y-2 text-sm">
@@ -159,7 +150,8 @@ export default async function AdminChaptersPage() {
                 </Button>
               </Link>
             </div>
-          </div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 

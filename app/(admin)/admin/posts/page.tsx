@@ -6,6 +6,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Plus } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -56,27 +58,21 @@ export default async function AdminPostsPage() {
 
   const posts = await getPosts(ctx.visibleChapterIds);
 
-  const statusColors: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-800',
-    published: 'bg-green-100 text-green-800',
-  };
-
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Blog Posts</h1>
-          <p className="mt-2 text-muted-foreground">
-            {posts.length} posts
-          </p>
-        </div>
-        <Link href="/admin/posts/new">
-          <Button className="bg-rlc-red hover:bg-rlc-red/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Post
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Blog Posts"
+        count={posts.length}
+        className="mb-8"
+        action={
+          <Link href="/admin/posts/new">
+            <Button className="bg-rlc-red hover:bg-rlc-red/90">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Post
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="rounded-lg border bg-card">
         <div className="overflow-x-auto">
@@ -102,9 +98,7 @@ export default async function AdminPostsPage() {
                     {post.chapter?.name || 'National'}
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${statusColors[post.status] || 'bg-gray-100'}`}>
-                      {post.status}
-                    </span>
+                    <StatusBadge status={post.status} type="post" />
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {post.published_at ? formatDate(post.published_at) : formatDate(post.created_at)}

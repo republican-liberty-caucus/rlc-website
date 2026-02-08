@@ -6,6 +6,8 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
 import { Plus } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -47,27 +49,21 @@ export default async function AdminCampaignsPage() {
 
   const campaigns = (data || []) as CampaignRow[];
 
-  const statusColors: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-800',
-    active: 'bg-green-100 text-green-800',
-    completed: 'bg-blue-100 text-blue-800',
-    cancelled: 'bg-red-100 text-red-800',
-  };
-
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Action Campaigns</h1>
-          <p className="mt-2 text-muted-foreground">{campaigns.length} campaigns</p>
-        </div>
-        <Link href="/admin/campaigns/new">
-          <Button className="bg-rlc-red hover:bg-rlc-red/90">
-            <Plus className="mr-2 h-4 w-4" />
-            New Campaign
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Action Campaigns"
+        count={campaigns.length}
+        className="mb-8"
+        action={
+          <Link href="/admin/campaigns/new">
+            <Button className="bg-rlc-red hover:bg-rlc-red/90">
+              <Plus className="mr-2 h-4 w-4" />
+              New Campaign
+            </Button>
+          </Link>
+        }
+      />
 
       <div className="rounded-lg border bg-card">
         <div className="overflow-x-auto">
@@ -96,9 +92,7 @@ export default async function AdminCampaignsPage() {
                       {chamberLabel}{stateLabel ? ` (${stateLabel})` : ''}
                     </td>
                     <td className="px-4 py-3 text-sm">
-                      <span className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${statusColors[campaign.status] || 'bg-gray-100'}`}>
-                        {campaign.status}
-                      </span>
+                      <StatusBadge status={campaign.status} type="campaign" />
                     </td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
                       {campaign.starts_at ? formatDate(campaign.starts_at) : '-'}

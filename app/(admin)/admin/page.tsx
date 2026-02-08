@@ -5,7 +5,10 @@ import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { formatCurrency } from '@/lib/utils';
-import { Users, MapPin, Calendar, CreditCard, TrendingUp, AlertTriangle } from 'lucide-react';
+import { StatCard } from '@/components/ui/stat-card';
+import { PageHeader } from '@/components/ui/page-header';
+import { Card, CardContent } from '@/components/ui/card';
+import { Users, MapPin, Calendar, CreditCard, AlertTriangle } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Admin Dashboard',
@@ -244,81 +247,46 @@ export default async function AdminDashboardPage() {
 
   return (
     <div>
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <p className="mt-2 text-muted-foreground">
-          {ctx.isNational ? 'National overview' : `Viewing ${ctx.visibleChapterIds?.length || 0} chapter(s)`}
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        description={ctx.isNational ? 'National overview' : `Viewing ${ctx.visibleChapterIds?.length || 0} chapter(s)`}
+        className="mb-8"
+      />
 
       {/* Stats Grid */}
       <div className="mb-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Total Members</p>
-              <p className="text-2xl font-bold">{stats.totalMembers.toLocaleString()}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rlc-red/10">
-              <Users className="h-6 w-6 text-rlc-red" />
-            </div>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {stats.activeMembers.toLocaleString()} active
-          </p>
-        </div>
-
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Active Chapters</p>
-              <p className="text-2xl font-bold">{stats.totalChapters}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rlc-blue/10">
-              <MapPin className="h-6 w-6 text-rlc-blue" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">Upcoming Events</p>
-              <p className="text-2xl font-bold">{stats.upcomingEvents}</p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-rlc-blue/10">
-              <Calendar className="h-6 w-6 text-rlc-blue" />
-            </div>
-          </div>
-        </div>
-
-        <div className="rounded-lg border bg-card p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-muted-foreground">This Month</p>
-              <p className="text-2xl font-bold">
-                {formatCurrency(stats.monthlyContributions)}
-              </p>
-            </div>
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100">
-              <CreditCard className="h-6 w-6 text-green-600" />
-            </div>
-          </div>
-          <p className="mt-2 flex items-center gap-1 text-sm text-green-600">
-            <TrendingUp className="h-4 w-4" />
-            {stats.newMembersThisMonth} new members
-          </p>
-        </div>
+        <StatCard
+          label="Total Members"
+          value={stats.totalMembers.toLocaleString()}
+          icon={<Users className="h-5 w-5 text-rlc-red" />}
+          description={`${stats.activeMembers.toLocaleString()} active`}
+        />
+        <StatCard
+          label="Active Chapters"
+          value={stats.totalChapters}
+          icon={<MapPin className="h-5 w-5 text-rlc-blue" />}
+        />
+        <StatCard
+          label="Upcoming Events"
+          value={stats.upcomingEvents}
+          icon={<Calendar className="h-5 w-5 text-rlc-blue" />}
+        />
+        <StatCard
+          label="This Month"
+          value={formatCurrency(stats.monthlyContributions)}
+          icon={<CreditCard className="h-5 w-5 text-green-600" />}
+          trend={{ value: `${stats.newMembersThisMonth} new members`, direction: 'up' }}
+        />
       </div>
 
       {/* Expiring Alert */}
       {stats.expiringIn30Days > 0 && (
-        <div className="mb-8 flex items-center gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4">
-          <AlertTriangle className="h-5 w-5 text-orange-600" />
-          <p className="text-sm text-orange-800">
+        <div className="mb-8 flex items-center gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-900 dark:bg-orange-950">
+          <AlertTriangle className="h-5 w-5 shrink-0 text-orange-600" />
+          <p className="text-sm text-orange-800 dark:text-orange-200">
             <span className="font-semibold">{stats.expiringIn30Days}</span> membership{stats.expiringIn30Days !== 1 ? 's' : ''} expiring in the next 30 days.
           </p>
-          <Link href="/admin/members?status=expiring" className="ml-auto text-sm font-medium text-orange-700 hover:underline">
+          <Link href="/admin/members?status=expiring" className="ml-auto text-sm font-medium text-orange-700 hover:underline dark:text-orange-300">
             View
           </Link>
         </div>
@@ -327,98 +295,100 @@ export default async function AdminDashboardPage() {
       {/* Breakdown Cards */}
       <div className="mb-8 grid gap-4 md:grid-cols-2">
         {/* Members by Tier */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 font-semibold">Members by Tier</h2>
-          <div className="space-y-3">
-            {Object.entries(TIER_LABELS).map(([key, label]) => {
-              const count = stats.membersByTier[key] || 0;
-              const pct = totalForBars > 0 ? (count / totalForBars) * 100 : 0;
-              return (
-                <div key={key}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="capitalize">{label}</span>
-                    <span className="font-medium">{count}</span>
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-4 font-heading font-semibold">Members by Tier</h2>
+            <div className="space-y-3">
+              {Object.entries(TIER_LABELS).map(([key, label]) => {
+                const count = stats.membersByTier[key] || 0;
+                const pct = totalForBars > 0 ? (count / totalForBars) * 100 : 0;
+                return (
+                  <div key={key}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span>{label}</span>
+                      <span className="font-medium">{count}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div
+                        className="h-2 rounded-full bg-rlc-red transition-all"
+                        style={{ width: `${Math.max(pct, count > 0 ? 2 : 0)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-muted">
-                    <div
-                      className="h-2 rounded-full bg-rlc-red"
-                      style={{ width: `${Math.max(pct, count > 0 ? 2 : 0)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Members by Status */}
-        <div className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 font-semibold">Members by Status</h2>
-          <div className="space-y-3">
-            {Object.entries(STATUS_LABELS).map(([key, label]) => {
-              const count = stats.membersByStatus[key] || 0;
-              const pct = totalForBars > 0 ? (count / totalForBars) * 100 : 0;
-              return (
-                <div key={key}>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span>{label}</span>
-                    <span className="font-medium">{count}</span>
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="mb-4 font-heading font-semibold">Members by Status</h2>
+            <div className="space-y-3">
+              {Object.entries(STATUS_LABELS).map(([key, label]) => {
+                const count = stats.membersByStatus[key] || 0;
+                const pct = totalForBars > 0 ? (count / totalForBars) * 100 : 0;
+                return (
+                  <div key={key}>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span>{label}</span>
+                      <span className="font-medium">{count}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div
+                        className={`h-2 rounded-full transition-all ${STATUS_COLORS[key] || 'bg-gray-400'}`}
+                        style={{ width: `${Math.max(pct, count > 0 ? 2 : 0)}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="h-2 rounded-full bg-muted">
-                    <div
-                      className={`h-2 rounded-full ${STATUS_COLORS[key] || 'bg-gray-400'}`}
-                      style={{ width: `${Math.max(pct, count > 0 ? 2 : 0)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Activity Grid */}
-      <div className="grid gap-8 lg:grid-cols-2">
+      <div className="grid gap-6 lg:grid-cols-2">
         {/* Recent Members */}
-        <div className="rounded-lg border bg-card">
-          <div className="flex items-center justify-between border-b p-4">
-            <h2 className="font-semibold">Recent Members</h2>
+        <Card>
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <h2 className="font-heading font-semibold">Recent Members</h2>
             <Link href="/admin/members" className="text-sm text-rlc-red hover:underline">
               View all
             </Link>
           </div>
-          <div className="p-4">
+          <CardContent className="p-6">
             {activity.recentMembers.length > 0 ? (
               <ul className="space-y-3">
                 {activity.recentMembers.map((member) => (
                   <li key={member.id} className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">
+                      <Link href={`/admin/members/${member.id}`} className="font-medium hover:text-rlc-red">
                         {member.first_name} {member.last_name}
-                      </p>
+                      </Link>
                       <p className="text-sm text-muted-foreground">{member.email}</p>
                     </div>
-                    <span className="rounded-full bg-muted px-2 py-1 text-xs capitalize">
-                      {member.membership_tier}
-                    </span>
+                    <span className="rounded-full bg-muted px-2 py-1 text-xs capitalize">{member.membership_tier.replace(/_/g, ' ')}</span>
                   </li>
                 ))}
               </ul>
             ) : (
               <p className="text-center text-muted-foreground">No recent members</p>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
 
         {/* Recent Contributions */}
-        <div className="rounded-lg border bg-card">
-          <div className="flex items-center justify-between border-b p-4">
-            <h2 className="font-semibold">Recent Contributions</h2>
-            <Link href="/admin/contributions" className="text-sm text-rlc-red hover:underline">
+        <Card>
+          <div className="flex items-center justify-between border-b px-6 py-4">
+            <h2 className="font-heading font-semibold">Recent Contributions</h2>
+            <Link href="/admin/reports" className="text-sm text-rlc-red hover:underline">
               View all
             </Link>
           </div>
-          <div className="p-4">
+          <CardContent className="p-6">
             {activity.recentContributions.length > 0 ? (
               <ul className="space-y-3">
                 {activity.recentContributions.map((contribution) => (
@@ -442,8 +412,8 @@ export default async function AdminDashboardPage() {
             ) : (
               <p className="text-center text-muted-foreground">No recent contributions</p>
             )}
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

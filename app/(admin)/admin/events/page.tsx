@@ -6,6 +6,9 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status-badge';
+import { Card, CardContent } from '@/components/ui/card';
 import { Plus, Calendar, MapPin, Users, Video } from 'lucide-react';
 import type { Event } from '@/types';
 
@@ -80,89 +83,94 @@ export default async function AdminEventsPage() {
   const upcomingEvents = events.filter((e) => new Date(e.start_date) >= now);
   const pastEvents = events.filter((e) => new Date(e.start_date) < now);
 
-  const statusColors: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-800',
-    published: 'bg-green-100 text-green-800',
-    cancelled: 'bg-red-100 text-red-800',
-  };
+  const EventCard = ({ event }: { event: typeof events[0] }) => {
+    const fillPct = event.max_attendees
+      ? Math.min(Math.round((event.registrationCount / event.max_attendees) * 100), 100)
+      : null;
 
-  const EventCard = ({ event }: { event: typeof events[0] }) => (
-    <div className="rounded-lg border bg-card p-6">
-      <div className="mb-4 flex items-start justify-between">
-        <div>
-          <div className="mb-2 flex items-center gap-2">
-            <span
-              className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${
-                statusColors[event.status] || 'bg-gray-100'
-              }`}
-            >
-              {event.status}
-            </span>
-            {event.is_virtual && (
-              <span className="flex items-center gap-1 rounded-full bg-rlc-blue/10 px-2 py-1 text-xs font-medium text-rlc-blue">
-                <Video className="h-3 w-3" />
-                Virtual
-              </span>
+    return (
+      <Card>
+        <CardContent className="p-6">
+          <div className="mb-4 flex items-start justify-between">
+            <div>
+              <div className="mb-2 flex items-center gap-2">
+                <StatusBadge status={event.status} type="event" />
+                {event.is_virtual && (
+                  <span className="flex items-center gap-1 rounded-full bg-rlc-blue/10 px-2 py-1 text-xs font-medium text-rlc-blue">
+                    <Video className="h-3 w-3" />
+                    Virtual
+                  </span>
+                )}
+              </div>
+              <h3 className="font-heading font-semibold">{event.title}</h3>
+            </div>
+          </div>
+
+          <div className="mb-4 space-y-2 text-sm">
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Calendar className="h-4 w-4" />
+              {formatDate(event.start_date)}
+            </div>
+            {!event.is_virtual && event.city && event.state && (
+              <div className="flex items-center gap-2 text-muted-foreground">
+                <MapPin className="h-4 w-4" />
+                {event.city}, {event.state}
+              </div>
+            )}
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <Users className="h-4 w-4" />
+              {event.registrationCount} registered
+              {event.max_attendees && ` / ${event.max_attendees} max`}
+            </div>
+            {fillPct !== null && (
+              <div className="pt-1">
+                <div className="h-2 rounded-full bg-muted">
+                  <div
+                    className={`h-2 rounded-full transition-all ${fillPct >= 90 ? 'bg-red-500' : fillPct >= 70 ? 'bg-orange-500' : 'bg-green-500'}`}
+                    style={{ width: `${Math.max(fillPct, event.registrationCount > 0 ? 2 : 0)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            {event.registration_fee && (
+              <div className="text-muted-foreground">
+                Fee: {formatCurrency(Number(event.registration_fee))}
+              </div>
             )}
           </div>
-          <h3 className="font-semibold">{event.title}</h3>
-        </div>
-      </div>
 
-      <div className="mb-4 space-y-2 text-sm">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Calendar className="h-4 w-4" />
-          {formatDate(event.start_date)}
-        </div>
-        {!event.is_virtual && event.city && event.state && (
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            {event.city}, {event.state}
+          <div className="flex gap-2">
+            <Link href={`/admin/events/${event.id}`} className="flex-1">
+              <Button variant="outline" size="sm" className="w-full">
+                Edit
+              </Button>
+            </Link>
+            <Link href={`/admin/events/${event.id}/registrations`}>
+              <Button variant="outline" size="sm">
+                Registrations
+              </Button>
+            </Link>
           </div>
-        )}
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <Users className="h-4 w-4" />
-          {event.registrationCount} registered
-          {event.max_attendees && ` / ${event.max_attendees} max`}
-        </div>
-        {event.registration_fee && (
-          <div className="text-muted-foreground">
-            Fee: {formatCurrency(Number(event.registration_fee))}
-          </div>
-        )}
-      </div>
-
-      <div className="flex gap-2">
-        <Link href={`/admin/events/${event.id}`} className="flex-1">
-          <Button variant="outline" size="sm" className="w-full">
-            Edit
-          </Button>
-        </Link>
-        <Link href={`/admin/events/${event.id}/registrations`}>
-          <Button variant="outline" size="sm">
-            Registrations
-          </Button>
-        </Link>
-      </div>
-    </div>
-  );
+        </CardContent>
+      </Card>
+    );
+  };
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Events</h1>
-          <p className="mt-2 text-muted-foreground">
-            {events.length} total events
-          </p>
-        </div>
-        <Link href="/admin/events/new">
-          <Button className="bg-rlc-red hover:bg-rlc-red/90">
-            <Plus className="mr-2 h-4 w-4" />
-            Create Event
-          </Button>
-        </Link>
-      </div>
+      <PageHeader
+        title="Events"
+        count={events.length}
+        className="mb-8"
+        action={
+          <Link href="/admin/events/new">
+            <Button className="bg-rlc-red hover:bg-rlc-red/90">
+              <Plus className="mr-2 h-4 w-4" />
+              Create Event
+            </Button>
+          </Link>
+        }
+      />
 
       {/* Upcoming Events */}
       <section className="mb-12">

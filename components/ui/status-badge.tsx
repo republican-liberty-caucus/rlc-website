@@ -9,7 +9,8 @@ type StatusType =
   | 'chapter'
   | 'event'
   | 'payment'
-  | 'survey';
+  | 'survey'
+  | 'post';
 
 interface StatusBadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   status: string;
@@ -61,6 +62,10 @@ const statusColorMap: Record<StatusType, Record<string, string>> = {
     draft: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
     active: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
     closed: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
+  },
+  post: {
+    draft: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+    published: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
   },
 };
 
