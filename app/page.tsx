@@ -281,8 +281,7 @@ export default async function HomePage() {
             <Button
               asChild
               size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white/10 text-base"
+              className="border-2 border-white bg-transparent text-white hover:bg-white/15 font-semibold text-base px-8"
             >
               <Link href="/donate">Support Our Mission</Link>
             </Button>
