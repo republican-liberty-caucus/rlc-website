@@ -147,18 +147,18 @@ function NavDropdown({
                     key={child.href}
                     href={child.href}
                     className={cn(
-                      'group flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors',
+                      'group flex items-start gap-3 rounded-md px-3 py-2.5 transition-all duration-150',
                       active
-                        ? 'bg-rlc-red/8 text-foreground'
-                        : 'text-foreground/80 hover:bg-muted'
+                        ? 'bg-rlc-red/12 text-foreground'
+                        : 'text-foreground/70 hover:bg-rlc-blue/8 hover:text-foreground'
                     )}
                   >
                     <div
                       className={cn(
-                        'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors',
+                        'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-all duration-150',
                         active
-                          ? 'bg-rlc-red/15 text-rlc-red'
-                          : 'bg-muted text-muted-foreground group-hover:bg-rlc-red/10 group-hover:text-rlc-red'
+                          ? 'bg-rlc-red/20 text-rlc-red'
+                          : 'bg-muted text-muted-foreground group-hover:bg-rlc-blue/15 group-hover:text-rlc-blue'
                       )}
                     >
                       <Icon className="h-4 w-4" />
@@ -166,8 +166,10 @@ function NavDropdown({
                     <div className="min-w-0">
                       <div
                         className={cn(
-                          'text-sm font-medium leading-tight',
-                          active && 'text-rlc-red'
+                          'text-sm font-medium leading-tight transition-colors duration-150',
+                          active
+                            ? 'text-rlc-red'
+                            : 'group-hover:text-foreground'
                         )}
                       >
                         {child.label}
