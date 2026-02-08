@@ -19,6 +19,7 @@ const isPublicRoute = createRouteMatcher([
   '/api/v1/posts(.*)',
   '/scorecards(.*)',
   '/action-center(.*)',
+  '/endorsements(.*)',
   '/candidate-surveys(.*)',
 ]);
 
