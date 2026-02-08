@@ -63,8 +63,7 @@ export function HeroSection({ memberCount, campaignCount, stateCount }: HeroSect
             <Button
               asChild
               size="lg"
-              variant="outline"
-              className="border-white text-white hover:bg-white/10 text-base px-8"
+              className="border-2 border-white bg-transparent text-white hover:bg-white/15 font-semibold text-base px-8"
             >
               <Link href="/join">Join the Movement</Link>
             </Button>

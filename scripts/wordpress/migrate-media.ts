@@ -13,6 +13,9 @@
  *   - Old WordPress server(s) still serving images
  */
 
+import { config } from 'dotenv';
+config({ path: '.env.local' });
+
 import { createClient } from '@supabase/supabase-js';
 
 // ---------------------------------------------------------------------------
