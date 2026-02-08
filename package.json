@@ -38,7 +38,9 @@
     "migrate:civicrm:dry-run": "tsx scripts/migrate-civicrm.ts --dry-run",
     "sync:highlevel": "tsx scripts/sync-highlevel.ts",
     "migrate:wordpress": "tsx scripts/wordpress/migrate-wordpress.ts",
-    "migrate:wordpress:dry-run": "tsx scripts/wordpress/migrate-wordpress.ts --dry-run"
+    "migrate:wordpress:dry-run": "tsx scripts/wordpress/migrate-wordpress.ts --dry-run",
+    "migrate:wordpress:media": "tsx scripts/wordpress/migrate-media.ts",
+    "migrate:wordpress:media:dry-run": "tsx scripts/wordpress/migrate-media.ts --dry-run"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.38",
