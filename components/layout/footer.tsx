@@ -17,10 +17,10 @@ const footerLinks = {
     { href: '/chapters', label: 'Find Your Chapter' },
   ],
   resources: [
-    { href: '/about', label: 'Our Platform' },
-    { href: '/about', label: 'Resolutions' },
-    { href: '/scorecards', label: 'Endorsements' },
-    { href: '/blog', label: 'Press & Media' },
+    { href: '/about/principles', label: 'Our Platform' },
+    { href: '/about/bylaws', label: 'Bylaws & Rules' },
+    { href: '/endorsements', label: 'Endorsements' },
+    { href: '/blog', label: 'News & Blog' },
   ],
 };
 

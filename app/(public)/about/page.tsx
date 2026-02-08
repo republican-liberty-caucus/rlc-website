@@ -1,12 +1,47 @@
 import { Metadata } from 'next';
+import Link from 'next/link';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
+import { BookOpen, History, ScrollText, Users, Mic } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'About Us',
   description:
     'Learn about the Republican Liberty Caucus, our mission, history, and leadership.',
 };
+
+const subPages = [
+  {
+    href: '/about/principles',
+    icon: BookOpen,
+    title: 'Statement of Principles',
+    description: 'Our core platform and policy positions',
+  },
+  {
+    href: '/about/history',
+    icon: History,
+    title: 'History of the RLC',
+    description: 'Our founding story and journey since 1991',
+  },
+  {
+    href: '/about/bylaws',
+    icon: ScrollText,
+    title: 'Bylaws & Rules',
+    description: 'Official governing documents',
+  },
+  {
+    href: '/about/committees',
+    icon: Users,
+    title: 'Committees',
+    description: 'Committee structure and membership',
+  },
+  {
+    href: '/about/speakers',
+    icon: Mic,
+    title: 'Speakers Bureau',
+    description: 'RLC speakers available for events',
+  },
+];
 
 export default function AboutPage() {
   return (
@@ -95,26 +130,26 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* History */}
+      {/* Learn More — sub-page navigation */}
       <section className="py-16">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl">
-            <h2 className="mb-6 text-3xl font-bold text-rlc-blue">Our History</h2>
-            <p className="mb-4 text-lg text-muted-foreground">
-              The Republican Liberty Caucus was founded in 1991 by a group of liberty-minded
-              Republicans who wanted to promote the ideals of limited government and individual
-              freedom within the Republican Party.
-            </p>
-            <p className="mb-4 text-lg text-muted-foreground">
-              Since then, we have grown into a national organization with state chapters across the
-              country. We have been instrumental in promoting liberty-minded candidates and policies
-              at all levels of government.
-            </p>
-            <p className="text-lg text-muted-foreground">
-              Our members have served in positions ranging from local precinct committee positions
-              to the United States Congress, always advocating for the principles of limited
-              government and individual liberty.
-            </p>
+          <h2 className="mb-8 text-center text-3xl font-bold text-rlc-blue">Learn More</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {subPages.map((page) => (
+              <Link
+                key={page.href}
+                href={page.href}
+                className="group flex items-start gap-4 rounded-lg border bg-card p-6 transition-all hover:border-rlc-red hover:shadow-md"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rlc-red/10">
+                  <page.icon className="h-5 w-5 text-rlc-red" />
+                </div>
+                <div>
+                  <h3 className="font-semibold group-hover:text-rlc-red">{page.title}</h3>
+                  <p className="mt-1 text-sm text-muted-foreground">{page.description}</p>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>

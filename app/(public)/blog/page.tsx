@@ -26,25 +26,41 @@ interface PostRow {
   chapter: { name: string; slug: string } | null;
 }
 
-async function getPosts(): Promise<PostRow[]> {
+const PAGE_SIZE = 12;
+
+async function getPosts(page: number): Promise<{ posts: PostRow[]; total: number }> {
   const supabase = createServerClient();
-  const { data } = await supabase
+  const from = (page - 1) * PAGE_SIZE;
+  const to = from + PAGE_SIZE - 1;
+
+  const { data, count } = await supabase
     .from('rlc_posts')
-    .select(`
+    .select(
+      `
       id, title, slug, excerpt, featured_image_url, published_at, categories, tags,
       author:rlc_members(first_name, last_name),
       chapter:rlc_chapters(name, slug)
-    `)
+    `,
+      { count: 'exact' }
+    )
     .eq('status', 'published')
     .not('published_at', 'is', null)
+    .not('categories', 'cs', '{"Pages"}')
     .order('published_at', { ascending: false })
-    .limit(20);
+    .range(from, to);
 
-  return (data || []) as PostRow[];
+  return { posts: (data || []) as PostRow[], total: count || 0 };
 }
 
-export default async function BlogPage() {
-  const posts = await getPosts();
+interface BlogPageProps {
+  searchParams: Promise<{ page?: string }>;
+}
+
+export default async function BlogPage({ searchParams }: BlogPageProps) {
+  const params = await searchParams;
+  const currentPage = Math.max(1, parseInt(params.page || '1', 10) || 1);
+  const { posts, total } = await getPosts(currentPage);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -64,53 +80,95 @@ export default async function BlogPage() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           {posts.length > 0 ? (
-            <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-              {posts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/blog/${post.slug}`}
-                  className="group overflow-hidden rounded-lg border bg-card transition-colors hover:border-rlc-red"
-                >
-                  {post.featured_image_url && (
-                    <div className="relative aspect-video overflow-hidden bg-muted">
-                      <Image
-                        src={post.featured_image_url}
-                        alt={post.title}
-                        fill
-                        unoptimized
-                        className="object-cover transition-transform group-hover:scale-105"
-                      />
-                    </div>
-                  )}
-                  <div className="p-6">
-                    {post.categories.length > 0 && (
-                      <div className="mb-2 flex flex-wrap gap-1">
-                        {post.categories.slice(0, 3).map((cat) => (
-                          <span key={cat} className="rounded-full bg-rlc-red/10 px-2 py-0.5 text-xs font-medium text-rlc-red capitalize">
-                            {cat}
-                          </span>
-                        ))}
+            <>
+              <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                {posts.map((post) => (
+                  <Link
+                    key={post.id}
+                    href={`/blog/${post.slug}`}
+                    className="group overflow-hidden rounded-lg border bg-card transition-colors hover:border-rlc-red"
+                  >
+                    {post.featured_image_url && (
+                      <div className="relative aspect-video overflow-hidden bg-muted">
+                        <Image
+                          src={post.featured_image_url}
+                          alt={post.title}
+                          fill
+                          unoptimized
+                          className="object-cover transition-transform group-hover:scale-105"
+                        />
                       </div>
                     )}
-                    <h2 className="mb-2 text-lg font-semibold group-hover:text-rlc-red">
-                      {post.title}
-                    </h2>
-                    {post.excerpt && (
-                      <p className="mb-4 line-clamp-3 text-sm text-muted-foreground">
-                        {post.excerpt}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      {post.author && (
-                        <span>{post.author.first_name} {post.author.last_name}</span>
+                    <div className="p-6">
+                      {post.categories.length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-1">
+                          {post.categories.slice(0, 3).map((cat) => (
+                            <span
+                              key={cat}
+                              className="rounded-full bg-rlc-red/10 px-2 py-0.5 text-xs font-medium text-rlc-red capitalize"
+                            >
+                              {cat}
+                            </span>
+                          ))}
+                        </div>
                       )}
-                      {post.author && post.published_at && <span>&middot;</span>}
-                      {post.published_at && <span>{formatDate(post.published_at)}</span>}
+                      <h2 className="mb-2 text-lg font-semibold group-hover:text-rlc-red">
+                        {post.title}
+                      </h2>
+                      {post.excerpt && (
+                        <p className="mb-4 line-clamp-3 text-sm text-muted-foreground">
+                          {post.excerpt}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        {post.author && (
+                          <span>
+                            {post.author.first_name} {post.author.last_name}
+                          </span>
+                        )}
+                        {post.author && post.published_at && <span>&middot;</span>}
+                        {post.published_at && <span>{formatDate(post.published_at)}</span>}
+                      </div>
                     </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
+                  </Link>
+                ))}
+              </div>
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <nav className="mt-12 flex items-center justify-center gap-4" aria-label="Blog pagination">
+                  {currentPage > 1 ? (
+                    <Link
+                      href={`/blog?page=${currentPage - 1}`}
+                      className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      &larr; Previous
+                    </Link>
+                  ) : (
+                    <span className="rounded-lg border px-4 py-2 text-sm font-medium text-muted-foreground opacity-50">
+                      &larr; Previous
+                    </span>
+                  )}
+
+                  <span className="text-sm text-muted-foreground">
+                    Page {currentPage} of {totalPages}
+                  </span>
+
+                  {currentPage < totalPages ? (
+                    <Link
+                      href={`/blog?page=${currentPage + 1}`}
+                      className="rounded-lg border px-4 py-2 text-sm font-medium hover:bg-muted"
+                    >
+                      Next &rarr;
+                    </Link>
+                  ) : (
+                    <span className="rounded-lg border px-4 py-2 text-sm font-medium text-muted-foreground opacity-50">
+                      Next &rarr;
+                    </span>
+                  )}
+                </nav>
+              )}
+            </>
           ) : (
             <EmptyState
               icon={<FileText className="h-12 w-12" />}

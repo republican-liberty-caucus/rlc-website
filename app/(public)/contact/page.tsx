@@ -47,10 +47,10 @@ export default function ContactPage() {
                 </div>
                 <h3 className="font-heading font-semibold">Phone</h3>
                 <a
-                  href="tel:+12025551234"
+                  href="tel:+12028211776"
                   className="mt-2 block text-sm text-rlc-blue hover:underline"
                 >
-                  (202) 555-1234
+                  (202) 821-1776
                 </a>
               </div>
 
@@ -58,9 +58,10 @@ export default function ContactPage() {
                 <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-rlc-red/10">
                   <MapPin className="h-6 w-6 text-rlc-red" />
                 </div>
-                <h3 className="font-heading font-semibold">Chapters</h3>
+                <h3 className="font-heading font-semibold">Mailing Address</h3>
                 <p className="mt-2 text-sm text-muted-foreground">
-                  Find your local chapter for state-level contacts.
+                  PO Box 10168<br />
+                  Arlington, VA 22210
                 </p>
               </div>
             </div>

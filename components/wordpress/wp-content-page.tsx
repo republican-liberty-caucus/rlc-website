@@ -1,0 +1,38 @@
+import { MainNav } from '@/components/navigation/main-nav';
+import { Footer } from '@/components/layout/footer';
+
+interface WPContentPageProps {
+  title: string;
+  subtitle?: string;
+  content: string;
+  children?: React.ReactNode;
+}
+
+export function WPContentPage({ title, subtitle, content, children }: WPContentPageProps) {
+  return (
+    <div className="flex min-h-screen flex-col">
+      <MainNav />
+
+      <section className="bg-rlc-blue py-16 text-white">
+        <div className="container mx-auto px-4">
+          <h1 className="text-4xl font-bold">{title}</h1>
+          {subtitle && <p className="mt-4 text-xl text-white/90">{subtitle}</p>}
+        </div>
+      </section>
+
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="mx-auto max-w-4xl">
+            <div
+              className="prose prose-lg max-w-none"
+              dangerouslySetInnerHTML={{ __html: content }}
+            />
+            {children}
+          </div>
+        </div>
+      </section>
+
+      <Footer />
+    </div>
+  );
+}

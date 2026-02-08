@@ -6,7 +6,7 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/utils';
-import sanitizeHtml from 'sanitize-html';
+import { sanitizeWPContent } from '@/lib/wordpress/content';
 
 interface BlogPostProps {
   params: Promise<{ slug: string }>;
@@ -123,18 +123,7 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
               <div
                 className="prose prose-lg mt-8 max-w-none"
                 dangerouslySetInnerHTML={{
-                  __html: sanitizeHtml(post.content, {
-                    allowedTags: sanitizeHtml.defaults.allowedTags.concat(['img', 'iframe', 'figure', 'figcaption', 'video', 'source']),
-                    allowedAttributes: {
-                      ...sanitizeHtml.defaults.allowedAttributes,
-                      img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
-                      iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'title'],
-                      video: ['src', 'controls', 'width', 'height'],
-                      source: ['src', 'type'],
-                      '*': ['class', 'id', 'style'],
-                    },
-                    allowedIframeHostnames: ['www.youtube.com', 'youtube.com', 'player.vimeo.com', 'rumble.com'],
-                  }),
+                  __html: sanitizeWPContent(post.content),
                 }}
               />
             )}
