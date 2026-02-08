@@ -31,7 +31,7 @@ export async function POST(request: Request) {
   // Find candidate response by access token
   const { data: responseData, error: responseError } = await supabase
     .from('rlc_candidate_responses')
-    .select('id, survey_id, status')
+    .select('id, survey_id, status, token_expires_at')
     .eq('access_token', token)
     .single();
 
@@ -39,7 +39,14 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid access token' }, { status: 404 });
   }
 
-  const candidateResponse = responseData as { id: string; survey_id: string; status: string };
+  const candidateResponse = responseData as {
+    id: string; survey_id: string; status: string; token_expires_at: string | null;
+  };
+
+  // Check token expiration (issue #55)
+  if (candidateResponse.token_expires_at && new Date(candidateResponse.token_expires_at) < new Date()) {
+    return NextResponse.json({ error: 'Survey link has expired' }, { status: 410 });
+  }
 
   if (candidateResponse.status === 'submitted') {
     return NextResponse.json({ error: 'Survey already submitted' }, { status: 409 });

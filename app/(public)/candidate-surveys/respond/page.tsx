@@ -24,7 +24,7 @@ export default async function CandidateRespondPage({ searchParams }: RespondPage
   // Find the candidate response and survey
   const { data: responseData, error: responseError } = await supabase
     .from('rlc_candidate_responses')
-    .select('id, survey_id, candidate_name, status')
+    .select('id, survey_id, candidate_name, status, token_expires_at')
     .eq('access_token', token)
     .single();
 
@@ -32,7 +32,26 @@ export default async function CandidateRespondPage({ searchParams }: RespondPage
 
   const candidateResponse = responseData as {
     id: string; survey_id: string; candidate_name: string; status: string;
+    token_expires_at: string | null;
   };
+
+  // Check token expiration (issue #55)
+  if (candidateResponse.token_expires_at && new Date(candidateResponse.token_expires_at) < new Date()) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <MainNav />
+        <section className="flex flex-1 items-center justify-center py-16">
+          <div className="text-center">
+            <h1 className="text-3xl font-bold">Survey Link Expired</h1>
+            <p className="mt-4 text-muted-foreground">
+              This survey link has expired. Please contact the RLC for a new link.
+            </p>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
 
   if (candidateResponse.status === 'submitted') {
     return (

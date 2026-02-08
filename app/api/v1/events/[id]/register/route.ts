@@ -61,19 +61,6 @@ export async function POST(
     return NextResponse.json({ error: 'Registration deadline has passed' }, { status: 400 });
   }
 
-  // Check capacity
-  if (event.max_attendees) {
-    const { count } = await supabase
-      .from('rlc_event_registrations')
-      .select('*', { count: 'exact', head: true })
-      .eq('event_id', eventId)
-      .in('registration_status', ['registered', 'checked_in']);
-
-    if ((count || 0) >= event.max_attendees) {
-      return NextResponse.json({ error: 'This event is full' }, { status: 409 });
-    }
-  }
-
   // Determine member vs guest
   let memberId: string | null = null;
   let guestEmail: string | null = null;
@@ -121,11 +108,14 @@ export async function POST(
     }
   }
 
-  // Create registration
+  // Insert registration, then atomically verify capacity (issue #53).
+  // Insert first, count after — if over capacity, delete and reject.
+  // This prevents the TOCTOU race between a separate count + insert.
+  const registrationId = crypto.randomUUID();
   const { data: registration, error: insertError } = await supabase
     .from('rlc_event_registrations')
     .insert({
-      id: crypto.randomUUID(),
+      id: registrationId,
       event_id: eventId,
       member_id: memberId,
       guest_email: guestEmail,
@@ -139,6 +129,25 @@ export async function POST(
   if (insertError) {
     logger.error('Error creating registration:', insertError);
     return NextResponse.json({ error: 'Failed to register' }, { status: 500 });
+  }
+
+  // Post-insert capacity check: if max_attendees is set, verify we haven't exceeded it
+  if (event.max_attendees) {
+    const { count } = await supabase
+      .from('rlc_event_registrations')
+      .select('*', { count: 'exact', head: true })
+      .eq('event_id', eventId)
+      .in('registration_status', ['registered', 'checked_in']);
+
+    if ((count || 0) > event.max_attendees) {
+      // Over capacity — roll back this registration
+      await supabase
+        .from('rlc_event_registrations')
+        .delete()
+        .eq('id', registrationId);
+
+      return NextResponse.json({ error: 'This event is full' }, { status: 409 });
+    }
   }
 
   return NextResponse.json({ registration }, { status: 201 });
