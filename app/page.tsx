@@ -58,12 +58,13 @@ async function getHomePageData() {
       .order('start_date', { ascending: true })
       .limit(3),
 
-    // Latest 3 blog posts
+    // Latest 3 blog posts (exclude WordPress "Pages" category)
     supabase
       .from('rlc_posts')
       .select('id, title, slug, excerpt, published_at')
       .eq('status', 'published')
       .not('published_at', 'is', null)
+      .not('categories', 'cs', '{"Pages"}')
       .order('published_at', { ascending: false })
       .limit(3),
 
