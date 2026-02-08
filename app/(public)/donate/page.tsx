@@ -3,15 +3,22 @@ import Link from 'next/link';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
+import { DonationForm } from '@/components/donate/donation-form';
+import { createServerClient } from '@/lib/supabase/server';
 
 export const metadata: Metadata = {
   title: 'Donate',
   description: 'Support the Republican Liberty Caucus and help advance liberty within the Republican Party.',
 };
 
-const donationAmounts = [25, 50, 100, 250, 500, 1000];
+export default async function DonatePage() {
+  const supabase = createServerClient();
+  const { data: chapters } = await supabase
+    .from('rlc_chapters')
+    .select('id, name')
+    .eq('status', 'active')
+    .order('name');
 
-export default function DonatePage() {
   return (
     <div className="flex min-h-screen flex-col">
       <MainNav />
@@ -31,62 +38,9 @@ export default function DonatePage() {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl">
-            <div className="rounded-lg border bg-card p-8">
-              <h2 className="mb-6 text-2xl font-bold text-center">Make a Contribution</h2>
-
-              {/* Amount Selection */}
-              <div className="mb-8">
-                <label className="mb-3 block text-sm font-medium">Select Amount</label>
-                <div className="grid grid-cols-3 gap-3">
-                  {donationAmounts.map((amount) => (
-                    <button
-                      key={amount}
-                      className="rounded-lg border-2 border-muted bg-background p-4 text-center font-semibold transition-colors hover:border-rlc-red focus:border-rlc-red focus:outline-none"
-                    >
-                      ${amount}
-                    </button>
-                  ))}
-                </div>
-                <div className="mt-3">
-                  <label className="mb-1 block text-sm text-muted-foreground">
-                    Or enter a custom amount
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                      $
-                    </span>
-                    <input
-                      type="number"
-                      placeholder="0.00"
-                      className="w-full rounded-lg border bg-background pl-8 pr-4 py-3 focus:border-rlc-red focus:outline-none focus:ring-1 focus:ring-rlc-red"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Frequency */}
-              <div className="mb-8">
-                <label className="mb-3 block text-sm font-medium">Donation Frequency</label>
-                <div className="flex gap-3">
-                  <button className="flex-1 rounded-lg border-2 border-rlc-red bg-rlc-red/10 p-3 text-center font-medium text-rlc-red">
-                    One-time
-                  </button>
-                  <button className="flex-1 rounded-lg border-2 border-muted bg-background p-3 text-center font-medium transition-colors hover:border-rlc-red">
-                    Monthly
-                  </button>
-                </div>
-              </div>
-
-              {/* Donate Button */}
-              <Button className="w-full bg-rlc-red hover:bg-rlc-red/90" size="lg">
-                Donate Now
-              </Button>
-
-              <p className="mt-4 text-center text-xs text-muted-foreground">
-                Contributions to the Republican Liberty Caucus are not tax-deductible. The RLC is a
-                527 political organization.
-              </p>
-            </div>
+            <DonationForm
+              chapters={(chapters || []) as { id: string; name: string }[]}
+            />
           </div>
         </div>
       </section>
@@ -130,9 +84,6 @@ export default function DonatePage() {
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button asChild variant="outline">
               <Link href="/join">Become a Member</Link>
-            </Button>
-            <Button asChild variant="outline">
-              <Link href="/volunteer">Volunteer</Link>
             </Button>
             <Button asChild variant="outline">
               <Link href="/chapters">Find Your Chapter</Link>

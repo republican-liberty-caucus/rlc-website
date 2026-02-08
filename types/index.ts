@@ -175,6 +175,61 @@ export interface Post {
   updated_at: string;
 }
 
+export type SurveyStatus = 'draft' | 'active' | 'closed';
+export type CandidateResponseStatus = 'pending' | 'in_progress' | 'submitted' | 'endorsed' | 'not_endorsed';
+export type QuestionType = 'scale' | 'yes_no' | 'text' | 'multiple_choice';
+
+export interface Survey {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  status: SurveyStatus;
+  election_type: string | null;
+  election_date: string | null;
+  state: string | null;
+  chapter_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SurveyQuestion {
+  id: string;
+  survey_id: string;
+  question_text: string;
+  question_type: QuestionType;
+  options: string[];
+  weight: number;
+  sort_order: number;
+  ideal_answer: string | null;
+  created_at: string;
+}
+
+export interface CandidateResponse {
+  id: string;
+  survey_id: string;
+  candidate_name: string;
+  candidate_email: string | null;
+  candidate_party: string | null;
+  candidate_office: string | null;
+  candidate_district: string | null;
+  access_token: string;
+  status: CandidateResponseStatus;
+  total_score: number | null;
+  submitted_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface SurveyAnswer {
+  id: string;
+  candidate_response_id: string;
+  question_id: string;
+  answer: string;
+  score: number | null;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data?: T;

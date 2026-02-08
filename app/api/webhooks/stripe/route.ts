@@ -124,6 +124,13 @@ async function handleCheckoutComplete(
   supabase: ReturnType<typeof createServerClient>,
   session: Stripe.Checkout.Session
 ) {
+  const checkoutType = session.metadata?.type || 'membership';
+
+  if (checkoutType === 'donation') {
+    await handleDonationCheckout(supabase, session);
+    return;
+  }
+
   const customerId = session.customer as string;
   const memberEmail = session.customer_email;
   const tier = session.metadata?.tier;
@@ -382,4 +389,66 @@ async function handleInvoiceFailed(
   }
 
   console.log(`Invoice failed for member ${member.id}`);
+}
+
+async function handleDonationCheckout(
+  supabase: ReturnType<typeof createServerClient>,
+  session: Stripe.Checkout.Session
+) {
+  const memberEmail = session.customer_email;
+  const memberId = session.metadata?.member_id || null;
+  const chapterId = session.metadata?.chapter_id || null;
+  const campaignId = session.metadata?.campaign_id || null;
+  const paymentIntentId = (session.payment_intent as string | null) || null;
+
+  if (!memberEmail) {
+    console.error(`Donation checkout ${session.id} has no customer_email`);
+    throw new Error(`Donation checkout ${session.id} missing customer_email`);
+  }
+
+  // Idempotency check
+  if (paymentIntentId) {
+    const { data: existing } = await supabase
+      .from('rlc_contributions')
+      .select('id')
+      .eq('stripe_payment_intent_id', paymentIntentId)
+      .single();
+
+    if (existing) {
+      console.log(`Donation already processed for payment_intent ${paymentIntentId}, skipping`);
+      return;
+    }
+  }
+
+  // Resolve member_id if provided
+  let resolvedMemberId: string | null = null;
+  if (memberId) {
+    const { data } = await supabase
+      .from('rlc_members')
+      .select('id')
+      .eq('id', memberId)
+      .single();
+    if (data) resolvedMemberId = (data as { id: string }).id;
+  }
+
+  const { error: insertError } = await supabase.from('rlc_contributions').insert({
+    member_id: resolvedMemberId,
+    contribution_type: 'donation',
+    amount: (session.amount_total || 0) / 100,
+    currency: session.currency?.toUpperCase() || 'USD',
+    stripe_payment_intent_id: paymentIntentId,
+    payment_status: 'completed',
+    chapter_id: chapterId || null,
+    campaign_id: campaignId || null,
+    is_recurring: session.mode === 'subscription',
+    source: 'website',
+    metadata: { donor_email: memberEmail },
+  } as never);
+
+  if (insertError) {
+    console.error(`Failed to record donation:`, insertError);
+    throw insertError;
+  }
+
+  console.log(`Donation completed: $${(session.amount_total || 0) / 100} from ${memberEmail}`);
 }

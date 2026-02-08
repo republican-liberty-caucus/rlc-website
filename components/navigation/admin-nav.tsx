@@ -12,6 +12,7 @@ import {
   Settings,
   CreditCard,
   BarChart,
+  ClipboardList,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,6 +23,7 @@ const navItems = [
   { href: '/admin/events', label: 'Events', icon: Calendar },
   { href: '/admin/posts', label: 'Posts', icon: FileText },
   { href: '/admin/contributions', label: 'Contributions', icon: CreditCard },
+  { href: '/admin/surveys', label: 'Surveys', icon: ClipboardList },
   { href: '/admin/reports', label: 'Reports', icon: BarChart },
   { href: '/admin/settings', label: 'Settings', icon: Settings },
 ];

@@ -202,6 +202,80 @@ export async function createCheckoutSession(params: {
   return session;
 }
 
+// ===========================================
+// Donation checkout session creation
+// ===========================================
+
+export async function createDonationCheckoutSession(params: {
+  amount: number; // in cents
+  isRecurring: boolean;
+  donorEmail: string;
+  memberId?: string;
+  chapterId?: string;
+  campaignId?: string;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<Stripe.Checkout.Session> {
+  const stripe = getStripe();
+
+  const metadata: Record<string, string> = {
+    type: 'donation',
+    member_id: params.memberId || '',
+    chapter_id: params.chapterId || '',
+    campaign_id: params.campaignId || '',
+  };
+
+  if (params.isRecurring) {
+    // Create a price for the recurring donation
+    const session = await stripe.checkout.sessions.create({
+      mode: 'subscription',
+      customer_email: params.donorEmail,
+      line_items: [
+        {
+          price_data: {
+            currency: 'usd',
+            product_data: {
+              name: 'RLC Monthly Donation',
+              description: `Monthly donation of $${(params.amount / 100).toFixed(2)}`,
+            },
+            unit_amount: params.amount,
+            recurring: { interval: 'month' },
+          },
+          quantity: 1,
+        },
+      ],
+      metadata,
+      success_url: params.successUrl,
+      cancel_url: params.cancelUrl,
+    });
+
+    return session;
+  }
+
+  const session = await stripe.checkout.sessions.create({
+    mode: 'payment',
+    customer_email: params.donorEmail,
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'RLC Donation',
+            description: `One-time donation of $${(params.amount / 100).toFixed(2)}`,
+          },
+          unit_amount: params.amount,
+        },
+        quantity: 1,
+      },
+    ],
+    metadata,
+    success_url: params.successUrl,
+    cancel_url: params.cancelUrl,
+  });
+
+  return session;
+}
+
 /**
  * Format price in cents to display string
  */
