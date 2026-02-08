@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { createServerClient } from '@/lib/supabase/server';
 import { getStripe, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
+import { triggerWelcomeSequence } from '@/lib/highlevel/notifications';
 import type { Member, MembershipTier, MembershipStatus } from '@/types';
 import { logger } from '@/lib/logger';
 
@@ -258,6 +259,9 @@ async function handleCheckoutComplete(
       membershipExpiryDate: expiryDate.toISOString(),
       membershipJoinDate: member.membership_join_date || now.toISOString(),
     });
+
+    // Trigger welcome email/SMS sequence via HighLevel workflow
+    await triggerWelcomeSequence(member.email);
   } catch (hlError) {
     logger.error('HighLevel sync failed (non-fatal):', hlError);
   }
@@ -424,12 +428,22 @@ async function handleDonationCheckout(
   // Resolve member_id if provided
   let resolvedMemberId: string | null = null;
   if (memberId) {
-    const { data } = await supabase
+    const { data, error: lookupErr } = await supabase
       .from('rlc_members')
       .select('id')
       .eq('id', memberId)
       .single();
-    if (data) resolvedMemberId = (data as { id: string }).id;
+
+    if (lookupErr && lookupErr.code !== 'PGRST116') {
+      logger.error(`Donation checkout: Database error looking up member_id="${memberId}":`, lookupErr);
+      throw new Error(`Database error looking up member for donation: ${lookupErr.message}`);
+    }
+
+    if (data) {
+      resolvedMemberId = (data as { id: string }).id;
+    } else {
+      logger.warn(`Donation checkout ${session.id}: member_id="${memberId}" from metadata not found in database`);
+    }
   }
 
   const { error: insertError } = await supabase.from('rlc_contributions').insert({

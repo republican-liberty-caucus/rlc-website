@@ -4,6 +4,8 @@ import { notFound } from 'next/navigation';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
+import { ShareButtons } from '@/components/shared/share-buttons';
+import { ScoreBadge } from '@/components/ui/score-badge';
 import { ArrowLeft } from 'lucide-react';
 import type { Legislator, ScorecardSession, ScorecardBill, ScorecardVote } from '@/types';
 
@@ -90,11 +92,6 @@ export default async function LegislatorDetailPage({ params }: Props) {
   }
   const score = totalWeight > 0 ? Math.round((alignedWeight / totalWeight) * 10000) / 100 : null;
 
-  const scoreColor = score === null ? 'text-muted-foreground'
-    : score >= 80 ? 'text-green-600'
-    : score >= 50 ? 'text-yellow-600'
-    : 'text-red-600';
-
   const chamberLabels: Record<string, string> = {
     us_house: 'U.S. House',
     us_senate: 'U.S. Senate',
@@ -124,10 +121,18 @@ export default async function LegislatorDetailPage({ params }: Props) {
             </div>
             <div className="ml-auto text-right">
               <p className="text-sm text-white/70">Liberty Score</p>
-              <p className={`text-4xl font-bold ${scoreColor}`}>
-                {score !== null ? `${score}%` : 'N/A'}
-              </p>
+              <div className="mt-1">
+                <ScoreBadge score={score ?? 0} size="lg" />
+              </div>
             </div>
+          </div>
+          <div className="mt-4">
+            <ShareButtons
+              url={`/scorecards/${slug}/${legislatorId}`}
+              title={`${legislator.name} Liberty Score: ${score !== null ? `${score}%` : 'N/A'}`}
+              text={`${legislator.name} (${legislator.party}-${legislator.state_code}) scored ${score !== null ? `${score}%` : 'N/A'} on the ${session.name} Liberty Scorecard.`}
+              compact
+            />
           </div>
         </div>
       </section>

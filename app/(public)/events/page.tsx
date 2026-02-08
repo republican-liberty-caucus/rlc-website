@@ -1,11 +1,13 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import { auth } from '@clerk/nextjs/server';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
-import { createServerClient } from '@/lib/supabase/server';
+import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { EmptyState } from '@/components/ui/empty-state';
+import { MemberContextBadge } from '@/components/shared/member-context-badge';
 import { Calendar } from 'lucide-react';
 
 export const metadata: Metadata = {
@@ -48,6 +50,25 @@ async function getEvents(): Promise<EventWithChapter[]> {
 export default async function EventsPage() {
   const events = await getEvents();
 
+  // Check member registrations
+  let registeredEventIds = new Set<string>();
+  const { userId } = await auth();
+  if (userId) {
+    const member = await getMemberByClerkId(userId);
+    if (member) {
+      try {
+        const supabase = createServerClient();
+        const { data: registrations } = await supabase
+          .from('rlc_event_registrations')
+          .select('event_id')
+          .eq('member_id', member.id);
+        registeredEventIds = new Set((registrations || []).map((r: { event_id: string }) => r.event_id));
+      } catch {
+        // Non-fatal — just don't show registration badges
+      }
+    }
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <MainNav />
@@ -75,7 +96,10 @@ export default async function EventsPage() {
                 >
                   <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                     <div>
-                      <div className="mb-2 flex items-center gap-2">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        {registeredEventIds.has(event.id) && (
+                          <MemberContextBadge label="You're registered" variant="registered" />
+                        )}
                         {event.is_virtual && (
                           <span className="rounded-full bg-rlc-blue/10 px-2 py-1 text-xs font-medium text-rlc-blue">
                             Virtual

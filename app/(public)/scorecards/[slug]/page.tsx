@@ -4,6 +4,7 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { LegislatorTable } from '@/components/scorecards/legislator-table';
+import { ShareButtons } from '@/components/shared/share-buttons';
 import type { ScorecardSession, ScorecardBill, Legislator } from '@/types';
 
 interface Props {
@@ -111,6 +112,15 @@ export default async function ScorecardDetailPage({ params }: Props) {
 
       <section className="py-16">
         <div className="container mx-auto px-4">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
+            <h2 className="font-heading text-xl font-semibold">All Legislators</h2>
+            <ShareButtons
+              url={`/scorecards/${slug}`}
+              title={`${session.name} Liberty Scorecard`}
+              text={`Check out the ${session.name} Liberty Scorecard from the Republican Liberty Caucus!`}
+              compact
+            />
+          </div>
           <LegislatorTable legislators={legislators} scorecardSlug={slug} />
         </div>
       </section>
