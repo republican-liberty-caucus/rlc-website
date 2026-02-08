@@ -282,3 +282,71 @@ export async function createDonationCheckoutSession(params: {
 export function formatPrice(cents: number): string {
   return `$${(cents / 100).toFixed(0)}`;
 }
+
+// ===========================================
+// Stripe Connect (Dues Sharing)
+// ===========================================
+
+/** Create a Stripe Connect Express account for a chapter */
+export async function createConnectAccount(params: {
+  chapterName: string;
+  chapterEmail: string;
+}): Promise<Stripe.Account> {
+  const stripe = getStripe();
+  return stripe.accounts.create({
+    type: 'express',
+    country: 'US',
+    business_type: 'non_profit',
+    business_profile: {
+      name: params.chapterName,
+    },
+    email: params.chapterEmail,
+    capabilities: {
+      transfers: { requested: true },
+    },
+  });
+}
+
+/** Generate an account link for Stripe-hosted onboarding */
+export async function createAccountLink(params: {
+  stripeAccountId: string;
+  returnUrl: string;
+  refreshUrl: string;
+}): Promise<Stripe.AccountLink> {
+  const stripe = getStripe();
+  return stripe.accountLinks.create({
+    account: params.stripeAccountId,
+    type: 'account_onboarding',
+    return_url: params.returnUrl,
+    refresh_url: params.refreshUrl,
+  });
+}
+
+/** Retrieve a Stripe Connect account */
+export async function getConnectAccount(stripeAccountId: string): Promise<Stripe.Account> {
+  const stripe = getStripe();
+  return stripe.accounts.retrieve(stripeAccountId);
+}
+
+/** Create a transfer to a Connected Account */
+export async function createTransfer(params: {
+  amount: number; // in cents
+  destinationAccountId: string;
+  transferGroup?: string;
+  description?: string;
+}): Promise<Stripe.Transfer> {
+  const stripe = getStripe();
+  return stripe.transfers.create({
+    amount: params.amount,
+    currency: 'usd',
+    destination: params.destinationAccountId,
+    transfer_group: params.transferGroup,
+    description: params.description,
+  });
+}
+
+/** Reverse a transfer (for refunds) */
+export async function reverseTransfer(transferId: string): Promise<Stripe.TransferReversal> {
+  const stripe = getStripe();
+  return stripe.transfers.createReversal(transferId);
+}

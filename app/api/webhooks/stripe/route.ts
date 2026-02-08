@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getStripe, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import { triggerWelcomeSequence } from '@/lib/highlevel/notifications';
+import { processDuesSplit } from '@/lib/dues-sharing/split-engine';
 import type { Member, MembershipTier, MembershipStatus } from '@/types';
 import { logger } from '@/lib/logger';
 
@@ -134,6 +135,18 @@ export async function POST(req: Request) {
         break;
       }
 
+      case 'account.updated': {
+        const account = event.data.object as Stripe.Account;
+        await handleAccountUpdated(supabase, account);
+        break;
+      }
+
+      case 'charge.refunded': {
+        const charge = event.data.object as Stripe.Charge;
+        await handleChargeRefunded(supabase, charge);
+        break;
+      }
+
       default:
         logger.info(`Unhandled event type: ${event.type}`);
     }
@@ -248,20 +261,34 @@ async function handleCheckoutComplete(
     throw updateError;
   }
 
-  // Create contribution record
-  const { error: insertError } = await supabase.from('rlc_contributions').insert({
-    member_id: member.id,
-    contribution_type: 'membership',
-    amount: (session.amount_total || 0) / 100,
-    currency: session.currency?.toUpperCase() || 'USD',
-    stripe_payment_intent_id: paymentIntentId,
-    payment_status: 'completed',
-    is_recurring: session.mode === 'subscription',
-  } as never);
+  // Create contribution record — attribute to member's primary chapter for dues splitting
+  const { data: contributionRow, error: insertError } = await supabase
+    .from('rlc_contributions')
+    .insert({
+      member_id: member.id,
+      contribution_type: 'membership',
+      amount: (session.amount_total || 0) / 100,
+      currency: session.currency?.toUpperCase() || 'USD',
+      stripe_payment_intent_id: paymentIntentId,
+      payment_status: 'completed',
+      is_recurring: session.mode === 'subscription',
+      chapter_id: member.primary_chapter_id || null,
+    } as never)
+    .select('id')
+    .single();
 
   if (insertError) {
     logger.error(`Failed to create contribution for member ${member.id}:`, insertError);
     throw insertError;
+  }
+
+  // Process dues split (non-fatal — payment is already recorded)
+  if (contributionRow) {
+    try {
+      await processDuesSplit((contributionRow as { id: string }).id);
+    } catch (splitError) {
+      logger.error(`Dues split failed for contribution ${(contributionRow as { id: string }).id} (non-fatal):`, splitError);
+    }
   }
 
   // Sync to HighLevel (non-fatal)
@@ -372,19 +399,34 @@ async function handleInvoicePaid(
     }
   }
 
-  const { error: insertError } = await supabase.from('rlc_contributions').insert({
-    member_id: member.id,
-    contribution_type: 'membership',
-    amount: (invoice.amount_paid || 0) / 100,
-    currency: invoice.currency?.toUpperCase() || 'USD',
-    stripe_payment_intent_id: paymentIntentId,
-    payment_status: 'completed',
-    is_recurring: true,
-  } as never);
+  // Attribute renewal to member's current chapter (at time of renewal)
+  const { data: contributionRow, error: insertError } = await supabase
+    .from('rlc_contributions')
+    .insert({
+      member_id: member.id,
+      contribution_type: 'membership',
+      amount: (invoice.amount_paid || 0) / 100,
+      currency: invoice.currency?.toUpperCase() || 'USD',
+      stripe_payment_intent_id: paymentIntentId,
+      payment_status: 'completed',
+      is_recurring: true,
+      chapter_id: member.primary_chapter_id || null,
+    } as never)
+    .select('id')
+    .single();
 
   if (insertError) {
     logger.error(`Failed to record contribution for member ${member.id}:`, insertError);
     throw insertError;
+  }
+
+  // Process dues split (non-fatal)
+  if (contributionRow) {
+    try {
+      await processDuesSplit((contributionRow as { id: string }).id);
+    } catch (splitError) {
+      logger.error(`Dues split failed for renewal contribution ${(contributionRow as { id: string }).id} (non-fatal):`, splitError);
+    }
   }
 
   logger.info(`Invoice paid for member ${member.id}`);
@@ -489,4 +531,216 @@ async function handleDonationCheckout(
   }
 
   logger.info(`Donation completed: $${(session.amount_total || 0) / 100} from ${memberEmail}`);
+}
+
+// ===========================================
+// Stripe Connect: account.updated
+// ===========================================
+
+async function handleAccountUpdated(
+  supabase: ReturnType<typeof createServerClient>,
+  account: Stripe.Account
+) {
+  const stripeAccountId = account.id;
+
+  // Find the chapter stripe account
+  const { data: chapterAccount, error: lookupError } = await supabase
+    .from('rlc_chapter_stripe_accounts')
+    .select('id, chapter_id, status')
+    .eq('stripe_account_id', stripeAccountId)
+    .single();
+
+  if (lookupError || !chapterAccount) {
+    // Not one of our connected accounts — ignore
+    logger.info(`account.updated for unknown account ${stripeAccountId}, ignoring`);
+    return;
+  }
+
+  const row = chapterAccount as { id: string; chapter_id: string; status: string };
+  const chargesEnabled = account.charges_enabled ?? false;
+  const payoutsEnabled = account.payouts_enabled ?? false;
+
+  // Determine new status
+  let newStatus: string = row.status;
+  if (chargesEnabled && payoutsEnabled) {
+    newStatus = 'active';
+  } else if (account.details_submitted) {
+    newStatus = 'onboarding'; // Submitted but not yet verified
+  }
+
+  const updatePayload: Record<string, unknown> = {
+    charges_enabled: chargesEnabled,
+    payouts_enabled: payoutsEnabled,
+    status: newStatus,
+  };
+
+  // Mark onboarding completed if newly active
+  if (newStatus === 'active' && row.status !== 'active') {
+    updatePayload.onboarding_completed_at = new Date().toISOString();
+  }
+
+  const { error: updateError } = await supabase
+    .from('rlc_chapter_stripe_accounts')
+    .update(updatePayload as never)
+    .eq('id', row.id);
+
+  if (updateError) {
+    logger.error(`Failed to update ChapterStripeAccount for ${stripeAccountId}:`, updateError);
+    throw updateError;
+  }
+
+  // If newly active, drain pending ledger entries
+  if (newStatus === 'active' && row.status !== 'active') {
+    await drainPendingLedgerEntries(supabase, row.chapter_id, stripeAccountId);
+  }
+
+  logger.info(
+    `account.updated: ${stripeAccountId} → status=${newStatus}, charges=${chargesEnabled}, payouts=${payoutsEnabled}`
+  );
+}
+
+/** Transfer all pending ledger entries for a chapter that just became active */
+async function drainPendingLedgerEntries(
+  supabase: ReturnType<typeof createServerClient>,
+  chapterId: string,
+  stripeAccountId: string
+) {
+  // Import transfer function lazily to avoid circular deps
+  const { executeTransfer } = await import('@/lib/dues-sharing/transfer-engine');
+
+  const { data: pendingEntries, error } = await supabase
+    .from('rlc_split_ledger_entries')
+    .select('id, amount, stripe_transfer_group_id')
+    .eq('recipient_chapter_id', chapterId)
+    .eq('status', 'pending');
+
+  if (error || !pendingEntries || pendingEntries.length === 0) return;
+
+  logger.info(`Draining ${pendingEntries.length} pending ledger entries for chapter ${chapterId}`);
+
+  for (const entry of pendingEntries) {
+    const row = entry as { id: string; amount: number; stripe_transfer_group_id: string | null };
+    try {
+      await executeTransfer({
+        ledgerEntryId: row.id,
+        amountCents: Math.round(Number(row.amount) * 100),
+        destinationAccountId: stripeAccountId,
+        transferGroup: row.stripe_transfer_group_id || undefined,
+      });
+    } catch (transferError) {
+      logger.error(`Failed to drain ledger entry ${row.id} (non-fatal):`, transferError);
+    }
+  }
+}
+
+// ===========================================
+// Refund handling: charge.refunded
+// ===========================================
+
+async function handleChargeRefunded(
+  supabase: ReturnType<typeof createServerClient>,
+  charge: Stripe.Charge
+) {
+  const paymentIntentId = charge.payment_intent as string | null;
+  if (!paymentIntentId) {
+    logger.info('charge.refunded with no payment_intent, skipping');
+    return;
+  }
+
+  // Find the contribution
+  const { data: contribution, error: contribError } = await supabase
+    .from('rlc_contributions')
+    .select('id, amount')
+    .eq('stripe_payment_intent_id', paymentIntentId)
+    .single();
+
+  if (contribError || !contribution) {
+    logger.info(`charge.refunded: No contribution found for pi=${paymentIntentId}`);
+    return;
+  }
+
+  const contribRow = contribution as { id: string; amount: number };
+  const contributionAmountCents = Math.round(Number(contribRow.amount) * 100);
+
+  // Determine if full or partial refund
+  const refundedAmountCents = charge.amount_refunded;
+  const isFullRefund = refundedAmountCents >= contributionAmountCents;
+
+  // Get ledger entries for this contribution (excluding existing reversals)
+  const { data: ledgerEntries, error: ledgerError } = await supabase
+    .from('rlc_split_ledger_entries')
+    .select('id, amount, status, stripe_transfer_id, recipient_chapter_id, reversal_of_id')
+    .eq('contribution_id', contribRow.id)
+    .is('reversal_of_id', null);
+
+  if (ledgerError || !ledgerEntries || ledgerEntries.length === 0) {
+    logger.info(`charge.refunded: No ledger entries for contribution ${contribRow.id}`);
+    return;
+  }
+
+  const { reverseTransfer } = await import('@/lib/stripe/client');
+
+  for (const entry of ledgerEntries) {
+    const row = entry as {
+      id: string;
+      amount: number;
+      status: string;
+      stripe_transfer_id: string | null;
+      recipient_chapter_id: string;
+      reversal_of_id: string | null;
+    };
+
+    const entryAmountCents = Math.round(Number(row.amount) * 100);
+
+    // Calculate proportional refund amount for partial refunds
+    let reversalAmountCents = entryAmountCents;
+    if (!isFullRefund) {
+      const proportion = refundedAmountCents / contributionAmountCents;
+      reversalAmountCents = Math.round(entryAmountCents * proportion);
+    }
+
+    if (row.status === 'transferred' && row.stripe_transfer_id) {
+      // Reverse the Stripe transfer
+      try {
+        await reverseTransfer(row.stripe_transfer_id);
+      } catch (reverseError) {
+        logger.error(`Failed to reverse transfer ${row.stripe_transfer_id}:`, reverseError);
+        // Mark as failed and continue
+        await supabase
+          .from('rlc_split_ledger_entries')
+          .update({ status: 'failed' } as never)
+          .eq('id', row.id);
+        continue;
+      }
+    }
+
+    // Create reversal ledger entry
+    await supabase.from('rlc_split_ledger_entries').insert({
+      contribution_id: contribRow.id,
+      source_type: 'membership',
+      recipient_chapter_id: row.recipient_chapter_id,
+      amount: -(reversalAmountCents / 100),
+      currency: 'USD',
+      status: 'reversed',
+      reversal_of_id: row.id,
+      split_rule_snapshot: { reason: isFullRefund ? 'full_refund' : 'partial_refund', refunded_cents: refundedAmountCents },
+    } as never);
+
+    // Mark original as reversed
+    await supabase
+      .from('rlc_split_ledger_entries')
+      .update({ status: 'reversed' } as never)
+      .eq('id', row.id);
+  }
+
+  // Update contribution payment status
+  await supabase
+    .from('rlc_contributions')
+    .update({ payment_status: isFullRefund ? 'refunded' : 'completed' } as never)
+    .eq('id', contribRow.id);
+
+  logger.info(
+    `charge.refunded: Processed ${isFullRefund ? 'full' : 'partial'} refund for contribution ${contribRow.id} ` +
+    `(${refundedAmountCents} cents refunded)`
+  );
 }

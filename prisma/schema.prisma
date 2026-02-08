@@ -150,6 +150,33 @@ enum CampaignStatus {
   cancelled
 }
 
+// Dues Sharing enums
+
+enum DisbursementModel {
+  national_managed
+  state_managed
+}
+
+enum StripeConnectStatus {
+  not_started
+  onboarding
+  active
+  disabled
+}
+
+enum SplitLedgerStatus {
+  pending
+  transferred
+  reversed
+  failed
+}
+
+enum SplitSourceType {
+  membership
+  donation
+  event_registration
+}
+
 // ===========================================
 // Core Tables
 // ===========================================
@@ -182,6 +209,12 @@ model Chapter {
   surveys            Survey[]
   scorecardSessions  ScorecardSession[]
   actionCampaigns    ActionCampaign[]
+
+  // Dues sharing relations
+  stripeAccount        ChapterStripeAccount?
+  splitConfig          ChapterSplitConfig?
+  splitRulesAsRecipient ChapterSplitRule[]   @relation("SplitRuleRecipient")
+  splitLedgerEntries   SplitLedgerEntry[]    @relation("LedgerRecipient")
 
   @@map("rlc_chapters")
 }
@@ -245,6 +278,9 @@ model Member {
   campaignsCreated        ActionCampaign[]   @relation("CampaignCreator")
   campaignParticipations  CampaignParticipation[]
 
+  // Dues sharing relations
+  splitConfigsUpdated    ChapterSplitConfig[] @relation("SplitConfigUpdater")
+
   @@map("rlc_members")
 }
 
@@ -299,6 +335,7 @@ model Contribution {
 
   // Relations
   eventRegistrations    EventRegistration[]
+  splitLedgerEntries    SplitLedgerEntry[]
 
   @@map("rlc_contributions")
 }
@@ -642,4 +679,83 @@ model CampaignParticipation {
 
   @@unique([campaignId, memberId, action, legislatorId])
   @@map("rlc_campaign_participations")
+}
+
+// ===========================================
+// Dues Sharing & Revenue Split
+// ===========================================
+
+/// Stripe Connect Express account for a chapter (1:1)
+model ChapterStripeAccount {
+  id                    String              @id @default(uuid())
+  chapterId             String              @unique @map("chapter_id")
+  chapter               Chapter             @relation(fields: [chapterId], references: [id])
+  stripeAccountId       String              @unique @map("stripe_account_id")
+  status                StripeConnectStatus @default(not_started)
+  chargesEnabled        Boolean             @default(false) @map("charges_enabled")
+  payoutsEnabled        Boolean             @default(false) @map("payouts_enabled")
+  onboardingCompletedAt DateTime?           @map("onboarding_completed_at")
+  createdAt             DateTime            @default(now()) @map("created_at")
+  updatedAt             DateTime            @updatedAt @map("updated_at")
+
+  @@map("rlc_chapter_stripe_accounts")
+}
+
+/// Disbursement preferences for a chapter (1:1)
+model ChapterSplitConfig {
+  id                 String             @id @default(uuid())
+  chapterId          String             @unique @map("chapter_id")
+  chapter            Chapter            @relation(fields: [chapterId], references: [id])
+  disbursementModel  DisbursementModel  @default(national_managed) @map("disbursement_model")
+  isActive           Boolean            @default(true) @map("is_active")
+  updatedById        String?            @map("updated_by_id")
+  updatedBy          Member?            @relation("SplitConfigUpdater", fields: [updatedById], references: [id])
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  rules              ChapterSplitRule[]
+
+  @@map("rlc_chapter_split_configs")
+}
+
+/// Individual percentage allocation to a sub-chapter
+model ChapterSplitRule {
+  id                  String             @id @default(uuid())
+  configId            String             @map("config_id")
+  config              ChapterSplitConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  recipientChapterId  String             @map("recipient_chapter_id")
+  recipientChapter    Chapter            @relation("SplitRuleRecipient", fields: [recipientChapterId], references: [id])
+  percentage          Decimal            @db.Decimal(5, 2)
+  sortOrder           Int                @default(0) @map("sort_order")
+  isActive            Boolean            @default(true) @map("is_active")
+  createdAt           DateTime           @default(now()) @map("created_at")
+  updatedAt           DateTime           @updatedAt @map("updated_at")
+
+  @@unique([configId, recipientChapterId])
+  @@map("rlc_chapter_split_rules")
+}
+
+/// Immutable audit trail: one row per recipient per payment
+model SplitLedgerEntry {
+  id                     String            @id @default(uuid())
+  contributionId         String            @map("contribution_id")
+  contribution           Contribution      @relation(fields: [contributionId], references: [id])
+  sourceType             SplitSourceType   @map("source_type")
+  recipientChapterId     String            @map("recipient_chapter_id")
+  recipientChapter       Chapter           @relation("LedgerRecipient", fields: [recipientChapterId], references: [id])
+  amount                 Decimal           @db.Decimal(10, 2)
+  currency               String            @default("USD")
+  status                 SplitLedgerStatus @default(pending)
+  stripeTransferId       String?           @map("stripe_transfer_id")
+  stripeTransferGroupId  String?           @map("stripe_transfer_group_id")
+  transferredAt          DateTime?         @map("transferred_at")
+  reversalOfId           String?           @map("reversal_of_id")
+  reversalOf             SplitLedgerEntry? @relation("LedgerReversal", fields: [reversalOfId], references: [id])
+  reversals              SplitLedgerEntry[] @relation("LedgerReversal")
+  splitRuleSnapshot      Json              @default("{}") @map("split_rule_snapshot")
+  createdAt              DateTime          @default(now()) @map("created_at")
+
+  @@unique([contributionId, recipientChapterId])
+  @@index([recipientChapterId, status, createdAt])
+  @@map("rlc_split_ledger_entries")
 }
