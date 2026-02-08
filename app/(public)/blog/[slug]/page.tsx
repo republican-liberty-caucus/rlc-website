@@ -118,13 +118,11 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
               </div>
             )}
 
-            {/* Content — sanitized server-side to prevent XSS (issue #52) */}
+            {/* Content is sanitized server-side via sanitizeWPContent() to prevent XSS (issue #52) */}
             {post.content && (
               <div
-                className="prose prose-lg mt-8 max-w-none"
-                dangerouslySetInnerHTML={{
-                  __html: sanitizeWPContent(post.content),
-                }}
+                className="prose prose-lg mt-8 max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-rlc-red prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg"
+                dangerouslySetInnerHTML={{ __html: sanitizeWPContent(post.content) }}
               />
             )}
 
