@@ -381,6 +381,74 @@ export interface SplitLedgerEntry {
   created_at: string;
 }
 
+// Officer Position & Chapter Onboarding types
+
+export type OfficerTitle =
+  | 'chair'
+  | 'vice_chair'
+  | 'secretary'
+  | 'treasurer'
+  | 'at_large_board'
+  | 'committee_chair'
+  | 'state_coordinator'
+  | 'regional_director';
+
+export type OnboardingStepStatus = 'not_started' | 'in_progress' | 'completed' | 'approved' | 'rejected';
+
+export type OnboardingStep =
+  | 'coordinator_membership'
+  | 'coordinator_appointment'
+  | 'recruit_members'
+  | 'template_bylaws'
+  | 'organizational_meeting'
+  | 'submit_documents'
+  | 'legal_entity'
+  | 'stripe_connect';
+
+export interface OfficerPosition {
+  id: string;
+  member_id: string;
+  chapter_id: string;
+  title: OfficerTitle;
+  committee_name: string | null;
+  started_at: string;
+  ended_at: string | null;
+  is_active: boolean;
+  appointed_by_id: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChapterOnboarding {
+  id: string;
+  chapter_id: string;
+  coordinator_id: string;
+  current_step: OnboardingStep;
+  started_at: string;
+  completed_at: string | null;
+  approved_at: string | null;
+  approved_by_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ChapterOnboardingStep {
+  id: string;
+  onboarding_id: string;
+  step: OnboardingStep;
+  status: OnboardingStepStatus;
+  data: Record<string, unknown>;
+  completed_at: string | null;
+  completed_by_id: string | null;
+  reviewed_at: string | null;
+  reviewed_by_id: string | null;
+  review_notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data?: T;

@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   Users,
   MapPin,
+  Rocket,
   Calendar,
   FileText,
   Settings,
@@ -41,6 +42,7 @@ const navSections: NavSection[] = [
     items: [
       { href: '/admin/members', label: 'Members', icon: Users },
       { href: '/admin/chapters', label: 'Chapters', icon: MapPin },
+      { href: '/admin/chapters?status=forming', label: 'Onboarding', icon: Rocket },
     ],
   },
   {
