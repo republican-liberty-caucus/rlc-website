@@ -76,7 +76,7 @@ function NavDropdown({
   pathname: string;
 }) {
   const [open, setOpen] = React.useState(false);
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>(null);
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   function handleEnter() {
