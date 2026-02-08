@@ -113,6 +113,7 @@ export function DonationForm({ chapters }: DonationFormProps) {
             <input
               type="number"
               min="1"
+              max="100000"
               step="0.01"
               placeholder="0.00"
               value={customAmount}

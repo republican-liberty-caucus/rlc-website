@@ -12,7 +12,7 @@ export const surveyCreateSchema = z.object({
     questionText: z.string().min(1),
     questionType: z.enum(['scale', 'yes_no', 'text', 'multiple_choice']),
     options: z.array(z.string()).default([]),
-    weight: z.number().min(0).max(10).default(1),
+    weight: z.number().min(0.1).max(10).default(1),
     sortOrder: z.number().int().default(0),
     idealAnswer: z.string().optional(),
   })).min(1),
