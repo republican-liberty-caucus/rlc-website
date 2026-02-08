@@ -70,6 +70,7 @@ export async function POST(req: Request) {
 
   try {
     const stripe = getStripe();
+    // constructEvent verifies signature + rejects events older than 300s (replay protection)
     event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
   } catch (err) {
     logger.error('Stripe webhook signature verification failed:', err);
@@ -77,6 +78,28 @@ export async function POST(req: Request) {
   }
 
   const supabase = createServerClient();
+
+  // Event-level idempotency (issue #54): attempt insert into rlc_webhook_events.
+  // If the table exists and has a unique constraint on stripe_event_id,
+  // duplicate events are rejected. If the table doesn't exist yet, we
+  // fall through gracefully — payment-intent-level dedup in handlers still protects
+  // against duplicate contributions.
+  try {
+    const { error: idempotencyError } = await supabase
+      .from('rlc_webhook_events')
+      .insert({ stripe_event_id: event.id, event_type: event.type } as never);
+
+    if (idempotencyError?.code === '23505') {
+      logger.info(`Stripe event ${event.id} already processed, skipping`);
+      return new Response('', { status: 200 });
+    }
+    // 42P01 = table doesn't exist — gracefully fall through
+    if (idempotencyError && idempotencyError.code !== '42P01') {
+      logger.error('Webhook idempotency check failed:', idempotencyError);
+    }
+  } catch {
+    // Non-fatal — continue processing even if idempotency check fails
+  }
 
   try {
     switch (event.type) {

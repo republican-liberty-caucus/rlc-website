@@ -52,6 +52,10 @@ export async function POST(
   const input = parseResult.data;
   const accessToken = crypto.randomBytes(32).toString('hex');
 
+  // Tokens expire in 90 days (issue #55)
+  const tokenExpiresAt = new Date();
+  tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 90);
+
   const { data: candidate, error: insertError } = await supabase
     .from('rlc_candidate_responses')
     .insert({
@@ -63,6 +67,7 @@ export async function POST(
       candidate_office: input.candidateOffice || null,
       candidate_district: input.candidateDistrict || null,
       access_token: accessToken,
+      token_expires_at: tokenExpiresAt.toISOString(),
       status: 'pending',
     } as never)
     .select()
