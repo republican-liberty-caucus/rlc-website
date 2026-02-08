@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: Request) {
   const { userId } = await auth();
@@ -45,7 +46,7 @@ export async function GET(request: Request) {
   const { data, error } = await query;
 
   if (error) {
-    console.error('Report export failed:', error);
+    logger.error('Report export failed:', error);
     return NextResponse.json({ error: 'Export failed' }, { status: 500 });
   }
 

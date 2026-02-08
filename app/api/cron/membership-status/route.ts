@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { timingSafeEqual } from 'crypto';
 import type { MembershipStatus } from '@/types';
+import { logger } from '@/lib/logger';
 
 // Vercel Cron calls this endpoint daily.
 // Protected by CRON_SECRET to prevent unauthorized access.
@@ -33,7 +34,7 @@ export async function GET(req: Request) {
   const cronSecret = process.env.CRON_SECRET;
 
   if (!cronSecret) {
-    console.error('CRON_SECRET not configured');
+    logger.error('CRON_SECRET not configured');
     return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
   }
 
@@ -144,7 +145,7 @@ export async function GET(req: Request) {
     results.expiringToGrace +
     results.graceToExpired;
 
-  console.log(
+  logger.info(
     `Membership status cron completed: ${totalTransitions} transitions ` +
     `(new→current: ${results.newToCurrent}, current→expiring: ${results.currentToExpiring}, ` +
     `expiring→grace: ${results.expiringToGrace}, grace→expired: ${results.graceToExpired})` +
@@ -152,7 +153,7 @@ export async function GET(req: Request) {
   );
 
   if (results.errors.length > 0) {
-    console.error('Cron errors:', results.errors);
+    logger.error('Cron errors:', results.errors);
     return NextResponse.json({
       success: false,
       transitions: totalTransitions,

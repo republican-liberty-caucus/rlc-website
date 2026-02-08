@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { surveyUpdateSchema } from '@/lib/validations/survey';
+import { logger } from '@/lib/logger';
 
 export async function PATCH(
   request: Request,
@@ -66,7 +67,7 @@ export async function PATCH(
     .single();
 
   if (error) {
-    console.error('Error updating survey:', error);
+    logger.error('Error updating survey:', error);
     return NextResponse.json({ error: 'Failed to update survey' }, { status: 500 });
   }
 

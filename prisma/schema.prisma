@@ -81,6 +81,75 @@ enum UserRole {
   super_admin
 }
 
+// Phase 4 enums (backfill — tables already exist)
+
+enum SurveyStatus {
+  draft
+  active
+  closed
+}
+
+enum CandidateResponseStatus {
+  pending
+  in_progress
+  submitted
+  endorsed
+  not_endorsed
+}
+
+enum QuestionType {
+  scale
+  yes_no
+  text
+  multiple_choice
+}
+
+// Phase 5 enums
+
+enum Jurisdiction {
+  federal
+  state
+}
+
+enum ScorecardSessionStatus {
+  draft
+  active
+  published
+  archived
+}
+
+enum LibertyPosition {
+  yea
+  nay
+}
+
+enum BillTrackingStatus {
+  tracking
+  voted
+  no_vote
+}
+
+enum VoteChoice {
+  yea
+  nay
+  not_voting
+  absent
+}
+
+enum LegislativeChamber {
+  us_house
+  us_senate
+  state_house
+  state_senate
+}
+
+enum CampaignStatus {
+  draft
+  active
+  completed
+  cancelled
+}
+
 // ===========================================
 // Core Tables
 // ===========================================
@@ -105,11 +174,14 @@ model Chapter {
   updatedAt        DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  members       Member[]
-  memberRoles   MemberRole[]
-  contributions Contribution[]
-  events        Event[]
-  posts         Post[]
+  members            Member[]
+  memberRoles        MemberRole[]
+  contributions      Contribution[]
+  events             Event[]
+  posts              Post[]
+  surveys            Survey[]
+  scorecardSessions  ScorecardSession[]
+  actionCampaigns    ActionCampaign[]
 
   @@map("rlc_chapters")
 }
@@ -162,12 +234,16 @@ model Member {
   updatedAt            DateTime         @updatedAt @map("updated_at")
 
   // Relations
-  roles                MemberRole[]     @relation("MemberRoles")
-  grantedRoles         MemberRole[]     @relation("GrantedRoles")
-  contributions        Contribution[]
-  organizedEvents      Event[]
-  eventRegistrations   EventRegistration[]
-  posts                Post[]
+  roles                   MemberRole[]     @relation("MemberRoles")
+  grantedRoles            MemberRole[]     @relation("GrantedRoles")
+  contributions           Contribution[]
+  organizedEvents         Event[]
+  eventRegistrations      EventRegistration[]
+  posts                   Post[]
+  surveysCreated          Survey[]           @relation("SurveyCreator")
+  scorecardSessionsCreated ScorecardSession[] @relation("ScorecardCreator")
+  campaignsCreated        ActionCampaign[]   @relation("CampaignCreator")
+  campaignParticipations  CampaignParticipation[]
 
   @@map("rlc_members")
 }
@@ -355,4 +431,215 @@ model CiviCRMMigrationLog {
 
   @@unique([entityType, civicrmId])
   @@map("rlc_civicrm_migration_log")
+}
+
+// ===========================================
+// Phase 4: Candidate Surveys (backfill — tables already exist in DB)
+// ===========================================
+
+/// Candidate Endorsement Surveys
+model Survey {
+  id            String       @id @default(uuid())
+  title         String
+  slug          String       @unique
+  description   String?      @db.Text
+  status        SurveyStatus @default(draft)
+  electionType  String?      @map("election_type")
+  electionDate  String?      @map("election_date")
+  state         String?
+  chapterId     String?      @map("chapter_id")
+  chapter       Chapter?     @relation(fields: [chapterId], references: [id])
+  createdBy     String?      @map("created_by")
+  creator       Member?      @relation("SurveyCreator", fields: [createdBy], references: [id])
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+
+  questions     SurveyQuestion[]
+  candidates    CandidateResponse[]
+
+  @@map("rlc_surveys")
+}
+
+/// Survey Questions
+model SurveyQuestion {
+  id           String       @id @default(uuid())
+  surveyId     String       @map("survey_id")
+  survey       Survey       @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  questionText String       @map("question_text")
+  questionType QuestionType @map("question_type")
+  options      String[]
+  weight       Decimal      @default(1) @db.Decimal(3, 1)
+  sortOrder    Int          @default(0) @map("sort_order")
+  idealAnswer  String?      @map("ideal_answer")
+  createdAt    DateTime     @default(now()) @map("created_at")
+
+  answers      SurveyAnswer[]
+
+  @@map("rlc_survey_questions")
+}
+
+/// Candidate survey responses
+model CandidateResponse {
+  id                String                  @id @default(uuid())
+  surveyId          String                  @map("survey_id")
+  survey            Survey                  @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  candidateName     String                  @map("candidate_name")
+  candidateEmail    String?                 @map("candidate_email")
+  candidateParty    String?                 @map("candidate_party")
+  candidateOffice   String?                 @map("candidate_office")
+  candidateDistrict String?                 @map("candidate_district")
+  accessToken       String                  @map("access_token")
+  status            CandidateResponseStatus @default(pending)
+  totalScore        Decimal?                @map("total_score") @db.Decimal(5, 2)
+  submittedAt       DateTime?               @map("submitted_at")
+  createdAt         DateTime                @default(now()) @map("created_at")
+  updatedAt         DateTime                @updatedAt @map("updated_at")
+
+  answers           SurveyAnswer[]
+
+  @@map("rlc_candidate_responses")
+}
+
+/// Individual survey answers
+model SurveyAnswer {
+  id                  String            @id @default(uuid())
+  candidateResponseId String            @map("candidate_response_id")
+  candidateResponse   CandidateResponse @relation(fields: [candidateResponseId], references: [id], onDelete: Cascade)
+  questionId          String            @map("question_id")
+  question            SurveyQuestion    @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  answer              String
+  score               Decimal?          @db.Decimal(5, 2)
+
+  @@map("rlc_survey_answers")
+}
+
+// ===========================================
+// Phase 5: Liberty Scorecard & Action Center
+// ===========================================
+
+/// Legislators tracked for scorecard voting records
+model Legislator {
+  id                String              @id @default(uuid())
+  legiscanPeopleId  Int?                @unique @map("legiscan_people_id")
+  name              String
+  party             String
+  chamber           LegislativeChamber
+  stateCode         String              @map("state_code")
+  district          String?
+  photoUrl          String?             @map("photo_url")
+  currentScore      Decimal?            @map("current_score") @db.Decimal(5, 2)
+  metadata          Json                @default("{}")
+  createdAt         DateTime            @default(now()) @map("created_at")
+  updatedAt         DateTime            @updatedAt @map("updated_at")
+
+  votes                    ScorecardVote[]
+  campaignParticipations   CampaignParticipation[]
+
+  @@map("rlc_legislators")
+}
+
+/// Scorecard sessions (e.g. "118th Congress" or "2025 Texas Session")
+model ScorecardSession {
+  id            String                  @id @default(uuid())
+  name          String
+  slug          String                  @unique
+  jurisdiction  Jurisdiction            @default(federal)
+  stateCode     String?                 @map("state_code")
+  chapterId     String?                 @map("chapter_id")
+  chapter       Chapter?                @relation(fields: [chapterId], references: [id])
+  sessionYear   Int                     @map("session_year")
+  status        ScorecardSessionStatus  @default(draft)
+  createdBy     String?                 @map("created_by")
+  creator       Member?                 @relation("ScorecardCreator", fields: [createdBy], references: [id])
+  createdAt     DateTime                @default(now()) @map("created_at")
+  updatedAt     DateTime                @updatedAt @map("updated_at")
+
+  bills         ScorecardBill[]
+
+  @@map("rlc_scorecard_sessions")
+}
+
+/// Bills tracked in a scorecard session
+model ScorecardBill {
+  id                   String              @id @default(uuid())
+  sessionId            String              @map("session_id")
+  session              ScorecardSession    @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  legiscanBillId       Int?                @map("legiscan_bill_id")
+  billNumber           String              @map("bill_number")
+  title                String
+  description          String?             @db.Text
+  libertyPosition      LibertyPosition     @map("liberty_position")
+  aiSuggestedPosition  LibertyPosition?    @map("ai_suggested_position")
+  aiAnalysis           String?             @map("ai_analysis") @db.Text
+  category             String              @default("other")
+  weight               Decimal             @default(1.0) @db.Decimal(3, 1)
+  voteDate             DateTime?           @map("vote_date") @db.Date
+  billStatus           BillTrackingStatus  @default(tracking) @map("bill_status")
+  legiscanRollCallId   Int?                @map("legiscan_roll_call_id")
+  createdAt            DateTime            @default(now()) @map("created_at")
+  updatedAt            DateTime            @updatedAt @map("updated_at")
+
+  votes                ScorecardVote[]
+  actionCampaigns      ActionCampaign[]
+
+  @@map("rlc_scorecard_bills")
+}
+
+/// Individual legislator votes on scorecard bills
+model ScorecardVote {
+  id                 String        @id @default(uuid())
+  billId             String        @map("bill_id")
+  bill               ScorecardBill @relation(fields: [billId], references: [id], onDelete: Cascade)
+  legislatorId       String        @map("legislator_id")
+  legislator         Legislator    @relation(fields: [legislatorId], references: [id], onDelete: Cascade)
+  vote               VoteChoice
+  alignedWithLiberty Boolean       @map("aligned_with_liberty")
+  createdAt          DateTime      @default(now()) @map("created_at")
+
+  @@unique([billId, legislatorId])
+  @@index([billId])
+  @@map("rlc_scorecard_votes")
+}
+
+/// Action Center campaigns for member advocacy
+model ActionCampaign {
+  id              String              @id @default(uuid())
+  title           String
+  slug            String              @unique
+  description     String?             @db.Text
+  billId          String?             @map("bill_id")
+  bill            ScorecardBill?      @relation(fields: [billId], references: [id])
+  chapterId       String?             @map("chapter_id")
+  chapter         Chapter?            @relation(fields: [chapterId], references: [id])
+  targetChamber   LegislativeChamber? @map("target_chamber")
+  targetStateCode String?             @map("target_state_code")
+  messageTemplate String?             @map("message_template") @db.Text
+  status          CampaignStatus      @default(draft)
+  createdBy       String?             @map("created_by")
+  creator         Member?             @relation("CampaignCreator", fields: [createdBy], references: [id])
+  startsAt        DateTime?           @map("starts_at")
+  endsAt          DateTime?           @map("ends_at")
+  createdAt       DateTime            @default(now()) @map("created_at")
+  updatedAt       DateTime            @updatedAt @map("updated_at")
+
+  participations  CampaignParticipation[]
+
+  @@map("rlc_action_campaigns")
+}
+
+/// Tracks member participation in action campaigns
+model CampaignParticipation {
+  id           String          @id @default(uuid())
+  campaignId   String          @map("campaign_id")
+  campaign     ActionCampaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  memberId     String          @map("member_id")
+  member       Member          @relation(fields: [memberId], references: [id])
+  action       String
+  legislatorId String?         @map("legislator_id")
+  legislator   Legislator?     @relation(fields: [legislatorId], references: [id])
+  metadata     Json            @default("{}")
+  createdAt    DateTime        @default(now()) @map("created_at")
+
+  @@unique([campaignId, memberId, action, legislatorId])
+  @@map("rlc_campaign_participations")
 }

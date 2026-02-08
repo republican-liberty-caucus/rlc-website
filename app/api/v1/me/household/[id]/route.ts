@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
+import { logger } from '@/lib/logger';
 
 // DELETE /api/v1/me/household/[id] — remove a household member
 export async function DELETE(
@@ -55,7 +56,7 @@ export async function DELETE(
       if (lookupError.code === 'PGRST116') {
         return NextResponse.json({ error: 'Household member not found' }, { status: 404 });
       }
-      console.error('Error looking up household member:', lookupError);
+      logger.error('Error looking up household member:', lookupError);
       return NextResponse.json({ error: 'Failed to find household member' }, { status: 500 });
     }
 
@@ -85,7 +86,7 @@ export async function DELETE(
       .eq('id', targetId);
 
     if (updateError) {
-      console.error('Error removing household member:', updateError);
+      logger.error('Error removing household member:', updateError);
       return NextResponse.json({ error: 'Failed to remove household member' }, { status: 500 });
     }
 
@@ -100,17 +101,17 @@ export async function DELETE(
         membershipStatus: 'cancelled',
       });
     } catch (hlError) {
-      console.error(`HighLevel sync failed for removed household member ${targetId} (non-fatal):`, hlError);
+      logger.error(`HighLevel sync failed for removed household member ${targetId} (non-fatal):`, hlError);
     }
 
-    console.log(
+    logger.info(
       `Household member removed: ${targetId} (${targetMember.first_name} ${targetMember.last_name}) ` +
       `from household ${member.household_id} by ${member.id}`
     );
 
     return NextResponse.json({ success: true });
   } catch (err) {
-    console.error('Unexpected error in DELETE /api/v1/me/household/[id]:', err);
+    logger.error('Unexpected error in DELETE /api/v1/me/household/[id]:', err);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }

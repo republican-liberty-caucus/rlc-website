@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
@@ -69,11 +70,13 @@ export default async function BlogPage() {
                   className="group overflow-hidden rounded-lg border bg-card transition-colors hover:border-rlc-red"
                 >
                   {post.featured_image_url && (
-                    <div className="aspect-video overflow-hidden bg-muted">
-                      <img
+                    <div className="relative aspect-video overflow-hidden bg-muted">
+                      <Image
                         src={post.featured_image_url}
                         alt={post.title}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform group-hover:scale-105"
                       />
                     </div>
                   )}

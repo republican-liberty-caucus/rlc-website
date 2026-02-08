@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
 
     return NextResponse.json({ events });
   } catch (error) {
-    console.error('Error fetching events:', error);
+    logger.error('Error fetching events:', error);
     return NextResponse.json({ error: 'Failed to fetch events' }, { status: 500 });
   }
 }

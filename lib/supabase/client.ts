@@ -8,6 +8,13 @@ import type {
   ChapterStatus,
   HouseholdRole,
   UserRole,
+  Jurisdiction,
+  ScorecardSessionStatus,
+  LibertyPosition,
+  BillTrackingStatus,
+  VoteChoice,
+  LegislativeChamber,
+  CampaignStatus,
 } from '@/types';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -198,6 +205,109 @@ export type Database = {
         };
         Insert: Omit<Database['public']['Tables']['rlc_highlevel_sync_log']['Row'], 'id' | 'created_at'>;
         Update: Partial<Database['public']['Tables']['rlc_highlevel_sync_log']['Insert']>;
+      };
+      rlc_legislators: {
+        Row: {
+          id: string;
+          legiscan_people_id: number | null;
+          name: string;
+          party: string;
+          chamber: LegislativeChamber;
+          state_code: string;
+          district: string | null;
+          photo_url: string | null;
+          current_score: number | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_legislators']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_legislators']['Insert']>;
+      };
+      rlc_scorecard_sessions: {
+        Row: {
+          id: string;
+          name: string;
+          slug: string;
+          jurisdiction: Jurisdiction;
+          state_code: string | null;
+          chapter_id: string | null;
+          session_year: number;
+          status: ScorecardSessionStatus;
+          created_by: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_scorecard_sessions']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_scorecard_sessions']['Insert']>;
+      };
+      rlc_scorecard_bills: {
+        Row: {
+          id: string;
+          session_id: string;
+          legiscan_bill_id: number | null;
+          bill_number: string;
+          title: string;
+          description: string | null;
+          liberty_position: LibertyPosition;
+          ai_suggested_position: LibertyPosition | null;
+          ai_analysis: string | null;
+          category: string;
+          weight: number;
+          vote_date: string | null;
+          bill_status: BillTrackingStatus;
+          legiscan_roll_call_id: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_scorecard_bills']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_scorecard_bills']['Insert']>;
+      };
+      rlc_scorecard_votes: {
+        Row: {
+          id: string;
+          bill_id: string;
+          legislator_id: string;
+          vote: VoteChoice;
+          aligned_with_liberty: boolean;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_scorecard_votes']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_scorecard_votes']['Insert']>;
+      };
+      rlc_action_campaigns: {
+        Row: {
+          id: string;
+          title: string;
+          slug: string;
+          description: string | null;
+          bill_id: string | null;
+          chapter_id: string | null;
+          target_chamber: LegislativeChamber | null;
+          target_state_code: string | null;
+          message_template: string | null;
+          status: CampaignStatus;
+          created_by: string | null;
+          starts_at: string | null;
+          ends_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_action_campaigns']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_action_campaigns']['Insert']>;
+      };
+      rlc_campaign_participations: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          member_id: string;
+          action: string;
+          legislator_id: string | null;
+          metadata: Record<string, unknown>;
+          created_at: string;
+        };
+        Insert: Omit<Database['public']['Tables']['rlc_campaign_participations']['Row'], 'id' | 'created_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_campaign_participations']['Insert']>;
       };
     };
   };

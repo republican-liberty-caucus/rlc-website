@@ -3,6 +3,7 @@ import { headers } from 'next/headers';
 import { WebhookEvent } from '@clerk/nextjs/server';
 import { createServerClient, upsertMemberFromClerk } from '@/lib/supabase/server';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
+import { logger } from '@/lib/logger';
 
 export async function POST(req: Request) {
   const headerPayload = await headers();
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
 
   const webhookSecret = process.env.CLERK_WEBHOOK_SECRET;
   if (!webhookSecret) {
-    console.error('Clerk webhook: CLERK_WEBHOOK_SECRET not configured');
+    logger.error('Clerk webhook: CLERK_WEBHOOK_SECRET not configured');
     return new Response('', { status: 500 });
   }
 
@@ -33,7 +34,7 @@ export async function POST(req: Request) {
       'svix-signature': svix_signature,
     }) as WebhookEvent;
   } catch (err) {
-    console.error('Clerk webhook signature verification failed:', err);
+    logger.error('Clerk webhook signature verification failed:', err);
     return new Response('', { status: 400 });
   }
 
@@ -51,10 +52,10 @@ export async function POST(req: Request) {
       }
 
       default:
-        console.log(`Unhandled Clerk event type: ${evt.type}`);
+        logger.info(`Unhandled Clerk event type: ${evt.type}`);
     }
   } catch (error) {
-    console.error(`Error processing Clerk webhook ${evt.type}:`, error);
+    logger.error(`Error processing Clerk webhook ${evt.type}:`, error);
     return new Response('', { status: 500 });
   }
 
@@ -93,10 +94,10 @@ async function handleUserCreateOrUpdate(evt: WebhookEvent) {
       membershipJoinDate: member.membership_join_date || undefined,
     });
   } catch (hlError) {
-    console.error(`HighLevel sync failed for member ${member.id} (non-fatal):`, hlError);
+    logger.error(`HighLevel sync failed for member ${member.id} (non-fatal):`, hlError);
   }
 
-  console.log(`Processed ${evt.type} for Clerk user ${id} → member ${member.id}`);
+  logger.info(`Processed ${evt.type} for Clerk user ${id} → member ${member.id}`);
 }
 
 async function handleUserDeleted(evt: WebhookEvent) {
@@ -118,7 +119,7 @@ async function handleUserDeleted(evt: WebhookEvent) {
 
   if (error) {
     if (error.code === 'PGRST116') {
-      console.log(`No member found for deleted Clerk user ${clerkUserId}, nothing to do`);
+      logger.info(`No member found for deleted Clerk user ${clerkUserId}, nothing to do`);
       return;
     }
     throw new Error(`Database error looking up deleted Clerk user ${clerkUserId}: ${error.message}`);
@@ -158,9 +159,9 @@ async function handleUserDeleted(evt: WebhookEvent) {
     .eq('id', member.id);
 
   if (updateError) {
-    console.error(`Failed to cancel member ${member.id} after Clerk deletion:`, updateError);
+    logger.error(`Failed to cancel member ${member.id} after Clerk deletion:`, updateError);
     throw updateError;
   }
 
-  console.log(`Clerk user ${clerkUserId} deleted → member ${member.id} cancelled`);
+  logger.info(`Clerk user ${clerkUserId} deleted → member ${member.id} cancelled`);
 }

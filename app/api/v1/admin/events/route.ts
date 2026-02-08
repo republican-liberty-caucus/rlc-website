@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { eventCreateSchema } from '@/lib/validations/event';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -77,7 +78,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    console.error('Error creating event:', error);
+    logger.error('Error creating event:', error);
     return NextResponse.json({ error: 'Failed to create event' }, { status: 500 });
   }
 

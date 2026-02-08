@@ -6,6 +6,7 @@ import { adminMemberUpdateSchema } from '@/lib/validations/admin';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import type { Member } from '@/types';
 import type { Database } from '@/lib/supabase/client';
+import { logger } from '@/lib/logger';
 
 type MemberUpdate = Database['public']['Tables']['rlc_members']['Update'];
 
@@ -112,7 +113,7 @@ export async function PATCH(
     .single();
 
   if (error) {
-    console.error('Error updating member:', error);
+    logger.error('Error updating member:', error);
     return NextResponse.json({ error: 'Failed to update member' }, { status: 500 });
   }
 
@@ -135,11 +136,11 @@ export async function PATCH(
       membershipStatus: updatedMember.membership_status,
     });
     if (!hlResult.success) {
-      console.error('Failed to sync to HighLevel:', hlResult.error);
+      logger.error('Failed to sync to HighLevel:', hlResult.error);
       warnings = ['HighLevel sync failed — CRM data may be stale'];
     }
   } catch (hlError) {
-    console.error('Failed to sync to HighLevel:', hlError);
+    logger.error('Failed to sync to HighLevel:', hlError);
     warnings = ['HighLevel sync failed — CRM data may be stale'];
   }
 

@@ -1,6 +1,7 @@
 import { headers } from 'next/headers';
 import { createServerClient } from '@/lib/supabase/server';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 interface HighLevelWebhookPayload {
   type: string;
@@ -56,17 +57,17 @@ export async function POST(req: Request) {
 
   // Verify webhook signature - require secret in production
   if (!webhookSecret) {
-    console.error('HighLevel webhook: HIGHLEVEL_WEBHOOK_SECRET not configured');
+    logger.error('HighLevel webhook: HIGHLEVEL_WEBHOOK_SECRET not configured');
     return new Response('Webhook secret not configured', { status: 500 });
   }
 
   if (!signature) {
-    console.error('HighLevel webhook: Missing signature header');
+    logger.error('HighLevel webhook: Missing signature header');
     return new Response('Missing signature', { status: 401 });
   }
 
   if (!verifySignature(rawBody, signature, webhookSecret)) {
-    console.error('HighLevel webhook: Invalid signature');
+    logger.error('HighLevel webhook: Invalid signature');
     return new Response('Invalid signature', { status: 401 });
   }
 
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
   try {
     payload = JSON.parse(rawBody);
   } catch {
-    console.error('HighLevel webhook: Invalid JSON payload');
+    logger.error('HighLevel webhook: Invalid JSON payload');
     return new Response('Invalid JSON', { status: 400 });
   }
 
@@ -96,10 +97,10 @@ export async function POST(req: Request) {
         break;
 
       default:
-        console.log(`Unhandled HighLevel webhook type: ${payload.type}`);
+        logger.info(`Unhandled HighLevel webhook type: ${payload.type}`);
     }
   } catch (error) {
-    console.error('Error processing HighLevel webhook:', error);
+    logger.error('Error processing HighLevel webhook:', error);
     return new Response('Webhook processing failed', { status: 500 });
   }
 
@@ -128,11 +129,11 @@ async function handleContactUpdate(
       .eq('id', supabaseMemberId);
 
     if (updateError) {
-      console.error(`Failed to update member ${supabaseMemberId}:`, updateError);
+      logger.error(`Failed to update member ${supabaseMemberId}:`, updateError);
       throw updateError;
     }
 
-    console.log(`Updated member ${supabaseMemberId} from HighLevel`);
+    logger.info(`Updated member ${supabaseMemberId} from HighLevel`);
   } else {
     // Try to find by email
     const { data, error: selectError } = await supabase
@@ -143,7 +144,7 @@ async function handleContactUpdate(
 
     if (selectError && selectError.code !== 'PGRST116') {
       // PGRST116 = no rows found, which is expected
-      console.error(`Failed to find member by email ${contact.email}:`, selectError);
+      logger.error(`Failed to find member by email ${contact.email}:`, selectError);
     }
 
     const member = data as MemberIdRow | null;
@@ -156,11 +157,11 @@ async function handleContactUpdate(
         .eq('id', member.id);
 
       if (linkError) {
-        console.error(`Failed to link member ${member.id} to HighLevel:`, linkError);
+        logger.error(`Failed to link member ${member.id} to HighLevel:`, linkError);
         throw linkError;
       }
 
-      console.log(`Linked member ${member.id} to HighLevel contact ${contact.id}`);
+      logger.info(`Linked member ${member.id} to HighLevel contact ${contact.id}`);
     }
   }
 
@@ -175,7 +176,7 @@ async function handleContactUpdate(
   } as never);
 
   if (logError) {
-    console.error('Failed to log sync:', logError);
+    logger.error('Failed to log sync:', logError);
     // Don't throw - logging failure shouldn't fail the webhook
   }
 }
@@ -192,13 +193,13 @@ async function handleOpportunityCreated(
     .single();
 
   if (selectError && selectError.code !== 'PGRST116') {
-    console.error(`Failed to find member for HighLevel contact ${opportunity.contactId}:`, selectError);
+    logger.error(`Failed to find member for HighLevel contact ${opportunity.contactId}:`, selectError);
   }
 
   const member = data as MemberIdRow | null;
 
   if (!member) {
-    console.log(`No member found for HighLevel contact ${opportunity.contactId}`);
+    logger.info(`No member found for HighLevel contact ${opportunity.contactId}`);
     return;
   }
 
@@ -216,10 +217,10 @@ async function handleOpportunityCreated(
     } as never);
 
     if (insertError) {
-      console.error(`Failed to create contribution from opportunity ${opportunity.id}:`, insertError);
+      logger.error(`Failed to create contribution from opportunity ${opportunity.id}:`, insertError);
       throw insertError;
     }
 
-    console.log(`Created contribution from HighLevel opportunity ${opportunity.id}`);
+    logger.info(`Created contribution from HighLevel opportunity ${opportunity.id}`);
   }
 }

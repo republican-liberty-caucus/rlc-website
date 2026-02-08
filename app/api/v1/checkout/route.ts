@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { createCheckoutSession, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
 import { getMemberByClerkId } from '@/lib/supabase/server';
 import type { MembershipTier } from '@/types';
+import { logger } from '@/lib/logger';
 
 const validTiers = MEMBERSHIP_TIERS.map((t) => t.tier) as [string, ...string[]];
 
@@ -58,7 +59,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ url: session.url });
   } catch (error) {
-    console.error('Checkout session creation failed:', error);
+    logger.error('Checkout session creation failed:', error);
     return NextResponse.json(
       { error: 'Failed to create checkout session' },
       { status: 500 }

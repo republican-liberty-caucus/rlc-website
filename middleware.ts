@@ -17,6 +17,9 @@ const isPublicRoute = createRouteMatcher([
   '/api/v1/chapters(.*)',
   '/api/v1/events(.*)',
   '/api/v1/posts(.*)',
+  '/scorecards(.*)',
+  '/action-center(.*)',
+  '/candidate-surveys(.*)',
 ]);
 
 // Define admin routes that require specific roles

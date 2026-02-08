@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { postUpdateSchema } from '@/lib/validations/post';
+import { logger } from '@/lib/logger';
 
 export async function PATCH(
   request: Request,
@@ -96,7 +97,7 @@ export async function PATCH(
     .single();
 
   if (error) {
-    console.error('Error updating post:', error);
+    logger.error('Error updating post:', error);
     return NextResponse.json({ error: 'Failed to update post' }, { status: 500 });
   }
 

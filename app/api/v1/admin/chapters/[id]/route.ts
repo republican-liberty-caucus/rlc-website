@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { chapterUpdateSchema } from '@/lib/validations/admin';
 import type { Database } from '@/lib/supabase/client';
+import { logger } from '@/lib/logger';
 
 type ChapterUpdate = Database['public']['Tables']['rlc_chapters']['Update'];
 
@@ -61,7 +62,7 @@ export async function PATCH(
     .single();
 
   if (error) {
-    console.error('Error updating chapter:', error);
+    logger.error('Error updating chapter:', error);
     return NextResponse.json({ error: 'Failed to update chapter' }, { status: 500 });
   }
 

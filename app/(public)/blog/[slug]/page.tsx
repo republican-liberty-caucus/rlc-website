@@ -1,4 +1,5 @@
 import { Metadata } from 'next';
+import Image from 'next/image';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MainNav } from '@/components/navigation/main-nav';
@@ -105,11 +106,13 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
 
             {/* Featured Image */}
             {post.featured_image_url && (
-              <div className="mt-8 overflow-hidden rounded-lg">
-                <img
+              <div className="relative mt-8 aspect-video overflow-hidden rounded-lg">
+                <Image
                   src={post.featured_image_url}
                   alt={post.title}
-                  className="w-full object-cover"
+                  fill
+                  unoptimized
+                  className="object-cover"
                 />
               </div>
             )}

@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { postCreateSchema } from '@/lib/validations/post';
 import crypto from 'crypto';
+import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
   const { userId } = await auth();
@@ -69,7 +70,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    console.error('Error creating post:', error);
+    logger.error('Error creating post:', error);
     return NextResponse.json({ error: 'Failed to create post' }, { status: 500 });
   }
 
