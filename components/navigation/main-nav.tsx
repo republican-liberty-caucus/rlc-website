@@ -5,19 +5,27 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
-import { ChevronDown, Menu, X } from 'lucide-react';
+import {
+  BookOpen,
+  ChevronDown,
+  History,
+  Menu,
+  Mic,
+  ScrollText,
+  Users,
+  Vote,
+  Scale,
+  UserCheck,
+  X,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 
 interface NavChild {
   href: string;
   label: string;
+  description: string;
+  icon: React.ElementType;
 }
 
 interface NavItem {
@@ -31,21 +39,21 @@ const primaryNavItems: NavItem[] = [
     href: '/about',
     label: 'About',
     children: [
-      { href: '/about', label: 'About Us' },
-      { href: '/about/principles', label: 'Statement of Principles' },
-      { href: '/about/history', label: 'History' },
-      { href: '/about/bylaws', label: 'Bylaws & Rules' },
-      { href: '/about/committees', label: 'Committees' },
-      { href: '/about/speakers', label: 'Speakers Bureau' },
+      { href: '/about', label: 'About Us', description: 'Our mission and leadership', icon: Users },
+      { href: '/about/principles', label: 'Statement of Principles', description: 'Core platform and positions', icon: BookOpen },
+      { href: '/about/history', label: 'History', description: 'Our story since 1991', icon: History },
+      { href: '/about/bylaws', label: 'Bylaws & Rules', description: 'Governing documents', icon: ScrollText },
+      { href: '/about/committees', label: 'Committees', description: 'Committee structure', icon: Users },
+      { href: '/about/speakers', label: 'Speakers Bureau', description: 'Book an RLC speaker', icon: Mic },
     ],
   },
   {
     href: '/endorsements',
     label: 'Endorsements',
     children: [
-      { href: '/endorsements', label: 'Endorsements' },
-      { href: '/endorsements/process', label: 'Endorsement Process' },
-      { href: '/endorsements/elected-officials', label: 'Elected Officials' },
+      { href: '/endorsements', label: 'Endorsements', description: 'Candidates we support', icon: Vote },
+      { href: '/endorsements/process', label: 'Endorsement Process', description: 'How candidates earn support', icon: Scale },
+      { href: '/endorsements/elected-officials', label: 'Elected Officials', description: 'RLC-endorsed officeholders', icon: UserCheck },
     ],
   },
   { href: '/chapters', label: 'Chapters' },
@@ -57,6 +65,131 @@ const secondaryNavItems: NavItem[] = [
   { href: '/blog', label: 'Blog' },
   { href: '/events', label: 'Events' },
 ];
+
+function NavDropdown({
+  item,
+  isActive,
+  pathname,
+}: {
+  item: NavItem;
+  isActive: (href: string) => boolean;
+  pathname: string;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout>>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
+
+  function handleEnter() {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    setOpen(true);
+  }
+
+  function handleLeave() {
+    timeoutRef.current = setTimeout(() => setOpen(false), 150);
+  }
+
+  // Close on route change
+  React.useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative"
+      onMouseEnter={handleEnter}
+      onMouseLeave={handleLeave}
+    >
+      <button
+        onClick={() => setOpen(!open)}
+        className={cn(
+          'flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors outline-none',
+          isActive(item.href)
+            ? 'text-foreground'
+            : 'text-muted-foreground hover:text-foreground'
+        )}
+        aria-expanded={open}
+        aria-haspopup="true"
+      >
+        {item.label}
+        <ChevronDown
+          className={cn(
+            'h-3.5 w-3.5 transition-transform duration-200',
+            open && 'rotate-180'
+          )}
+        />
+        {/* Active indicator bar */}
+        {isActive(item.href) && (
+          <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-rlc-red" />
+        )}
+      </button>
+
+      {/* Dropdown panel */}
+      {open && (
+        <div
+          className={cn(
+            'absolute left-0 top-full z-50 pt-2',
+            // Wider panel for About (6 items), narrower for Endorsements (3)
+            item.children && item.children.length > 4 ? 'w-[340px]' : 'w-[300px]'
+          )}
+        >
+          <div className="overflow-hidden rounded-lg border bg-popover shadow-lg shadow-black/8">
+            {/* Blue accent bar at top */}
+            <div className="h-1 bg-gradient-to-r from-rlc-blue to-rlc-blue/70" />
+
+            <div className="p-2">
+              {item.children?.map((child) => {
+                const Icon = child.icon;
+                const active = pathname === child.href;
+
+                return (
+                  <Link
+                    key={child.href}
+                    href={child.href}
+                    className={cn(
+                      'group flex items-start gap-3 rounded-md px-3 py-2.5 transition-colors',
+                      active
+                        ? 'bg-rlc-red/8 text-foreground'
+                        : 'text-foreground/80 hover:bg-muted'
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        'mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-md transition-colors',
+                        active
+                          ? 'bg-rlc-red/15 text-rlc-red'
+                          : 'bg-muted text-muted-foreground group-hover:bg-rlc-red/10 group-hover:text-rlc-red'
+                      )}
+                    >
+                      <Icon className="h-4 w-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <div
+                        className={cn(
+                          'text-sm font-medium leading-tight',
+                          active && 'text-rlc-red'
+                        )}
+                      >
+                        {child.label}
+                      </div>
+                      <div className="mt-0.5 text-xs text-muted-foreground leading-snug">
+                        {child.description}
+                      </div>
+                    </div>
+                    {/* Active dot */}
+                    {active && (
+                      <div className="ml-auto mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-rlc-red" />
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export function MainNav() {
   const pathname = usePathname();
@@ -91,46 +224,27 @@ export function MainNav() {
           <div className="flex items-center space-x-1">
             {primaryNavItems.map((item) =>
               item.children ? (
-                <DropdownMenu key={item.href}>
-                  <DropdownMenuTrigger
-                    className={cn(
-                      'flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium transition-colors outline-none',
-                      isActive(item.href)
-                        ? 'bg-muted text-foreground'
-                        : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
-                    )}
-                  >
-                    {item.label}
-                    <ChevronDown className="h-3.5 w-3.5" />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="start" sideOffset={8}>
-                    {item.children.map((child) => (
-                      <DropdownMenuItem key={child.href} asChild>
-                        <Link
-                          href={child.href}
-                          className={cn(
-                            'w-full cursor-pointer',
-                            pathname === child.href && 'bg-accent'
-                          )}
-                        >
-                          {child.label}
-                        </Link>
-                      </DropdownMenuItem>
-                    ))}
-                  </DropdownMenuContent>
-                </DropdownMenu>
+                <NavDropdown
+                  key={item.href}
+                  item={item}
+                  isActive={isActive}
+                  pathname={pathname}
+                />
               ) : (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'relative rounded-md px-3 py-2 text-sm font-medium transition-colors',
                     isActive(item.href)
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                      ? 'text-foreground'
+                      : 'text-muted-foreground hover:text-foreground'
                   )}
                 >
                   {item.label}
+                  {isActive(item.href) && (
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-rlc-red" />
+                  )}
                 </Link>
               )
             )}
@@ -142,13 +256,16 @@ export function MainNav() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                  'relative rounded-md px-3 py-2 text-sm font-medium transition-colors',
                   isActive(item.href)
-                    ? 'bg-muted text-foreground'
-                    : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground'
+                    ? 'text-foreground'
+                    : 'text-muted-foreground hover:text-foreground'
                 )}
               >
                 {item.label}
+                {isActive(item.href) && (
+                  <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-rlc-red" />
+                )}
               </Link>
             ))}
           </div>
@@ -189,64 +306,104 @@ export function MainNav() {
       {/* Mobile Navigation */}
       {mobileMenuOpen && (
         <div className="border-t md:hidden">
-          <nav className="container mx-auto flex flex-col space-y-1 px-4 py-4">
+          <nav className="container mx-auto flex flex-col px-4 py-3">
             {[...primaryNavItems, ...secondaryNavItems].map((item) =>
               item.children ? (
-                <div key={item.href}>
+                <div key={item.href} className="border-b border-border/50 last:border-0">
                   <button
                     onClick={() => toggleMobileExpanded(item.href)}
                     className={cn(
-                      'flex w-full items-center justify-between rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                      'flex w-full items-center justify-between py-3 text-sm font-medium transition-colors',
                       isActive(item.href)
-                        ? 'bg-muted text-foreground'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                        ? 'text-foreground'
+                        : 'text-muted-foreground'
                     )}
                   >
-                    {item.label}
+                    <span className="flex items-center gap-2">
+                      {isActive(item.href) && (
+                        <span className="h-4 w-0.5 rounded-full bg-rlc-red" />
+                      )}
+                      {item.label}
+                    </span>
                     <ChevronDown
                       className={cn(
-                        'h-4 w-4 transition-transform',
+                        'h-4 w-4 text-muted-foreground transition-transform duration-200',
                         mobileExpanded === item.href && 'rotate-180'
                       )}
                     />
                   </button>
-                  {mobileExpanded === item.href && (
-                    <div className="ml-4 flex flex-col space-y-1 border-l pl-3 pt-1">
-                      {item.children.map((child) => (
-                        <Link
-                          key={child.href}
-                          href={child.href}
-                          className={cn(
-                            'rounded-md px-3 py-1.5 text-sm transition-colors',
-                            pathname === child.href
-                              ? 'font-medium text-foreground'
-                              : 'text-muted-foreground hover:text-foreground'
-                          )}
-                          onClick={() => setMobileMenuOpen(false)}
-                        >
-                          {child.label}
-                        </Link>
-                      ))}
+
+                  {/* Expandable children */}
+                  <div
+                    className={cn(
+                      'overflow-hidden transition-all duration-200',
+                      mobileExpanded === item.href
+                        ? 'max-h-[500px] opacity-100 pb-2'
+                        : 'max-h-0 opacity-0'
+                    )}
+                  >
+                    <div className="ml-1 space-y-0.5 border-l-2 border-rlc-blue/20 pl-4">
+                      {item.children.map((child) => {
+                        const Icon = child.icon;
+                        const active = pathname === child.href;
+
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            className={cn(
+                              'flex items-center gap-3 rounded-md px-2 py-2 transition-colors',
+                              active
+                                ? 'bg-rlc-red/8 text-foreground'
+                                : 'text-muted-foreground hover:text-foreground'
+                            )}
+                            onClick={() => setMobileMenuOpen(false)}
+                          >
+                            <Icon
+                              className={cn(
+                                'h-4 w-4 shrink-0',
+                                active ? 'text-rlc-red' : 'text-muted-foreground/60'
+                              )}
+                            />
+                            <div>
+                              <span
+                                className={cn(
+                                  'text-sm font-medium',
+                                  active && 'text-rlc-red'
+                                )}
+                              >
+                                {child.label}
+                              </span>
+                              <p className="text-xs text-muted-foreground/70 leading-snug">
+                                {child.description}
+                              </p>
+                            </div>
+                          </Link>
+                        );
+                      })}
                     </div>
-                  )}
+                  </div>
                 </div>
               ) : (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
-                    'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+                    'flex items-center gap-2 border-b border-border/50 py-3 text-sm font-medium transition-colors last:border-0',
                     isActive(item.href)
-                      ? 'bg-muted text-foreground'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                      ? 'text-foreground'
+                      : 'text-muted-foreground'
                   )}
                   onClick={() => setMobileMenuOpen(false)}
                 >
+                  {isActive(item.href) && (
+                    <span className="h-4 w-0.5 rounded-full bg-rlc-red" />
+                  )}
                   {item.label}
                 </Link>
               )
             )}
-            <div className="flex flex-col space-y-2 pt-4">
+            <div className="flex flex-col space-y-2 border-t pt-4 mt-1">
               <SignedOut>
                 <Button asChild variant="outline" size="sm">
                   <Link href="/sign-in">Sign In</Link>
