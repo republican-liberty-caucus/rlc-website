@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RLC Navigation Before/After - Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== BASE RESET & TOKENS ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ce1c22;
+      --blue: #233d93;
+      --gold: #ce1c22;
+      --white: #FFFFFF;
+      --light-gray: #F5F5F5;
+      --mid-gray: #E0E0E0;
+      --dark-gray: #333333;
+      --text: #1A1A1A;
+      --text-muted: #666666;
+      --green: #2E7D32;
+      --orange: #E65100;
+      --font-display: 'Oswald', sans-serif;
+      --font-body: 'Open Sans', sans-serif;
+      --max-width: 1200px;
+      --radius: 8px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.1);
+      --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    html { font-size: 16px; }
+    body { font-family: var(--font-body); color: var(--text); background: var(--light-gray); line-height: 1.6; }
+    a { color: var(--blue); text-decoration: none; }
+    h1, h2, h3, h4, h5 { font-family: var(--font-display); font-weight: 700; line-height: 1.2; }
+
+    /* ===== UTILITIES ===== */
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
+
+    /* ===== MOCKUP LABEL ===== */
+    .mockup-label {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--dark-gray); color: var(--white); text-align: center;
+      padding: 6px; font-size: 0.75rem; font-family: var(--font-body);
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    body { padding-top: 32px; }
+
+    /* ===== SECTION WRAPPER ===== */
+    .nav-section { padding: 40px 0; }
+    .nav-section:nth-child(odd) { background: var(--white); }
+    .nav-section:nth-child(even) { background: var(--light-gray); }
+    .section-header {
+      text-align: center; margin-bottom: 32px;
+    }
+    .section-header h2 {
+      font-size: 1.8rem; color: var(--blue); text-transform: uppercase;
+      letter-spacing: 2px; margin-bottom: 8px;
+    }
+    .section-header p { color: var(--text-muted); font-size: 0.95rem; }
+
+    /* ===== COMPARISON LAYOUT ===== */
+    .comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .compare-label {
+      display: inline-block; padding: 6px 16px; border-radius: 20px;
+      font-family: var(--font-display); font-size: 0.85rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;
+    }
+    .compare-label.before { background: #FFEBEE; color: var(--red); }
+    .compare-label.after { background: #E8F5E9; color: var(--green); }
+
+    /* ===== NAV BAR MOCKUPS ===== */
+    .nav-mockup {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+    }
+    .nav-bar {
+      display: flex; align-items: center; padding: 0 20px;
+      height: 56px; border-bottom: 3px solid var(--red);
+      gap: 4px; flex-wrap: wrap;
+    }
+    .nav-bar .logo {
+      font-family: var(--font-display); font-weight: 700; font-size: 1rem;
+      color: var(--blue); margin-right: auto; white-space: nowrap;
+    }
+    .nav-bar .nav-link {
+      padding: 6px 12px; font-size: 0.8rem; font-weight: 600;
+      color: var(--dark-gray); text-transform: uppercase; letter-spacing: 0.5px;
+      white-space: nowrap;
+    }
+    .nav-bar .nav-link:hover { color: var(--blue); }
+    .nav-bar .nav-divider {
+      width: 1px; height: 24px; background: var(--mid-gray); margin: 0 4px;
+    }
+    .nav-bar .nav-cta {
+      background: var(--gold); color: var(--white); padding: 8px 18px;
+      border-radius: var(--radius); font-family: var(--font-display);
+      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px; white-space: nowrap;
+    }
+    .nav-bar .nav-signin {
+      padding: 6px 12px; font-size: 0.8rem; font-weight: 600;
+      color: var(--text-muted); white-space: nowrap;
+    }
+
+    /* Callout boxes */
+    .callout {
+      padding: 14px 18px; margin-top: 16px; border-radius: var(--radius);
+      font-size: 0.85rem; line-height: 1.5;
+    }
+    .callout.problem { background: #FFF3E0; border: 1px solid #FFB74D; color: #E65100; }
+    .callout.improvement { background: #E8F5E9; border: 1px solid #81C784; color: var(--green); }
+    .callout strong { display: block; margin-bottom: 4px; }
+
+    /* Arrows / annotations on nav */
+    .nav-annotation {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;
+      padding: 0 20px;
+    }
+    .nav-annotation .arrow { color: var(--green); font-weight: 700; }
+
+    /* ===== MEMBER NAV (horizontal tabs style) ===== */
+    .member-nav-bar {
+      display: flex; align-items: center; height: 48px;
+      background: var(--blue); padding: 0 20px; gap: 4px;
+      border-radius: var(--radius) var(--radius) 0 0;
+    }
+    .member-nav-bar .nav-link {
+      padding: 6px 14px; font-size: 0.8rem; font-weight: 600;
+      color: rgba(255,255,255,0.7); text-transform: uppercase;
+      letter-spacing: 0.5px; white-space: nowrap;
+    }
+    .member-nav-bar .nav-link:hover { color: var(--white); }
+    .member-nav-bar .nav-link.active {
+      color: var(--white); border-bottom: 2px solid var(--gold);
+      padding-bottom: 4px;
+    }
+    .member-nav-bar .nav-divider {
+      width: 1px; height: 24px; background: rgba(255,255,255,0.15); margin: 0 4px;
+    }
+
+    /* ===== FOOTER SECTION ===== */
+    .footer-comparison { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 32px; }
+
+    /* Broken links table */
+    .link-table {
+      width: 100%; border-collapse: collapse; background: var(--white);
+      border-radius: var(--radius); overflow: hidden; box-shadow: var(--shadow);
+    }
+    .link-table thead { background: var(--blue); color: var(--white); }
+    .link-table th {
+      padding: 10px 16px; text-align: left; font-family: var(--font-display);
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;
+      font-weight: 600;
+    }
+    .link-table td { padding: 10px 16px; border-bottom: 1px solid var(--light-gray); font-size: 0.9rem; }
+    .link-table tr:last-child td { border-bottom: none; }
+    .broken-link { color: var(--red); font-weight: 600; text-decoration: line-through; }
+    .fixed-link { color: var(--green); font-weight: 600; }
+    .arrow-cell { color: var(--text-muted); text-align: center; font-size: 1.2rem; }
+
+    /* Footer mockup */
+    .footer-mockup {
+      background: #111; border-radius: var(--radius); padding: 32px;
+      color: #aaa; box-shadow: var(--shadow-lg);
+    }
+    .footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    .footer-col h4 {
+      font-family: var(--font-display); color: var(--white);
+      margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px;
+      font-size: 0.85rem;
+    }
+    .footer-col a {
+      display: block; color: #aaa; margin-bottom: 6px; font-size: 0.8rem;
+    }
+    .footer-col a:hover { color: var(--gold); }
+    .footer-col .new-link { color: var(--gold); font-weight: 600; }
+    .footer-col .new-link::before { content: '+ '; }
+
+    /* ===== ANNOTATIONS ===== */
+    .annotations {
+      background: #FFFDE7; border: 2px dashed var(--gold); border-radius: var(--radius);
+      padding: 24px; margin: 40px auto; max-width: var(--max-width);
+    }
+    .annotations h3 { font-family: var(--font-display); color: var(--gold); margin-bottom: 12px; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+    .annotations ul { list-style: disc; padding-left: 20px; }
+    .annotations li { font-size: 0.9rem; color: var(--dark-gray); margin-bottom: 8px; line-height: 1.5; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .comparison { gap: 20px; }
+      .footer-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .comparison { grid-template-columns: 1fr; }
+      .footer-comparison { grid-template-columns: 1fr; }
+      .nav-bar { height: auto; padding: 12px 16px; gap: 8px; }
+      .member-nav-bar { height: auto; padding: 12px 16px; flex-wrap: wrap; gap: 8px; }
+      .section-header h2 { font-size: 1.4rem; }
+    }
+    @media (max-width: 375px) {
+      .section-header h2 { font-size: 1.2rem; }
+      .nav-bar .nav-link { font-size: 0.7rem; padding: 4px 8px; }
+      .footer-grid { grid-template-columns: 1fr; }
+      .link-table { font-size: 0.8rem; }
+      .link-table th, .link-table td { padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-label">RLC Mockup 06 -- Navigation Before/After -- Design Reference</div>
+
+<!-- ============================== -->
+<!-- SECTION 1: PUBLIC NAVIGATION   -->
+<!-- ============================== -->
+<div class="nav-section" style="background: var(--white);">
+  <div class="container">
+    <div class="section-header">
+      <h2>Public Navigation</h2>
+      <p>Transforming a flat link list into an intentional conversion funnel</p>
+    </div>
+    <div class="comparison">
+      <!-- Before -->
+      <div>
+        <div class="compare-label before">Before</div>
+        <div class="nav-mockup">
+          <div class="nav-bar" style="flex-wrap: wrap; height: auto; padding: 12px 20px; gap: 0;">
+            <div class="logo">RLC</div>
+            <a class="nav-link">About</a>
+            <a class="nav-link">Chapters</a>
+            <a class="nav-link">Events</a>
+            <a class="nav-link">Blog</a>
+            <a class="nav-link">Scorecards</a>
+            <a class="nav-link">Join</a>
+            <a class="nav-link">Donate</a>
+            <a class="nav-link nav-signin">Sign In</a>
+          </div>
+        </div>
+        <div class="callout problem">
+          <strong>Problems:</strong>
+          8 links in a flat row with no hierarchy. "Join" and "Donate" look the same as "Blog." Scorecards (the most engaging feature) is buried between Blog and Join. No visual distinction between informational links and action items.
+        </div>
+      </div>
+
+      <!-- After -->
+      <div>
+        <div class="compare-label after">After</div>
+        <div class="nav-mockup">
+          <div class="nav-bar">
+            <div class="logo">RLC</div>
+            <a class="nav-link">About</a>
+            <a class="nav-link">Chapters</a>
+            <a class="nav-link" style="color: var(--blue); font-weight: 700;">Scorecards</a>
+            <a class="nav-link" style="color: var(--red); font-weight: 700;">Action Center</a>
+            <div class="nav-divider"></div>
+            <a class="nav-link">Blog</a>
+            <a class="nav-link">Events</a>
+            <div class="nav-divider"></div>
+            <a class="nav-cta">Join Now</a>
+            <a class="nav-link nav-signin">Sign In</a>
+          </div>
+        </div>
+        <div class="callout improvement">
+          <strong>Improvements:</strong>
+          Three intentional groups separated by dividers: (1) Core experience -- About, Chapters, Scorecards, Action Center; (2) Content -- Blog, Events; (3) Conversion -- Join CTA + Sign In. "Action Center" added as primary engagement driver. "Join" elevated to gold CTA button. "Donate" moved to dedicated page accessible from within the experience.
+        </div>
+        <div class="nav-annotation">
+          <span class="arrow">&uarr;</span> Scorecards and Action Center highlighted with bolder weight -- these are the engagement drivers
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== -->
+<!-- SECTION 2: MEMBER NAVIGATION   -->
+<!-- ============================== -->
+<div class="nav-section" style="background: var(--light-gray);">
+  <div class="container">
+    <div class="section-header">
+      <h2>Member Navigation</h2>
+      <p>Adding engagement tools to the authenticated member experience</p>
+    </div>
+    <div class="comparison">
+      <!-- Before -->
+      <div>
+        <div class="compare-label before">Before</div>
+        <div class="nav-mockup">
+          <div class="member-nav-bar">
+            <a class="nav-link active">Dashboard</a>
+            <a class="nav-link">Profile</a>
+            <a class="nav-link">Membership</a>
+            <a class="nav-link">Household</a>
+            <a class="nav-link">Contributions</a>
+            <a class="nav-link">My Events</a>
+          </div>
+          <div style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+            (Dashboard content area)
+          </div>
+        </div>
+        <div class="callout problem">
+          <strong>Problems:</strong>
+          Pure account management navigation. No links to scorecards, campaigns, or action center. A member who wants to take action has to navigate back to the public site. The member area feels disconnected from the organization's mission.
+        </div>
+      </div>
+
+      <!-- After -->
+      <div>
+        <div class="compare-label after">After</div>
+        <div class="nav-mockup">
+          <div class="member-nav-bar">
+            <a class="nav-link active">Dashboard</a>
+            <div class="nav-divider"></div>
+            <a class="nav-link" style="color: var(--gold);">Action Center</a>
+            <a class="nav-link">Scorecards</a>
+            <div class="nav-divider"></div>
+            <a class="nav-link">Profile</a>
+            <a class="nav-link">Membership</a>
+            <a class="nav-link">Household</a>
+            <a class="nav-link">Contributions</a>
+            <a class="nav-link">My Events</a>
+          </div>
+          <div style="padding: 40px; text-align: center; color: var(--text-muted); font-size: 0.85rem;">
+            (Dashboard content area with urgent action cards)
+          </div>
+        </div>
+        <div class="callout improvement">
+          <strong>Improvements:</strong>
+          Three groups: (1) Overview -- Dashboard; (2) Engagement -- Action Center (gold highlight), Scorecards; (3) Account -- Profile, Membership, etc. Action Center is now one click away from anywhere in the member area. Gold color makes it stand out as the primary engagement destination.
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== -->
+<!-- SECTION 3: FOOTER FIX          -->
+<!-- ============================== -->
+<div class="nav-section" style="background: var(--white);">
+  <div class="container">
+    <div class="section-header">
+      <h2>Footer Fix</h2>
+      <p>Resolving broken links and adding missing navigation destinations</p>
+    </div>
+
+    <div class="footer-comparison">
+      <!-- Broken Links Table -->
+      <div>
+        <h3 style="font-size: 1.1rem; color: var(--red); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px;">6 Broken Links to Fix</h3>
+        <table class="link-table">
+          <thead>
+            <tr>
+              <th>Broken Link</th>
+              <th style="text-align: center;"></th>
+              <th>Redirect To</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="broken-link">/volunteer</span></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><span class="fixed-link">/join</span></td>
+            </tr>
+            <tr>
+              <td><span class="broken-link">/contact</span></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><span class="fixed-link">/about</span></td>
+            </tr>
+            <tr>
+              <td><span class="broken-link">/platform</span></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><span class="fixed-link">/about</span></td>
+            </tr>
+            <tr>
+              <td><span class="broken-link">/press</span></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><span class="fixed-link">/blog</span></td>
+            </tr>
+            <tr>
+              <td><span class="broken-link">/resolutions</span></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><span class="fixed-link">/about</span></td>
+            </tr>
+            <tr>
+              <td><span class="broken-link">/endorsements</span></td>
+              <td class="arrow-cell">&rarr;</td>
+              <td><span class="fixed-link">/scorecards</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Implementation Note -->
+      <div>
+        <h3 style="font-size: 1.1rem; color: var(--blue); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px;">Implementation</h3>
+        <div style="background: var(--light-gray); border-radius: var(--radius); padding: 20px; font-size: 0.85rem; line-height: 1.8;">
+          <p style="margin-bottom: 12px;"><strong>Redirect Strategy:</strong></p>
+          <ul style="list-style: disc; padding-left: 20px; margin-bottom: 16px;">
+            <li>All redirects should be <strong>301 (permanent)</strong> to preserve SEO value</li>
+            <li>Implement in Next.js <code>next.config.js</code> redirects array</li>
+            <li>Track redirect hits in analytics to measure impact</li>
+            <li>Add proper anchor sections on target pages (e.g., /about#contact, /about#platform)</li>
+          </ul>
+          <p style="margin-bottom: 12px;"><strong>Why these mappings:</strong></p>
+          <ul style="list-style: disc; padding-left: 20px;">
+            <li><code>/volunteer</code> &rarr; <code>/join</code>: Volunteering is a membership action</li>
+            <li><code>/contact</code> &rarr; <code>/about</code>: Contact info lives on about page</li>
+            <li><code>/platform</code> &rarr; <code>/about</code>: Platform is part of the mission</li>
+            <li><code>/press</code> &rarr; <code>/blog</code>: Press releases are blog content</li>
+            <li><code>/resolutions</code> &rarr; <code>/about</code>: Resolutions are part of platform</li>
+            <li><code>/endorsements</code> &rarr; <code>/scorecards</code>: Scored legislators replace endorsement lists</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- New Footer Design -->
+    <h3 style="font-size: 1.1rem; color: var(--green); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; text-align: center;">New Footer Design</h3>
+    <div class="footer-mockup">
+      <div class="footer-grid">
+        <div class="footer-col">
+          <h4>About</h4>
+          <a href="#">Our Mission</a>
+          <a href="#">Leadership</a>
+          <a href="#">History</a>
+          <a href="#">Platform</a>
+          <a href="#">Contact</a>
+        </div>
+        <div class="footer-col">
+          <h4>Take Action</h4>
+          <a href="#" class="new-link">Action Center</a>
+          <a href="#" class="new-link">Scorecards</a>
+          <a href="#">Campaigns</a>
+          <a href="#">Find Your Rep</a>
+          <a href="#">Petitions</a>
+        </div>
+        <div class="footer-col">
+          <h4>Community</h4>
+          <a href="#">Chapters</a>
+          <a href="#">Events</a>
+          <a href="#">Blog</a>
+          <a href="#">Newsletter</a>
+          <a href="#" class="new-link">Social Media</a>
+        </div>
+        <div class="footer-col">
+          <h4>Get Involved</h4>
+          <a href="#">Join / Renew</a>
+          <a href="#">Donate</a>
+          <a href="#">Volunteer</a>
+          <a href="#">Start a Chapter</a>
+          <a href="#" class="new-link">Partner With Us</a>
+        </div>
+      </div>
+      <div style="border-top: 1px solid #333; margin-top: 24px; padding-top: 16px; text-align: center; font-size: 0.8rem;">
+        &copy; 2026 Republican Liberty Caucus. All rights reserved. &nbsp;|&nbsp; Privacy Policy &nbsp;|&nbsp; Terms
+      </div>
+    </div>
+    <div class="nav-annotation" style="justify-content: center; margin-top: 12px;">
+      <span class="arrow">&uarr;</span> Gold links marked with "+" are new additions that didn't exist in the old footer
+    </div>
+  </div>
+</div>
+
+<!-- Annotations -->
+<div class="container" style="padding-bottom: 60px;">
+  <div class="annotations" style="margin-top: 40px;">
+    <h3>Design Decisions</h3>
+    <ul>
+      <li><strong>Public nav: Three intentional groups with dividers:</strong> The vertical dividers create visual "zones" that guide the eye. Zone 1 (core) is what the organization is about. Zone 2 (content) is for staying informed. Zone 3 (conversion) is for taking the membership step. This mirrors a classic marketing funnel: Awareness > Interest > Action.</li>
+      <li><strong>Scorecards and Action Center promoted to primary nav:</strong> These are the most unique and engaging features of the RLC website. Burying them (or not having them in nav at all) means most visitors never find them. Promoting them to primary nav with bolder weight signals "this is what we're about."</li>
+      <li><strong>"Join Now" as gold CTA button:</strong> The gold button breaks the text-only pattern and draws the eye as the final nav item. Gold over red because "Join" is a positive aspirational action, while red is reserved for urgency. The CTA placement at the end of the nav is the natural endpoint of left-to-right scanning.</li>
+      <li><strong>Member nav: Action Center in gold:</strong> Even within the authenticated area, the engagement tools should be the most visually prominent. Gold highlight on "Action Center" creates a persistent visual invitation to participate. This is the key difference between a member portal that feels like an account settings page vs. one that feels like a mission command center.</li>
+      <li><strong>Footer organized by user intent (4 columns):</strong> "About" (learn), "Take Action" (engage), "Community" (connect), "Get Involved" (commit). Every link maps to a clear user goal. The new links (Action Center, Scorecards, Social Media, Partner With Us) fill gaps where users had no path to key destinations.</li>
+      <li><strong>301 redirects for broken links:</strong> Permanent redirects preserve any existing SEO value from inbound links. The redirect-to targets were chosen based on the closest content match and most useful destination for visitors who might have bookmarked or linked to the old URLs.</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>

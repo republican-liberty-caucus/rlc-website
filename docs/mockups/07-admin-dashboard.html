@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLC Admin Dashboard - Mockup 07</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== BASE RESET & VARIABLES ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --red: #ce1c22;
+    --blue: #233d93;
+    --gold: #ce1c22;
+    --white: #FFFFFF;
+    --gray-50: #F9FAFB;
+    --gray-100: #F3F4F6;
+    --gray-200: #E5E7EB;
+    --gray-300: #D1D5DB;
+    --gray-400: #9CA3AF;
+    --gray-500: #6B7280;
+    --gray-600: #4B5563;
+    --gray-700: #374151;
+    --gray-800: #1F2937;
+    --gray-900: #111827;
+    --green: #059669;
+    --green-light: #D1FAE5;
+    --amber: #D97706;
+    --amber-light: #FEF3C7;
+    --purple: #7C3AED;
+    --purple-light: #EDE9FE;
+    --blue-light: #DBEAFE;
+    --red-light: #FEE2E2;
+    --font-display: 'Oswald', sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+    --shadow: 0 1px 3px rgba(0,0,0,0.1), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+    --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+  html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+  body {
+    font-family: var(--font-body);
+    background: var(--gray-50);
+    color: var(--gray-800);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  /* ===== LAYOUT ===== */
+  .admin-layout { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 260px;
+    background: var(--blue);
+    color: var(--white);
+    padding: 0;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    z-index: 100;
+    transition: transform 0.3s ease;
+  }
+  .sidebar-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .sidebar-logo {
+    width: 36px;
+    height: 36px;
+    background: var(--red);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--white);
+    flex-shrink: 0;
+  }
+  .sidebar-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 16px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .sidebar-nav { padding: 16px 12px; flex: 1; overflow-y: auto; }
+  .nav-section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: rgba(255,255,255,0.4);
+    padding: 16px 12px 8px;
+  }
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    color: rgba(255,255,255,0.7);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.15s ease;
+    cursor: pointer;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.1); color: var(--white); }
+  .nav-item.active {
+    background: rgba(255,255,255,0.15);
+    color: var(--white);
+    font-weight: 600;
+  }
+  .nav-icon {
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .nav-badge {
+    margin-left: auto;
+    background: var(--red);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+  }
+  .sidebar-footer {
+    padding: 16px 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .sidebar-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--white);
+  }
+  .sidebar-user { font-size: 13px; }
+  .sidebar-user-name { font-weight: 600; }
+  .sidebar-user-role { font-size: 11px; color: rgba(255,255,255,0.5); }
+
+  /* Mobile sidebar toggle */
+  .sidebar-toggle {
+    display: none;
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    z-index: 200;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--blue);
+    color: white;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--shadow-md);
+  }
+
+  /* Main content */
+  .main-content {
+    flex: 1;
+    margin-left: 260px;
+    padding: 32px;
+    max-width: 1280px;
+  }
+
+  /* ===== PAGE HEADER ===== */
+  .page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+  .page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 28px;
+    color: var(--gray-900);
+    letter-spacing: 0.5px;
+  }
+  .date-range-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--white);
+    border: 1px solid var(--gray-200);
+    border-radius: var(--radius);
+    padding: 8px 14px;
+    font-size: 14px;
+    color: var(--gray-600);
+    cursor: pointer;
+    box-shadow: var(--shadow-sm);
+  }
+  .date-range-selector:hover { border-color: var(--gray-300); }
+
+  /* ===== STAT CARDS ===== */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+  .stat-card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    padding: 22px 24px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-100);
+    transition: box-shadow 0.2s ease;
+  }
+  .stat-card:hover { box-shadow: var(--shadow-md); }
+  .stat-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--gray-500);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 8px;
+  }
+  .stat-row {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .stat-value {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 32px;
+    color: var(--gray-900);
+    line-height: 1;
+  }
+  .stat-trend {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 4px 8px;
+    border-radius: 6px;
+  }
+  .stat-trend.up { color: var(--green); background: var(--green-light); }
+  .stat-trend.down { color: var(--red); background: var(--red-light); }
+  .stat-sub {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 6px;
+  }
+
+  /* ===== ALERT SECTION ===== */
+  .alert-section {
+    background: var(--amber-light);
+    border: 1px solid #FCD34D;
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  .alert-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 15px;
+    color: #92400E;
+    margin-bottom: 14px;
+  }
+  .alert-icon { font-size: 20px; }
+  .alert-list { list-style: none; display: flex; flex-direction: column; gap: 8px; }
+  .alert-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 14px;
+    color: #78350F;
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.6);
+    border-radius: 6px;
+  }
+  .alert-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    flex-shrink: 0;
+  }
+  .alert-action {
+    margin-left: auto;
+    font-size: 13px;
+    font-weight: 600;
+    color: #92400E;
+    text-decoration: underline;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  /* ===== TWO-COL LAYOUT ===== */
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    margin-bottom: 28px;
+  }
+
+  /* ===== ACTIVITY FEED ===== */
+  .card {
+    background: var(--white);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    border: 1px solid var(--gray-100);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 18px 24px;
+    border-bottom: 1px solid var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .card-title {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 17px;
+    color: var(--gray-900);
+  }
+  .card-action {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--blue);
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .card-action:hover { text-decoration: underline; }
+  .card-body { padding: 0; }
+
+  .activity-list { list-style: none; }
+  .activity-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--gray-50);
+    transition: background 0.1s ease;
+  }
+  .activity-item:last-child { border-bottom: none; }
+  .activity-item:hover { background: var(--gray-50); }
+  .activity-dot-wrap {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 4px;
+  }
+  .activity-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .activity-dot.green { background: var(--green); }
+  .activity-dot.blue { background: var(--blue); }
+  .activity-dot.gold { background: var(--gold); }
+  .activity-dot.purple { background: var(--purple); }
+  .activity-dot.red { background: var(--red); }
+  .activity-content { flex: 1; min-width: 0; }
+  .activity-text {
+    font-size: 14px;
+    color: var(--gray-700);
+    line-height: 1.4;
+  }
+  .activity-text strong { color: var(--gray-900); font-weight: 600; }
+  .activity-time {
+    font-size: 12px;
+    color: var(--gray-400);
+    margin-top: 2px;
+  }
+  .activity-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+  }
+  .activity-icon.green { background: var(--green-light); }
+  .activity-icon.blue { background: var(--blue-light); }
+  .activity-icon.gold { background: #FEF3C7; }
+  .activity-icon.purple { background: var(--purple-light); }
+  .activity-icon.red { background: var(--red-light); }
+
+  /* ===== QUICK ACTIONS ===== */
+  .quick-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .quick-action-card {
+    flex: 1;
+    min-width: 140px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    background: var(--white);
+    border: 2px dashed var(--gray-200);
+    border-radius: var(--radius-lg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+  .quick-action-card:hover {
+    border-color: var(--blue);
+    border-style: solid;
+    background: #F0F4FF;
+    box-shadow: var(--shadow);
+  }
+  .quick-action-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 10px;
+    background: var(--gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    transition: background 0.2s ease;
+  }
+  .quick-action-card:hover .quick-action-icon { background: var(--blue); color: var(--white); }
+  .quick-action-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--gray-700);
+  }
+
+  /* ===== ANNOTATION BOX ===== */
+  .annotation-box {
+    margin-top: 48px;
+    padding: 24px;
+    background: #FFFBEB;
+    border: 1px dashed var(--gold);
+    border-radius: var(--radius-lg);
+    font-size: 13px;
+    color: var(--gray-600);
+    line-height: 1.6;
+  }
+  .annotation-box h4 {
+    font-family: var(--font-display);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--gray-800);
+    margin-bottom: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .annotation-box ul { margin-left: 20px; margin-top: 6px; }
+  .annotation-box li { margin-bottom: 4px; }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 1024px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .content-grid { grid-template-columns: 1fr; }
+    .main-content { padding: 24px; }
+  }
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .sidebar-toggle { display: flex; }
+    .main-content { margin-left: 0; padding: 20px; padding-top: 72px; }
+    .page-title { font-size: 24px; }
+    .stat-value { font-size: 26px; }
+  }
+  @media (max-width: 375px) {
+    .stat-grid { grid-template-columns: 1fr; }
+    .quick-actions { flex-direction: column; }
+    .quick-action-card { min-width: unset; }
+    .main-content { padding: 16px; padding-top: 68px; }
+    .page-header { flex-direction: column; align-items: flex-start; }
+  }
+</style>
+</head>
+<body>
+<div class="admin-layout">
+  <button class="sidebar-toggle" onclick="document.querySelector('.sidebar').classList.toggle('open')" aria-label="Toggle navigation">&#9776;</button>
+
+  <!-- Sidebar -->
+  <nav class="sidebar" role="navigation" aria-label="Admin navigation">
+    <div class="sidebar-header">
+      <div class="sidebar-logo">RLC</div>
+      <span class="sidebar-title">Admin Panel</span>
+    </div>
+    <div class="sidebar-nav">
+      <div class="nav-section-label">Overview</div>
+      <a class="nav-item active" href="#"><span class="nav-icon">&#9632;</span> Dashboard</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9636;</span> Reports</a>
+
+      <div class="nav-section-label">Manage</div>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9823;</span> Members <span class="nav-badge">23</span></a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9733;</span> Campaigns</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9873;</span> Chapters</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9998;</span> Scorecard</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9854;</span> Events</a>
+
+      <div class="nav-section-label">Content</div>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9997;</span> Posts</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9881;</span> Pages</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9878;</span> Media</a>
+
+      <div class="nav-section-label">Settings</div>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9881;</span> Configuration</a>
+      <a class="nav-item" href="#"><span class="nav-icon">&#9823;</span> Users &amp; Roles</a>
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-avatar">MN</div>
+      <div class="sidebar-user">
+        <div class="sidebar-user-name">Matt Nye</div>
+        <div class="sidebar-user-role">Super Admin</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="main-content">
+    <!-- Page Header -->
+    <div class="page-header">
+      <h1 class="page-title">Admin Dashboard</h1>
+      <div class="date-range-selector">
+        <span>&#128197;</span>
+        <span>Jan 1 - Feb 8, 2026</span>
+        <span style="margin-left: 4px;">&#9662;</span>
+      </div>
+    </div>
+
+    <!-- Stat Cards -->
+    <div class="stat-grid">
+      <div class="stat-card">
+        <div class="stat-label">Total Members</div>
+        <div class="stat-row">
+          <div class="stat-value">2,847</div>
+          <div class="stat-trend up">&#9650; 12%</div>
+        </div>
+        <div class="stat-sub">vs. last period</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Active Campaigns</div>
+        <div class="stat-row">
+          <div class="stat-value">12</div>
+          <div class="stat-trend" style="color: var(--amber); background: var(--amber-light);">3 ending soon</div>
+        </div>
+        <div class="stat-sub">across 14 states</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Chapters</div>
+        <div class="stat-row">
+          <div class="stat-value">38</div>
+          <div class="stat-trend" style="color: var(--blue); background: var(--blue-light);">2 forming</div>
+        </div>
+        <div class="stat-sub">in 22 states</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-label">Revenue MTD</div>
+        <div class="stat-row">
+          <div class="stat-value">$14,250</div>
+          <div class="stat-trend up">&#9650; 8%</div>
+        </div>
+        <div class="stat-sub">memberships + donations</div>
+      </div>
+    </div>
+
+    <!-- Needs Attention -->
+    <div class="alert-section" role="alert">
+      <div class="alert-header">
+        <span class="alert-icon">&#9888;</span>
+        Needs Attention
+      </div>
+      <ul class="alert-list">
+        <li class="alert-item">
+          <span class="alert-dot"></span>
+          <span><strong>23 memberships</strong> expiring this month</span>
+          <span class="alert-action">View &rarr;</span>
+        </li>
+        <li class="alert-item">
+          <span class="alert-dot"></span>
+          <span><strong>2 pending</strong> chapter applications</span>
+          <span class="alert-action">Review &rarr;</span>
+        </li>
+        <li class="alert-item">
+          <span class="alert-dot"></span>
+          <span><strong>5 campaigns</strong> ending in 48 hours</span>
+          <span class="alert-action">Manage &rarr;</span>
+        </li>
+      </ul>
+    </div>
+
+    <!-- Two-Column: Activity + Quick Actions -->
+    <div class="content-grid">
+      <!-- Recent Activity -->
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent Activity</h2>
+          <a class="card-action" href="#">View All</a>
+        </div>
+        <div class="card-body">
+          <ul class="activity-list">
+            <li class="activity-item">
+              <div class="activity-icon green">&#9823;</div>
+              <div class="activity-content">
+                <div class="activity-text"><strong>New member:</strong> John Smith (TX)</div>
+                <div class="activity-time">2 minutes ago</div>
+              </div>
+              <div class="activity-dot green"></div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon blue">&#9733;</div>
+              <div class="activity-content">
+                <div class="activity-text"><strong>Campaign participation:</strong> SB 1234 - Defend the 2nd Amendment</div>
+                <div class="activity-time">14 minutes ago</div>
+              </div>
+              <div class="activity-dot blue"></div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon gold">&#9830;</div>
+              <div class="activity-content">
+                <div class="activity-text"><strong>Donation:</strong> $250 from Jane Doe</div>
+                <div class="activity-time">28 minutes ago</div>
+              </div>
+              <div class="activity-dot gold"></div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon purple">&#9854;</div>
+              <div class="activity-content">
+                <div class="activity-text"><strong>Event registration:</strong> Austin Town Hall (Feb 15)</div>
+                <div class="activity-time">45 minutes ago</div>
+              </div>
+              <div class="activity-dot purple"></div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon green">&#9823;</div>
+              <div class="activity-content">
+                <div class="activity-text"><strong>New member:</strong> Sarah Martinez (FL)</div>
+                <div class="activity-time">1 hour ago</div>
+              </div>
+              <div class="activity-dot green"></div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon red">&#9888;</div>
+              <div class="activity-content">
+                <div class="activity-text"><strong>Membership expired:</strong> Robert Chen (CA)</div>
+                <div class="activity-time">1 hour ago</div>
+              </div>
+              <div class="activity-dot red"></div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon blue">&#9733;</div>
+              <div class="activity-content">
+                <div class="activity-text"><strong>Campaign created:</strong> HR 5678 - School Choice Act</div>
+                <div class="activity-time">2 hours ago</div>
+              </div>
+              <div class="activity-dot blue"></div>
+            </li>
+            <li class="activity-item">
+              <div class="activity-icon gold">&#9830;</div>
+              <div class="activity-content">
+                <div class="activity-text"><strong>Donation:</strong> $100 from Michael Torres</div>
+                <div class="activity-time">3 hours ago</div>
+              </div>
+              <div class="activity-dot gold"></div>
+            </li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div>
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header">
+            <h2 class="card-title">Quick Actions</h2>
+          </div>
+          <div class="card-body" style="padding: 20px;">
+            <div class="quick-actions">
+              <div class="quick-action-card">
+                <div class="quick-action-icon">&#9823;</div>
+                <div class="quick-action-label">New Member</div>
+              </div>
+              <div class="quick-action-card">
+                <div class="quick-action-icon">&#9733;</div>
+                <div class="quick-action-label">New Campaign</div>
+              </div>
+            </div>
+            <div class="quick-actions" style="margin-top: 12px;">
+              <div class="quick-action-card">
+                <div class="quick-action-icon">&#9854;</div>
+                <div class="quick-action-label">New Event</div>
+              </div>
+              <div class="quick-action-card">
+                <div class="quick-action-icon">&#9997;</div>
+                <div class="quick-action-label">New Post</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mini stats -->
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Top Chapters This Month</h2>
+          </div>
+          <div class="card-body" style="padding: 16px 24px;">
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-100);">
+              <span style="font-size: 14px; font-weight: 500; color: var(--gray-700);">1. Texas State Chapter</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--green);">+18 members</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-100);">
+              <span style="font-size: 14px; font-weight: 500; color: var(--gray-700);">2. Florida Liberty Chapter</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--green);">+14 members</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid var(--gray-100);">
+              <span style="font-size: 14px; font-weight: 500; color: var(--gray-700);">3. Virginia Chapter</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--green);">+11 members</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; padding: 10px 0;">
+              <span style="font-size: 14px; font-weight: 500; color: var(--gray-700);">4. Ohio Freedom Caucus</span>
+              <span style="font-size: 13px; font-weight: 600; color: var(--green);">+9 members</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Design Annotation -->
+    <div class="annotation-box">
+      <h4>Design Decisions - Mockup 07: Admin Dashboard</h4>
+      <ul>
+        <li><strong>Stat cards use Oswald for values</strong> to create visual hierarchy and a bold, authoritative feel consistent with the RLC brand.</li>
+        <li><strong>"Needs Attention" section uses amber/warning palette</strong> to draw the eye to actionable items without signaling an error state. Each item has a direct action link.</li>
+        <li><strong>Activity feed uses color-coded dots and icons</strong> to enable at-a-glance scanning -- green for new members, blue for campaigns, gold for donations, purple for events, red for expirations.</li>
+        <li><strong>Sidebar is fixed-position with collapsible mobile behavior</strong> using a hamburger toggle. Navigation is grouped by function (Overview, Manage, Content, Settings).</li>
+        <li><strong>Responsive breakpoints:</strong> 4-col stat grid collapses to 2-col at 1024px, 1-col at 375px. Two-column content grid stacks at 1024px. Sidebar hides off-screen on mobile.</li>
+        <li><strong>Quick Actions use dashed borders</strong> to signal "create new" affordance, transitioning to solid blue borders and blue backgrounds on hover for clear interactivity.</li>
+      </ul>
+    </div>
+  </main>
+</div>
+</body>
+</html>

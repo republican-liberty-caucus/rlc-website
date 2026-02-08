@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RLC Homepage - Command Center Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== BASE RESET & TOKENS ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ce1c22;
+      --blue: #233d93;
+      --gold: #ce1c22;
+      --white: #FFFFFF;
+      --light-gray: #F5F5F5;
+      --mid-gray: #E0E0E0;
+      --dark-gray: #333333;
+      --text: #1A1A1A;
+      --text-muted: #666666;
+      --green: #2E7D32;
+      --font-display: 'Oswald', sans-serif;
+      --font-body: 'Open Sans', sans-serif;
+      --max-width: 1200px;
+      --radius: 8px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.1);
+      --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    html { font-size: 16px; scroll-behavior: smooth; }
+    body { font-family: var(--font-body); color: var(--text); background: var(--white); line-height: 1.6; }
+    img { max-width: 100%; display: block; }
+    a { color: var(--blue); text-decoration: none; }
+    h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.2; }
+
+    /* ===== UTILITIES ===== */
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
+    .section { padding: 60px 0; }
+    .section-title { font-size: 2rem; color: var(--blue); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 1px; }
+    .section-subtitle { color: var(--text-muted); font-size: 1rem; margin-bottom: 32px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: var(--radius); font-family: var(--font-display); font-size: 1rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border: none; transition: transform 0.15s, box-shadow 0.15s; }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .btn-red { background: var(--red); color: var(--white); }
+    .btn-gold { background: var(--gold); color: var(--white); }
+    .btn-blue { background: var(--blue); color: var(--white); }
+    .btn-outline { background: transparent; border: 2px solid var(--white); color: var(--white); }
+    .badge { display: inline-block; padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    /* ===== MOCKUP LABEL ===== */
+    .mockup-label {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--dark-gray); color: var(--white); text-align: center;
+      padding: 6px; font-size: 0.75rem; font-family: var(--font-body);
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    body { padding-top: 32px; }
+
+    /* ===== HEADER / NAV ===== */
+    .site-header {
+      background: var(--white); border-bottom: 3px solid var(--red);
+      padding: 12px 0; position: sticky; top: 32px; z-index: 100;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .header-inner { display: flex; align-items: center; justify-content: space-between; }
+    .logo { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--blue); display: flex; align-items: center; gap: 8px; }
+    .logo-icon { width: 36px; height: 36px; background: var(--red); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--white); font-weight: 700; font-size: 1rem; }
+    .nav-links { display: flex; align-items: center; gap: 24px; list-style: none; }
+    .nav-links a { font-size: 0.9rem; font-weight: 600; color: var(--dark-gray); text-transform: uppercase; letter-spacing: 0.5px; }
+    .nav-links a:hover { color: var(--red); }
+    .nav-cta { background: var(--gold); color: var(--white) !important; padding: 8px 20px; border-radius: var(--radius); }
+
+    /* ===== URGENCY BAR ===== */
+    .urgency-bar {
+      background: var(--red); color: var(--white); text-align: center;
+      padding: 12px 20px; font-family: var(--font-display); font-size: 1rem;
+      font-weight: 600; letter-spacing: 0.5px; cursor: pointer;
+      animation: pulse-bg 3s ease-in-out infinite;
+    }
+    .urgency-bar:hover { background: #a80f28; }
+    @keyframes pulse-bg {
+      0%, 100% { background: var(--red); }
+      50% { background: #a80f28; }
+    }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: linear-gradient(135deg, var(--blue) 0%, #001a44 100%);
+      color: var(--white); padding: 80px 0 60px; text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-content { position: relative; z-index: 1; }
+    .hero h1 { font-size: 3.2rem; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 2px; }
+    .hero h1 span { color: var(--gold); }
+    .hero p { font-size: 1.2rem; opacity: 0.9; max-width: 600px; margin: 0 auto 32px; }
+    .hero-counters { display: flex; justify-content: center; gap: 48px; margin-bottom: 40px; }
+    .counter-item { text-align: center; }
+    .counter-value { font-family: var(--font-display); font-size: 2.8rem; font-weight: 700; color: var(--gold); display: block; }
+    .counter-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; }
+    .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    /* ===== LIVE FEED ===== */
+    .live-feed { background: var(--light-gray); }
+    .feed-header { display: flex; align-items: center; gap: 8px; margin-bottom: 24px; }
+    .live-dot { width: 10px; height: 10px; background: var(--green); border-radius: 50%; animation: blink 1.5s infinite; }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    .feed-list { display: flex; flex-direction: column; gap: 12px; }
+    .feed-item {
+      background: var(--white); padding: 16px 20px; border-radius: var(--radius);
+      display: flex; align-items: center; gap: 16px; box-shadow: var(--shadow);
+      border-left: 4px solid var(--blue);
+    }
+    .feed-icon { width: 40px; height: 40px; border-radius: 50%; background: var(--blue); color: var(--white); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; flex-shrink: 0; }
+    .feed-text { flex: 1; font-size: 0.95rem; }
+    .feed-text strong { color: var(--blue); }
+    .feed-time { font-size: 0.8rem; color: var(--text-muted); white-space: nowrap; }
+
+    /* ===== SCORECARD SPOTLIGHT ===== */
+    .scorecard-spot { background: var(--white); }
+    .score-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+    .score-section h3 { font-size: 1.3rem; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+    .score-section.champions h3 { color: var(--green); }
+    .score-section.offenders h3 { color: var(--red); }
+    .score-card {
+      display: flex; align-items: center; gap: 16px; padding: 16px;
+      background: var(--light-gray); border-radius: var(--radius); margin-bottom: 12px;
+    }
+    .score-avatar { width: 48px; height: 48px; border-radius: 50%; background: var(--mid-gray); display: flex; align-items: center; justify-content: center; font-weight: 700; color: var(--white); font-size: 1rem; flex-shrink: 0; }
+    .score-avatar.r { background: var(--red); }
+    .score-avatar.d { background: var(--blue); }
+    .score-info { flex: 1; }
+    .score-name { font-weight: 700; font-size: 0.95rem; }
+    .score-meta { font-size: 0.8rem; color: var(--text-muted); }
+    .score-bar-wrap { height: 8px; background: var(--mid-gray); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+    .score-bar { height: 100%; border-radius: 4px; transition: width 1s ease; }
+    .score-bar.green { background: var(--green); }
+    .score-bar.red { background: var(--red); }
+    .score-value { font-family: var(--font-display); font-size: 1.5rem; font-weight: 700; }
+    .score-value.green { color: var(--green); }
+    .score-value.red { color: var(--red); }
+
+    /* ===== CAMPAIGNS ===== */
+    .campaigns { background: var(--light-gray); }
+    .campaign-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .campaign-card {
+      background: var(--white); border-radius: var(--radius); overflow: hidden;
+      box-shadow: var(--shadow); transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .campaign-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .campaign-badge { display: inline-block; padding: 6px 16px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; color: var(--white); }
+    .campaign-badge.urgent { background: var(--red); }
+    .campaign-badge.active { background: var(--green); }
+    .campaign-badge.new { background: var(--gold); }
+    .campaign-body { padding: 20px; }
+    .campaign-body h3 { font-size: 1.1rem; margin-bottom: 8px; color: var(--blue); }
+    .campaign-body p { font-size: 0.9rem; color: var(--text-muted); margin-bottom: 16px; line-height: 1.5; }
+    .progress-wrap { margin-bottom: 12px; }
+    .progress-bar { height: 10px; background: var(--mid-gray); border-radius: 5px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 5px; background: linear-gradient(90deg, var(--blue), var(--gold)); }
+    .progress-label { display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-top: 4px; }
+
+    /* ===== EVENTS ===== */
+    .events { background: var(--white); }
+    .events-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+    .event-card {
+      border: 2px solid var(--mid-gray); border-radius: var(--radius);
+      overflow: hidden; transition: border-color 0.2s;
+    }
+    .event-card:hover { border-color: var(--blue); }
+    .event-date-block {
+      background: var(--blue); color: var(--white); text-align: center;
+      padding: 12px; font-family: var(--font-display);
+    }
+    .event-month { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.8; }
+    .event-day { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+    .event-year { font-size: 0.75rem; opacity: 0.7; }
+    .event-body { padding: 20px; }
+    .event-body h3 { font-size: 1.05rem; margin-bottom: 6px; color: var(--blue); }
+    .event-location { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
+    .event-countdown { font-family: var(--font-display); font-size: 0.9rem; color: var(--red); font-weight: 600; }
+
+    /* ===== STATS BAR ===== */
+    .stats-bar {
+      background: linear-gradient(135deg, var(--blue) 0%, #001a44 100%);
+      color: var(--white); padding: 48px 0;
+    }
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; text-align: center; }
+    .stat-item .stat-number { font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; color: var(--gold); }
+    .stat-item .stat-label { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.8; margin-top: 4px; }
+
+    /* ===== JOIN CTA ===== */
+    .join-cta {
+      background: var(--dark-gray); color: var(--white); padding: 80px 0;
+      text-align: center;
+    }
+    .join-cta h2 { font-size: 2.4rem; margin-bottom: 12px; text-transform: uppercase; }
+    .join-cta h2 span { color: var(--gold); }
+    .join-cta p { font-size: 1.1rem; opacity: 0.8; margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .social-proof { display: flex; justify-content: center; align-items: center; gap: -8px; margin-bottom: 24px; }
+    .avatar-stack { display: flex; margin-right: 12px; }
+    .avatar-stack span {
+      width: 36px; height: 36px; border-radius: 50%; border: 2px solid var(--dark-gray);
+      display: inline-flex; align-items: center; justify-content: center;
+      font-size: 0.7rem; font-weight: 700; color: var(--white); margin-left: -10px;
+    }
+    .avatar-stack span:first-child { margin-left: 0; }
+    .social-proof-text { font-size: 0.9rem; opacity: 0.8; }
+
+    /* ===== FOOTER ===== */
+    .site-footer { background: #111; color: #aaa; padding: 40px 0 20px; font-size: 0.85rem; }
+    .footer-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 32px; margin-bottom: 32px; }
+    .footer-col h4 { font-family: var(--font-display); color: var(--white); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 1px; font-size: 0.9rem; }
+    .footer-col a { display: block; color: #aaa; margin-bottom: 8px; font-size: 0.85rem; }
+    .footer-col a:hover { color: var(--gold); }
+    .footer-bottom { border-top: 1px solid #333; padding-top: 20px; text-align: center; }
+
+    /* ===== ANNOTATIONS ===== */
+    .annotations {
+      background: #FFFDE7; border: 2px dashed var(--gold); border-radius: var(--radius);
+      padding: 24px; margin: 40px auto; max-width: var(--max-width);
+    }
+    .annotations h3 { font-family: var(--font-display); color: var(--gold); margin-bottom: 12px; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+    .annotations ul { list-style: disc; padding-left: 20px; }
+    .annotations li { font-size: 0.9rem; color: var(--dark-gray); margin-bottom: 8px; line-height: 1.5; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .campaign-grid, .events-grid { grid-template-columns: repeat(2, 1fr); }
+      .stats-grid { grid-template-columns: repeat(2, 1fr); gap: 32px; }
+      .footer-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .hero h1 { font-size: 2.2rem; }
+      .hero-counters { gap: 24px; }
+      .counter-value { font-size: 2rem; }
+      .section-title { font-size: 1.6rem; }
+      .score-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+      .campaign-grid, .events-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 375px) {
+      .hero h1 { font-size: 1.8rem; }
+      .hero-counters { flex-direction: column; gap: 16px; }
+      .hero-actions { flex-direction: column; align-items: center; }
+      .stats-grid { grid-template-columns: 1fr 1fr; gap: 20px; }
+      .stat-item .stat-number { font-size: 2rem; }
+      .footer-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Mockup Label -->
+<div class="mockup-label">RLC Mockup 01 -- Homepage Command Center -- Design Reference</div>
+
+<!-- Header -->
+<header class="site-header">
+  <div class="container header-inner">
+    <div class="logo">
+      <div class="logo-icon">R</div>
+      Republican Liberty Caucus
+    </div>
+    <ul class="nav-links">
+      <li><a href="#">About</a></li>
+      <li><a href="#">Chapters</a></li>
+      <li><a href="#">Scorecards</a></li>
+      <li><a href="#">Action Center</a></li>
+      <li><a href="#">Blog</a></li>
+      <li><a href="#">Events</a></li>
+      <li><a href="#" class="nav-cta">Join Now</a></li>
+      <li><a href="#">Sign In</a></li>
+    </ul>
+  </div>
+</header>
+
+<!-- Urgency Bar -->
+<div class="urgency-bar">
+  3 bills need your voice this week <span style="margin-left: 4px;">&rarr;</span>
+</div>
+
+<!-- Hero -->
+<section class="hero">
+  <div class="container hero-content">
+    <h1>Defend Liberty.<br><span>Take Action.</span></h1>
+    <p>The Republican Liberty Caucus empowers grassroots advocates to hold legislators accountable and protect individual freedom.</p>
+    <div class="hero-counters">
+      <div class="counter-item">
+        <span class="counter-value">2,847</span>
+        <span class="counter-label">Active Members</span>
+      </div>
+      <div class="counter-item">
+        <span class="counter-value">12</span>
+        <span class="counter-label">Active Campaigns</span>
+      </div>
+      <div class="counter-item">
+        <span class="counter-value">38</span>
+        <span class="counter-label">States</span>
+      </div>
+    </div>
+    <div class="hero-actions">
+      <a href="#" class="btn btn-red">Take Action Now</a>
+      <a href="#" class="btn btn-gold">Join the Movement</a>
+    </div>
+  </div>
+</section>
+
+<!-- Live Activity Feed -->
+<section class="live-feed section">
+  <div class="container">
+    <div class="feed-header">
+      <div class="live-dot"></div>
+      <h2 class="section-title" style="margin-bottom: 0;">Live Activity</h2>
+    </div>
+    <div class="feed-list">
+      <div class="feed-item">
+        <div class="feed-icon">&#9993;</div>
+        <div class="feed-text"><strong>John from TX</strong> contacted their rep on <strong>SB 1234 - Digital Privacy Act</strong></div>
+        <div class="feed-time">2 min ago</div>
+      </div>
+      <div class="feed-item">
+        <div class="feed-icon">&#9733;</div>
+        <div class="feed-text"><strong>Maria from FL</strong> joined the <strong>Tax Reform Campaign</strong></div>
+        <div class="feed-time">5 min ago</div>
+      </div>
+      <div class="feed-item">
+        <div class="feed-icon">&#128176;</div>
+        <div class="feed-text"><strong>Robert from OH</strong> donated to the <strong>2025 Liberty Fund</strong></div>
+        <div class="feed-time">8 min ago</div>
+      </div>
+      <div class="feed-item">
+        <div class="feed-icon">&#9998;</div>
+        <div class="feed-text"><strong>Emily from VA</strong> signed the petition on <strong>HB 5678 - School Choice Act</strong></div>
+        <div class="feed-time">12 min ago</div>
+      </div>
+      <div class="feed-item">
+        <div class="feed-icon">&#128101;</div>
+        <div class="feed-text"><strong>David from AZ</strong> registered for <strong>Phoenix Town Hall - Feb 22</strong></div>
+        <div class="feed-time">15 min ago</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Scorecard Spotlight -->
+<section class="scorecard-spot section">
+  <div class="container">
+    <h2 class="section-title">Scorecard Spotlight</h2>
+    <p class="section-subtitle">How your representatives score on liberty issues</p>
+    <div class="score-grid">
+      <div class="score-section champions">
+        <h3>&#127942; Liberty Champions</h3>
+        <div class="score-card">
+          <div class="score-avatar r">RM</div>
+          <div class="score-info">
+            <div class="score-name">Rep. Ron Mitchell</div>
+            <div class="score-meta">R - Texas, District 14</div>
+            <div class="score-bar-wrap"><div class="score-bar green" style="width: 95%;"></div></div>
+          </div>
+          <div class="score-value green">95%</div>
+        </div>
+        <div class="score-card">
+          <div class="score-avatar r">SH</div>
+          <div class="score-info">
+            <div class="score-name">Sen. Sarah Harding</div>
+            <div class="score-meta">R - Florida</div>
+            <div class="score-bar-wrap"><div class="score-bar green" style="width: 91%;"></div></div>
+          </div>
+          <div class="score-value green">91%</div>
+        </div>
+        <div class="score-card">
+          <div class="score-avatar r">JK</div>
+          <div class="score-info">
+            <div class="score-name">Rep. James Keller</div>
+            <div class="score-meta">R - Arizona, District 6</div>
+            <div class="score-bar-wrap"><div class="score-bar green" style="width: 88%;"></div></div>
+          </div>
+          <div class="score-value green">88%</div>
+        </div>
+      </div>
+      <div class="score-section offenders">
+        <h3>&#9888; Needs Improvement</h3>
+        <div class="score-card">
+          <div class="score-avatar r">BT</div>
+          <div class="score-info">
+            <div class="score-name">Sen. Bill Thompson</div>
+            <div class="score-meta">R - Maine</div>
+            <div class="score-bar-wrap"><div class="score-bar red" style="width: 28%;"></div></div>
+          </div>
+          <div class="score-value red">28%</div>
+        </div>
+        <div class="score-card">
+          <div class="score-avatar d">LP</div>
+          <div class="score-info">
+            <div class="score-name">Rep. Lisa Park</div>
+            <div class="score-meta">D - California, District 22</div>
+            <div class="score-bar-wrap"><div class="score-bar red" style="width: 19%;"></div></div>
+          </div>
+          <div class="score-value red">19%</div>
+        </div>
+        <div class="score-card">
+          <div class="score-avatar d">MD</div>
+          <div class="score-info">
+            <div class="score-name">Sen. Mark Davis</div>
+            <div class="score-meta">D - New York</div>
+            <div class="score-bar-wrap"><div class="score-bar red" style="width: 15%;"></div></div>
+          </div>
+          <div class="score-value red">15%</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Active Campaigns -->
+<section class="campaigns section">
+  <div class="container">
+    <h2 class="section-title">Active Campaigns</h2>
+    <p class="section-subtitle">Your voice matters -- join the fight for liberty</p>
+    <div class="campaign-grid">
+      <div class="campaign-card">
+        <div class="campaign-badge urgent">Urgent</div>
+        <div class="campaign-body">
+          <h3>Stop the Surveillance Expansion Act</h3>
+          <p>HB 2345 would grant sweeping new powers to federal agencies. Contact your rep before the vote on March 1.</p>
+          <div class="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" style="width: 62%;"></div></div>
+            <div class="progress-label"><span>312 / 500 took action</span><span>62%</span></div>
+          </div>
+          <a href="#" class="btn btn-red" style="width: 100%; justify-content: center;">Take Action</a>
+        </div>
+      </div>
+      <div class="campaign-card">
+        <div class="campaign-badge active">Active</div>
+        <div class="campaign-body">
+          <h3>Defend School Choice in Florida</h3>
+          <p>SB 5678 protects parental rights in education. Show your legislators you support educational freedom.</p>
+          <div class="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" style="width: 25%;"></div></div>
+            <div class="progress-label"><span>127 / 500 took action</span><span>25%</span></div>
+          </div>
+          <a href="#" class="btn btn-blue" style="width: 100%; justify-content: center;">Take Action</a>
+        </div>
+      </div>
+      <div class="campaign-card">
+        <div class="campaign-badge new">New</div>
+        <div class="campaign-body">
+          <h3>Tax Reform Act - Fair Flat Tax</h3>
+          <p>Support HB 7890 to simplify the tax code and reduce the burden on working families across America.</p>
+          <div class="progress-wrap">
+            <div class="progress-bar"><div class="progress-fill" style="width: 8%;"></div></div>
+            <div class="progress-label"><span>41 / 500 took action</span><span>8%</span></div>
+          </div>
+          <a href="#" class="btn btn-blue" style="width: 100%; justify-content: center;">Take Action</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Upcoming Events -->
+<section class="events section">
+  <div class="container">
+    <h2 class="section-title">Upcoming Events</h2>
+    <p class="section-subtitle">Connect with fellow liberty advocates in person</p>
+    <div class="events-grid">
+      <div class="event-card">
+        <div class="event-date-block">
+          <div class="event-month">Feb</div>
+          <div class="event-day">22</div>
+          <div class="event-year">2026</div>
+        </div>
+        <div class="event-body">
+          <h3>Phoenix Town Hall: Digital Privacy</h3>
+          <div class="event-location">Phoenix Convention Center, AZ</div>
+          <div class="event-countdown">Starts in 14 days</div>
+          <a href="#" class="btn btn-blue" style="margin-top: 12px; font-size: 0.85rem; padding: 8px 20px;">RSVP</a>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-date-block">
+          <div class="event-month">Mar</div>
+          <div class="event-day">08</div>
+          <div class="event-year">2026</div>
+        </div>
+        <div class="event-body">
+          <h3>National Liberty Conference 2026</h3>
+          <div class="event-location">Washington, D.C.</div>
+          <div class="event-countdown">Starts in 28 days</div>
+          <a href="#" class="btn btn-blue" style="margin-top: 12px; font-size: 0.85rem; padding: 8px 20px;">RSVP</a>
+        </div>
+      </div>
+      <div class="event-card">
+        <div class="event-date-block">
+          <div class="event-month">Mar</div>
+          <div class="event-day">15</div>
+          <div class="event-year">2026</div>
+        </div>
+        <div class="event-body">
+          <h3>Florida Chapter: School Choice Rally</h3>
+          <div class="event-location">Tallahassee, FL</div>
+          <div class="event-countdown">Starts in 35 days</div>
+          <a href="#" class="btn btn-blue" style="margin-top: 12px; font-size: 0.85rem; padding: 8px 20px;">RSVP</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Stats Bar -->
+<section class="stats-bar">
+  <div class="container">
+    <div class="stats-grid">
+      <div class="stat-item">
+        <div class="stat-number">48,293</div>
+        <div class="stat-label">Letters Sent</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">534</div>
+        <div class="stat-label">Legislators Scored</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">12</div>
+        <div class="stat-label">Bills Defeated</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-number">38</div>
+        <div class="stat-label">State Chapters</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Join CTA -->
+<section class="join-cta">
+  <div class="container">
+    <div class="social-proof">
+      <div class="avatar-stack">
+        <span style="background: var(--red);">JD</span>
+        <span style="background: var(--blue);">MK</span>
+        <span style="background: var(--gold);">SR</span>
+        <span style="background: var(--green);">LP</span>
+        <span style="background: #666;">+2.8K</span>
+      </div>
+    </div>
+    <h2>Join <span>2,847</span> Liberty Advocates</h2>
+    <p>Stand with fellow Republicans who believe in limited government, individual liberty, and free markets.</p>
+    <a href="#" class="btn btn-gold" style="font-size: 1.1rem; padding: 16px 40px;">Become a Member</a>
+  </div>
+</section>
+
+<!-- Footer -->
+<footer class="site-footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h4>About</h4>
+        <a href="#">Our Mission</a>
+        <a href="#">Leadership</a>
+        <a href="#">History</a>
+        <a href="#">Platform</a>
+      </div>
+      <div class="footer-col">
+        <h4>Take Action</h4>
+        <a href="#">Action Center</a>
+        <a href="#">Scorecards</a>
+        <a href="#">Campaigns</a>
+        <a href="#">Find Your Rep</a>
+      </div>
+      <div class="footer-col">
+        <h4>Connect</h4>
+        <a href="#">Chapters</a>
+        <a href="#">Events</a>
+        <a href="#">Blog</a>
+        <a href="#">Newsletter</a>
+      </div>
+      <div class="footer-col">
+        <h4>Support</h4>
+        <a href="#">Join / Renew</a>
+        <a href="#">Donate</a>
+        <a href="#">Volunteer</a>
+        <a href="#">Contact Us</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      &copy; 2026 Republican Liberty Caucus. All rights reserved.
+    </div>
+  </div>
+</footer>
+
+<!-- Annotations -->
+<div class="annotations container" style="margin-bottom: 60px;">
+  <h3>Design Decisions</h3>
+  <ul>
+    <li><strong>Urgency bar at top:</strong> Creates immediate engagement by surfacing time-sensitive legislative actions. Subtle pulsing animation draws attention without being distracting.</li>
+    <li><strong>Animated counters in hero:</strong> Social proof that the movement is large and active. Numbers create credibility and momentum.</li>
+    <li><strong>Live activity feed:</strong> Shows real-time participation from other members, creating FOMO and demonstrating the platform is alive. Builds community feeling.</li>
+    <li><strong>Scorecard spotlight (Champions vs Needs Improvement):</strong> Makes accountability visible on the homepage. Color-coded bars allow instant comprehension of legislator performance.</li>
+    <li><strong>Campaign progress bars:</strong> Gamification element showing collective progress toward action goals. Creates urgency ("only 188 more needed").</li>
+    <li><strong>Two CTAs in hero (red + gold):</strong> Red for immediate action (existing intent), gold for joining (new members). Separates conversion funnels visually.</li>
+    <li><strong>Dark join CTA section with avatar stack:</strong> Social proof pattern borrowed from SaaS best practices. Humanizes the membership count.</li>
+    <li><strong>Footer organized by intent:</strong> Four columns map to user goals -- learn, act, connect, support. Every link earns its place.</li>
+  </ul>
+</div>
+
+</body>
+</html>

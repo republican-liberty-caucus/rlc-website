@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RLC Action Confirmation - Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== BASE RESET & TOKENS ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ce1c22;
+      --blue: #233d93;
+      --gold: #ce1c22;
+      --white: #FFFFFF;
+      --light-gray: #F5F5F5;
+      --mid-gray: #E0E0E0;
+      --dark-gray: #333333;
+      --text: #1A1A1A;
+      --text-muted: #666666;
+      --green: #2E7D32;
+      --font-display: 'Oswald', sans-serif;
+      --font-body: 'Open Sans', sans-serif;
+      --radius: 8px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.1);
+      --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    html { font-size: 16px; }
+    body { font-family: var(--font-body); color: var(--text); background: var(--light-gray); line-height: 1.6; }
+    a { color: var(--blue); text-decoration: none; }
+    h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.2; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: var(--radius); font-family: var(--font-display); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border: none; transition: transform 0.15s, box-shadow 0.15s; }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .btn-red { background: var(--red); color: var(--white); }
+    .btn-blue { background: var(--blue); color: var(--white); }
+    .btn-gold { background: var(--gold); color: var(--white); }
+    .btn-outline { background: transparent; border: 2px solid var(--mid-gray); color: var(--text-muted); }
+    .btn-sm { padding: 8px 18px; font-size: 0.8rem; }
+
+    /* ===== MOCKUP LABEL ===== */
+    .mockup-label {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--dark-gray); color: var(--white); text-align: center;
+      padding: 6px; font-size: 0.75rem; font-family: var(--font-body);
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+
+    /* ===== MODAL OVERLAY ===== */
+    .modal-overlay {
+      position: fixed; top: 32px; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 20px; z-index: 100;
+    }
+
+    /* ===== MODAL CARD ===== */
+    .modal-card {
+      background: var(--white); border-radius: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+      max-width: 520px; width: 100%;
+      max-height: 90vh; overflow-y: auto;
+      animation: slideUp 0.4s ease-out;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .modal-body { padding: 40px 32px 32px; text-align: center; }
+
+    /* ===== CHECKMARK ANIMATION ===== */
+    .checkmark-circle {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: var(--green); margin: 0 auto 24px;
+      display: flex; align-items: center; justify-content: center;
+      animation: scaleIn 0.5s ease-out 0.1s both;
+      position: relative;
+    }
+    @keyframes scaleIn {
+      from { transform: scale(0); }
+      50% { transform: scale(1.15); }
+      to { transform: scale(1); }
+    }
+    .checkmark-circle::after {
+      content: '';
+      width: 20px; height: 36px;
+      border-right: 4px solid var(--white);
+      border-bottom: 4px solid var(--white);
+      transform: rotate(45deg) translate(-2px, -4px);
+      animation: drawCheck 0.4s ease-out 0.5s both;
+    }
+    @keyframes drawCheck {
+      from { opacity: 0; clip-path: inset(100% 0 0 0); }
+      to { opacity: 1; clip-path: inset(0 0 0 0); }
+    }
+    .checkmark-ring {
+      position: absolute; width: 96px; height: 96px;
+      border-radius: 50%; border: 3px solid rgba(46, 125, 50, 0.2);
+      animation: ringPulse 2s ease-out infinite;
+    }
+    @keyframes ringPulse {
+      0% { transform: scale(1); opacity: 0.6; }
+      100% { transform: scale(1.5); opacity: 0; }
+    }
+
+    /* ===== MODAL CONTENT ===== */
+    .modal-headline {
+      font-size: 1.8rem; color: var(--blue); text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 12px;
+    }
+    .modal-description {
+      font-size: 1rem; color: var(--text-muted); margin-bottom: 8px;
+      line-height: 1.5;
+    }
+    .modal-bill {
+      display: inline-block; background: var(--light-gray); color: var(--blue);
+      padding: 6px 16px; border-radius: 20px; font-weight: 600;
+      font-size: 0.9rem; margin-bottom: 28px;
+    }
+
+    .divider {
+      height: 1px; background: var(--mid-gray); margin: 0 0 24px;
+    }
+
+    /* ===== SHARE SECTION ===== */
+    .share-section { margin-bottom: 28px; }
+    .share-label {
+      font-family: var(--font-display); font-size: 1rem;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-muted); margin-bottom: 12px;
+    }
+    .share-buttons { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+    .share-btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: var(--radius);
+      font-family: var(--font-body); font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; border: none; color: var(--white);
+      transition: transform 0.15s, opacity 0.15s;
+    }
+    .share-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+    .share-btn.twitter { background: #1DA1F2; }
+    .share-btn.facebook { background: #1877F2; }
+    .share-btn.copy { background: var(--dark-gray); }
+    .share-btn.email { background: var(--blue); }
+
+    /* ===== WHATS NEXT ===== */
+    .next-section { margin-bottom: 24px; }
+    .next-label {
+      font-family: var(--font-display); font-size: 1rem;
+      text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-muted); margin-bottom: 12px;
+    }
+    .next-card {
+      background: var(--light-gray); border-radius: var(--radius);
+      padding: 20px; text-align: left; border-left: 4px solid var(--red);
+    }
+    .next-card-badge {
+      display: inline-block; background: var(--red); color: var(--white);
+      padding: 3px 10px; border-radius: 12px; font-size: 0.7rem;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+    .next-card h4 { font-size: 1rem; color: var(--blue); margin-bottom: 4px; }
+    .next-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; }
+
+    /* ===== IMPACT COUNTER ===== */
+    .impact-counter {
+      background: linear-gradient(135deg, var(--blue) 0%, #001a44 100%);
+      color: var(--white); padding: 16px 24px; border-radius: var(--radius);
+      margin-bottom: 24px; text-align: center;
+    }
+    .impact-counter .count {
+      font-family: var(--font-display); font-size: 1.8rem; font-weight: 700;
+      color: var(--gold);
+    }
+    .impact-counter .label { font-size: 0.85rem; opacity: 0.8; }
+
+    /* ===== CLOSE BUTTON ===== */
+    .close-btn {
+      width: 100%; padding: 14px; border-radius: var(--radius);
+      background: var(--light-gray); border: none; font-family: var(--font-display);
+      font-size: 1rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 1px; color: var(--text-muted); cursor: pointer;
+      transition: background 0.15s;
+    }
+    .close-btn:hover { background: var(--mid-gray); }
+
+    /* ===== BACKGROUND PAGE (for context) ===== */
+    .bg-page {
+      position: fixed; top: 32px; left: 0; right: 0; bottom: 0;
+      background: var(--light-gray); z-index: 1;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .bg-page-inner {
+      text-align: center; opacity: 0.3;
+      font-family: var(--font-display); color: var(--text);
+    }
+    .bg-page-inner h2 { font-size: 1.5rem; margin-bottom: 8px; }
+    .bg-page-inner p { font-size: 0.9rem; }
+
+    /* ===== ANNOTATIONS (below overlay) ===== */
+    .annotations-wrapper {
+      position: relative; z-index: 200;
+      background: var(--light-gray); padding: 40px 20px 60px;
+    }
+    .annotations {
+      background: #FFFDE7; border: 2px dashed var(--gold); border-radius: var(--radius);
+      padding: 24px; max-width: 520px; margin: 0 auto;
+    }
+    .annotations h3 { font-family: var(--font-display); color: var(--gold); margin-bottom: 12px; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+    .annotations ul { list-style: disc; padding-left: 20px; }
+    .annotations li { font-size: 0.9rem; color: var(--dark-gray); margin-bottom: 8px; line-height: 1.5; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .modal-body { padding: 32px 24px 24px; }
+      .modal-headline { font-size: 1.5rem; }
+      .share-buttons { flex-direction: column; }
+      .share-btn { justify-content: center; }
+    }
+    @media (max-width: 375px) {
+      .modal-body { padding: 24px 16px 20px; }
+      .modal-headline { font-size: 1.3rem; }
+      .checkmark-circle { width: 64px; height: 64px; }
+      .checkmark-circle::after { width: 16px; height: 28px; border-width: 3px; }
+      .impact-counter .count { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-label">RLC Mockup 05 -- Action Confirmation Modal -- Design Reference</div>
+
+<!-- Background page (for context) -->
+<div class="bg-page">
+  <div class="bg-page-inner">
+    <h2>Campaign Page: Stop the Surveillance Expansion Act</h2>
+    <p>(Page content blurred behind modal overlay)</p>
+  </div>
+</div>
+
+<!-- Modal Overlay -->
+<div class="modal-overlay">
+  <div class="modal-card">
+    <div class="modal-body">
+
+      <!-- Animated Checkmark -->
+      <div class="checkmark-circle">
+        <div class="checkmark-ring"></div>
+      </div>
+
+      <!-- Headline -->
+      <h2 class="modal-headline">You Made Your Voice Heard!</h2>
+
+      <!-- Description -->
+      <p class="modal-description">You contacted <strong>Rep. Ron Mitchell</strong> about</p>
+      <div class="modal-bill">HB 1234 -- Protecting Digital Privacy</div>
+
+      <div class="divider"></div>
+
+      <!-- Share Section -->
+      <div class="share-section">
+        <div class="share-label">Spread the Word</div>
+        <div class="share-buttons">
+          <button class="share-btn twitter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>
+            Tweet
+          </button>
+          <button class="share-btn facebook">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/></svg>
+            Share
+          </button>
+          <button class="share-btn copy">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copy Link
+          </button>
+          <button class="share-btn email">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 4l-10 8L2 4"/></svg>
+            Email
+          </button>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- What's Next -->
+      <div class="next-section">
+        <div class="next-label">What's Next?</div>
+        <div class="next-card">
+          <div class="next-card-badge">Urgent</div>
+          <h4>SB 5678 -- Tax Reform Act</h4>
+          <p>This bill needs your voice. 312 members have already taken action -- will you join them?</p>
+          <button class="btn btn-red btn-sm" style="width: 100%; justify-content: center;">Take Action on This Campaign</button>
+        </div>
+      </div>
+
+      <!-- Impact Counter -->
+      <div class="impact-counter">
+        <div class="count">8</div>
+        <div class="label">campaigns you've taken action on this year</div>
+      </div>
+
+      <!-- Close Button -->
+      <button class="close-btn">Done</button>
+
+    </div>
+  </div>
+</div>
+
+<!-- Annotations -->
+<div class="annotations-wrapper">
+  <div class="annotations">
+    <h3>Design Decisions</h3>
+    <ul>
+      <li><strong>Animated checkmark:</strong> The scale-in animation with the slight overshoot (1.15x) and the pulsing ring create a moment of delight. This is a reward for civic action -- it should feel satisfying, like completing a task in a well-designed app.</li>
+      <li><strong>Emotional headline ("You Made Your Voice Heard!"):</strong> Reinforces that the action mattered. Uses second person ("You") to personalize. Much stronger than a neutral "Action Completed" message.</li>
+      <li><strong>Share buttons immediately after confirmation:</strong> Peak motivation moment. The user just acted and feels good about it -- this is the optimal time to ask them to share. Four channels cover the major sharing behaviors.</li>
+      <li><strong>Next campaign suggestion:</strong> Converts the positive momentum into another action. The "urgent" badge and social proof ("312 members") create immediate next-step urgency. This is the key funnel step that transforms one-time actors into habitual advocates.</li>
+      <li><strong>Impact counter:</strong> Gamification element showing cumulative participation. "8 campaigns this year" creates both pride (look what I've done) and motivation (let's get to 10). The dark blue background with gold number makes it visually distinct.</li>
+      <li><strong>Backdrop blur on overlay:</strong> The blurred background maintains page context while focusing attention on the confirmation. The 60% dark overlay ensures the modal is readable on any background.</li>
+      <li><strong>"Done" button instead of "Close" or "X":</strong> "Done" implies completion and satisfaction. An X button feels dismissive. The neutral gray styling makes it clearly secondary to the "Take Action" CTA above it.</li>
+    </ul>
+  </div>
+</div>
+
+</body>
+</html>
