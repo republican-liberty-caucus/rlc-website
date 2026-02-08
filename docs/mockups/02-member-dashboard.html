@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RLC Member Dashboard - Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== BASE RESET & TOKENS ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ce1c22;
+      --blue: #233d93;
+      --gold: #ce1c22;
+      --white: #FFFFFF;
+      --light-gray: #F5F5F5;
+      --mid-gray: #E0E0E0;
+      --dark-gray: #333333;
+      --text: #1A1A1A;
+      --text-muted: #666666;
+      --green: #2E7D32;
+      --orange: #E65100;
+      --font-display: 'Oswald', sans-serif;
+      --font-body: 'Open Sans', sans-serif;
+      --max-width: 1200px;
+      --radius: 8px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.1);
+      --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    html { font-size: 16px; }
+    body { font-family: var(--font-body); color: var(--text); background: var(--light-gray); line-height: 1.6; }
+    a { color: var(--blue); text-decoration: none; }
+    h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.2; }
+
+    /* ===== UTILITIES ===== */
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
+    .section { margin-bottom: 32px; }
+    .section-title { font-size: 1.4rem; color: var(--blue); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 24px; border-radius: var(--radius); font-family: var(--font-display); font-size: 0.9rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; cursor: pointer; border: none; transition: transform 0.15s, box-shadow 0.15s; }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .btn-red { background: var(--red); color: var(--white); }
+    .btn-gold { background: var(--gold); color: var(--white); }
+    .btn-blue { background: var(--blue); color: var(--white); }
+    .btn-outline { background: transparent; border: 2px solid var(--blue); color: var(--blue); }
+    .btn-sm { padding: 6px 16px; font-size: 0.8rem; }
+    .card { background: var(--white); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+
+    /* ===== MOCKUP LABEL ===== */
+    .mockup-label {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--dark-gray); color: var(--white); text-align: center;
+      padding: 6px; font-size: 0.75rem; font-family: var(--font-body);
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    body { padding-top: 32px; }
+
+    /* ===== DASHBOARD HEADER ===== */
+    .dash-header {
+      background: linear-gradient(135deg, var(--blue) 0%, #001a44 100%);
+      color: var(--white); padding: 40px 0 32px;
+    }
+    .dash-header-inner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .welcome h1 { font-size: 2rem; margin-bottom: 4px; }
+    .welcome h1 span { color: var(--gold); }
+    .welcome p { opacity: 0.8; font-size: 0.95rem; }
+    .header-actions { display: flex; gap: 12px; }
+
+    /* ===== IMPACT STATS ===== */
+    .impact-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: -24px; position: relative; z-index: 10; margin-bottom: 32px; }
+    .stat-card {
+      background: var(--white); border-radius: var(--radius); padding: 24px;
+      text-align: center; box-shadow: var(--shadow);
+      border-top: 4px solid var(--blue);
+    }
+    .stat-card:nth-child(1) { border-top-color: var(--blue); }
+    .stat-card:nth-child(2) { border-top-color: var(--gold); }
+    .stat-card:nth-child(3) { border-top-color: var(--green); }
+    .stat-card:nth-child(4) { border-top-color: var(--red); }
+    .stat-card .stat-number { font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; color: var(--text); line-height: 1; }
+    .stat-card .stat-label { font-size: 0.8rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+    /* ===== URGENT ACTIONS ===== */
+    .urgent-actions .action-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .action-card {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+      border-left: 4px solid var(--red);
+    }
+    .action-card .action-badge {
+      display: inline-block; background: var(--red); color: var(--white);
+      padding: 4px 12px; font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 1px;
+    }
+    .action-card .action-body { padding: 16px; }
+    .action-card h3 { font-size: 1rem; margin-bottom: 6px; color: var(--blue); }
+    .action-card p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4; }
+    .action-card .deadline { font-size: 0.8rem; color: var(--red); font-weight: 600; margin-bottom: 12px; }
+
+    /* ===== YOUR REPS ===== */
+    .reps-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+    .rep-card {
+      background: var(--white); border-radius: var(--radius); padding: 20px;
+      box-shadow: var(--shadow); text-align: center;
+    }
+    .rep-avatar {
+      width: 64px; height: 64px; border-radius: 50%; margin: 0 auto 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 700; font-size: 1.2rem;
+      color: var(--white);
+    }
+    .rep-avatar.r { background: var(--red); border: 3px solid #a80f28; }
+    .rep-avatar.d { background: var(--blue); border: 3px solid #001a44; }
+    .rep-name { font-family: var(--font-display); font-size: 1rem; font-weight: 600; margin-bottom: 2px; }
+    .rep-meta { font-size: 0.8rem; color: var(--text-muted); margin-bottom: 8px; }
+    .rep-score-wrap { margin-bottom: 12px; }
+    .rep-score-label { display: flex; justify-content: space-between; font-size: 0.75rem; margin-bottom: 4px; }
+    .rep-score-bar { height: 8px; background: var(--mid-gray); border-radius: 4px; overflow: hidden; }
+    .rep-score-fill { height: 100%; border-radius: 4px; }
+    .rep-score-fill.high { background: var(--green); }
+    .rep-score-fill.mid { background: var(--orange); }
+    .rep-score-fill.low { background: var(--red); }
+
+    /* ===== ACTIVITY TIMELINE ===== */
+    .timeline { position: relative; padding-left: 32px; }
+    .timeline::before { content: ''; position: absolute; left: 12px; top: 0; bottom: 0; width: 2px; background: var(--mid-gray); }
+    .timeline-item { position: relative; padding-bottom: 20px; }
+    .timeline-item:last-child { padding-bottom: 0; }
+    .timeline-dot {
+      position: absolute; left: -26px; top: 4px;
+      width: 20px; height: 20px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.65rem; color: var(--white);
+    }
+    .timeline-dot.contact { background: var(--blue); }
+    .timeline-dot.donate { background: var(--gold); }
+    .timeline-dot.event { background: var(--green); }
+    .timeline-dot.campaign { background: var(--red); }
+    .timeline-dot.signup { background: var(--dark-gray); }
+    .timeline-content { background: var(--white); padding: 12px 16px; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .timeline-content p { font-size: 0.9rem; margin-bottom: 2px; }
+    .timeline-content .time { font-size: 0.75rem; color: var(--text-muted); }
+
+    /* ===== MEMBERSHIP CARD ===== */
+    .membership-card {
+      background: linear-gradient(135deg, var(--blue) 0%, #001a44 60%, var(--gold) 100%);
+      border-radius: 16px; padding: 32px; color: var(--white);
+      position: relative; overflow: hidden; max-width: 420px;
+      box-shadow: var(--shadow-lg);
+    }
+    .membership-card::before {
+      content: ''; position: absolute; top: -50px; right: -50px;
+      width: 200px; height: 200px; border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+    }
+    .membership-card::after {
+      content: ''; position: absolute; bottom: -30px; left: -30px;
+      width: 120px; height: 120px; border-radius: 50%;
+      background: rgba(255,255,255,0.03);
+    }
+    .card-org { font-family: var(--font-display); font-size: 0.85rem; text-transform: uppercase; letter-spacing: 2px; opacity: 0.8; margin-bottom: 20px; }
+    .card-name { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; margin-bottom: 4px; }
+    .card-tier { font-size: 0.9rem; color: var(--gold); font-weight: 600; margin-bottom: 20px; }
+    .card-details { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; font-size: 0.8rem; }
+    .card-detail-label { opacity: 0.6; text-transform: uppercase; letter-spacing: 0.5px; font-size: 0.7rem; }
+    .card-detail-value { font-weight: 600; }
+
+    /* ===== TWO COLUMN LAYOUT ===== */
+    .two-col { display: grid; grid-template-columns: 1fr 380px; gap: 24px; align-items: start; }
+
+    /* ===== ANNOTATIONS ===== */
+    .annotations {
+      background: #FFFDE7; border: 2px dashed var(--gold); border-radius: var(--radius);
+      padding: 24px; margin: 40px auto; max-width: var(--max-width);
+    }
+    .annotations h3 { font-family: var(--font-display); color: var(--gold); margin-bottom: 12px; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+    .annotations ul { list-style: disc; padding-left: 20px; }
+    .annotations li { font-size: 0.9rem; color: var(--dark-gray); margin-bottom: 8px; line-height: 1.5; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .impact-stats { grid-template-columns: repeat(2, 1fr); }
+      .reps-grid { grid-template-columns: repeat(2, 1fr); }
+      .two-col { grid-template-columns: 1fr; }
+      .urgent-actions .action-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 768px) {
+      .impact-stats { grid-template-columns: repeat(2, 1fr); }
+      .reps-grid { grid-template-columns: 1fr 1fr; }
+      .urgent-actions .action-grid { grid-template-columns: 1fr; }
+      .dash-header h1 { font-size: 1.6rem; }
+    }
+    @media (max-width: 375px) {
+      .impact-stats { grid-template-columns: 1fr 1fr; gap: 8px; }
+      .stat-card { padding: 16px; }
+      .stat-card .stat-number { font-size: 1.8rem; }
+      .reps-grid { grid-template-columns: 1fr; }
+      .header-actions { flex-direction: column; }
+      .membership-card { padding: 24px; }
+      .card-name { font-size: 1.3rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-label">RLC Mockup 02 -- Member Dashboard -- Design Reference</div>
+
+<!-- Dashboard Header -->
+<div class="dash-header">
+  <div class="container dash-header-inner">
+    <div class="welcome">
+      <h1>Welcome back, <span>Sarah</span></h1>
+      <p>You've been a member for 2 years, 3 months. Keep fighting for liberty.</p>
+    </div>
+    <div class="header-actions">
+      <a href="#" class="btn btn-red">Action Center</a>
+      <a href="#" class="btn btn-outline" style="border-color: var(--white); color: var(--white);">My Profile</a>
+    </div>
+  </div>
+</div>
+
+<!-- Impact Stats -->
+<div class="container">
+  <div class="impact-stats">
+    <div class="stat-card">
+      <div class="stat-number">14</div>
+      <div class="stat-label">Reps Contacted</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">8</div>
+      <div class="stat-label">Campaigns Joined</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number">3</div>
+      <div class="stat-label">Events Attended</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-number" style="color: var(--green);">A-</div>
+      <div class="stat-label">Liberty Score Impact</div>
+    </div>
+  </div>
+</div>
+
+<!-- Urgent Actions -->
+<div class="container section urgent-actions">
+  <h2 class="section-title">&#9888; Urgent Actions for You</h2>
+  <div class="action-grid">
+    <div class="action-card">
+      <div class="action-badge">Deadline: 3 days</div>
+      <div class="action-body">
+        <h3>Stop the Surveillance Expansion Act</h3>
+        <p>HB 2345 would grant sweeping new powers to federal agencies. Your rep in TX-14 hasn't heard from you.</p>
+        <div class="deadline">Vote scheduled: Feb 11, 2026</div>
+        <a href="#" class="btn btn-red btn-sm">Take Action</a>
+      </div>
+    </div>
+    <div class="action-card">
+      <div class="action-badge">New Campaign</div>
+      <div class="action-body">
+        <h3>Tax Reform Act - Fair Flat Tax</h3>
+        <p>Support HB 7890 to simplify the tax code. 41 members have already taken action.</p>
+        <div class="deadline">Launched 2 days ago</div>
+        <a href="#" class="btn btn-red btn-sm">Take Action</a>
+      </div>
+    </div>
+    <div class="action-card">
+      <div class="action-badge">Petition Open</div>
+      <div class="action-body">
+        <h3>2nd Amendment Protection Petition</h3>
+        <p>Sign the petition opposing SB 3456. We need 1,000 signatures by March 1.</p>
+        <div class="deadline">632 / 1,000 signatures</div>
+        <a href="#" class="btn btn-red btn-sm">Sign Now</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Your Reps -->
+<div class="container section">
+  <h2 class="section-title">Your Representatives</h2>
+  <div class="reps-grid">
+    <div class="rep-card">
+      <div class="rep-avatar r">RM</div>
+      <div class="rep-name">Rep. Ron Mitchell</div>
+      <div class="rep-meta">R - TX, District 14</div>
+      <div class="rep-score-wrap">
+        <div class="rep-score-label"><span>Liberty Score</span><span style="color: var(--green); font-weight: 700;">95% A</span></div>
+        <div class="rep-score-bar"><div class="rep-score-fill high" style="width: 95%;"></div></div>
+      </div>
+      <a href="#" class="btn btn-blue btn-sm" style="width: 100%; justify-content: center;">Contact</a>
+    </div>
+    <div class="rep-card">
+      <div class="rep-avatar r">JC</div>
+      <div class="rep-name">Sen. John Cruz</div>
+      <div class="rep-meta">R - Texas</div>
+      <div class="rep-score-wrap">
+        <div class="rep-score-label"><span>Liberty Score</span><span style="color: var(--green); font-weight: 700;">82% B</span></div>
+        <div class="rep-score-bar"><div class="rep-score-fill high" style="width: 82%;"></div></div>
+      </div>
+      <a href="#" class="btn btn-blue btn-sm" style="width: 100%; justify-content: center;">Contact</a>
+    </div>
+    <div class="rep-card">
+      <div class="rep-avatar r">AW</div>
+      <div class="rep-name">Sen. Amanda Wells</div>
+      <div class="rep-meta">R - Texas</div>
+      <div class="rep-score-wrap">
+        <div class="rep-score-label"><span>Liberty Score</span><span style="color: var(--orange); font-weight: 700;">58% C</span></div>
+        <div class="rep-score-bar"><div class="rep-score-fill mid" style="width: 58%;"></div></div>
+      </div>
+      <a href="#" class="btn btn-blue btn-sm" style="width: 100%; justify-content: center;">Contact</a>
+    </div>
+    <div class="rep-card">
+      <div class="rep-avatar d">KP</div>
+      <div class="rep-name">Rep. Karen Park</div>
+      <div class="rep-meta">D - TX, District 30</div>
+      <div class="rep-score-wrap">
+        <div class="rep-score-label"><span>Liberty Score</span><span style="color: var(--red); font-weight: 700;">22% F</span></div>
+        <div class="rep-score-bar"><div class="rep-score-fill low" style="width: 22%;"></div></div>
+      </div>
+      <a href="#" class="btn btn-blue btn-sm" style="width: 100%; justify-content: center;">Contact</a>
+    </div>
+  </div>
+</div>
+
+<!-- Two Column: Timeline + Membership Card -->
+<div class="container section">
+  <div class="two-col">
+    <!-- Activity Timeline -->
+    <div>
+      <h2 class="section-title">Your Activity</h2>
+      <div class="timeline">
+        <div class="timeline-item">
+          <div class="timeline-dot contact">&#9993;</div>
+          <div class="timeline-content">
+            <p>Contacted <strong>Rep. Ron Mitchell</strong> about HB 2345 - Surveillance Expansion Act</p>
+            <div class="time">Today, 10:32 AM</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot donate">$</div>
+          <div class="timeline-content">
+            <p>Donated <strong>$50</strong> to the 2025 Liberty Fund</p>
+            <div class="time">Feb 5, 2026</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot event">&#9733;</div>
+          <div class="timeline-content">
+            <p>Registered for <strong>Phoenix Town Hall: Digital Privacy</strong></p>
+            <div class="time">Feb 3, 2026</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot campaign">&#9998;</div>
+          <div class="timeline-content">
+            <p>Signed petition for <strong>2nd Amendment Protection</strong></p>
+            <div class="time">Jan 28, 2026</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot contact">&#9993;</div>
+          <div class="timeline-content">
+            <p>Contacted <strong>Sen. John Cruz</strong> about SB 5678 - School Choice Act</p>
+            <div class="time">Jan 20, 2026</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot event">&#9733;</div>
+          <div class="timeline-content">
+            <p>Attended <strong>Austin Chapter Monthly Meeting</strong></p>
+            <div class="time">Jan 15, 2026</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot campaign">&#9998;</div>
+          <div class="timeline-content">
+            <p>Joined campaign: <strong>Defend School Choice in Florida</strong></p>
+            <div class="time">Jan 10, 2026</div>
+          </div>
+        </div>
+        <div class="timeline-item">
+          <div class="timeline-dot signup">+</div>
+          <div class="timeline-content">
+            <p>Renewed membership for <strong>2026</strong></p>
+            <div class="time">Dec 28, 2025</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Membership Card -->
+    <div>
+      <h2 class="section-title">Your Membership</h2>
+      <div class="membership-card">
+        <div class="card-org">Republican Liberty Caucus</div>
+        <div class="card-name">Sarah Thompson</div>
+        <div class="card-tier">Sustaining Member</div>
+        <div class="card-details">
+          <div>
+            <div class="card-detail-label">Member Since</div>
+            <div class="card-detail-value">November 2023</div>
+          </div>
+          <div>
+            <div class="card-detail-label">Expires</div>
+            <div class="card-detail-value">November 2026</div>
+          </div>
+          <div>
+            <div class="card-detail-label">Member ID</div>
+            <div class="card-detail-value">RLC-2023-4892</div>
+          </div>
+          <div>
+            <div class="card-detail-label">Chapter</div>
+            <div class="card-detail-value">Texas</div>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top: 16px;">
+        <a href="#" class="btn btn-gold btn-sm">Renew Early</a>
+        <a href="#" class="btn btn-outline btn-sm" style="margin-left: 8px;">Upgrade Tier</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Annotations -->
+<div class="annotations container" style="margin-bottom: 60px;">
+  <h3>Design Decisions</h3>
+  <ul>
+    <li><strong>Impact summary cards at top:</strong> Immediately reinforces the member's personal impact. "You've done this" creates pride and motivation to do more. The A- grade gamifies the experience.</li>
+    <li><strong>Urgent actions with deadlines:</strong> Surfaces the most time-sensitive items first. Red left border and countdown create urgency without overwhelming. Personalized ("Your rep in TX-14 hasn't heard from you").</li>
+    <li><strong>Color-coded rep scores:</strong> Green/orange/red bars allow instant visual assessment. Members can quickly identify which of their reps need the most pressure.</li>
+    <li><strong>Activity timeline with dot icons:</strong> Creates a visual history of engagement. Different colors for different action types (blue=contact, gold=donate, green=event, red=campaign). Builds a sense of accomplishment over time.</li>
+    <li><strong>Membership card design:</strong> Premium gradient card treatment elevates the membership experience. Shows expiration to encourage renewal. Tier name creates aspiration to upgrade.</li>
+    <li><strong>Two-column layout for timeline + card:</strong> Efficient use of space. The membership card is a fixed visual anchor while the timeline can grow indefinitely.</li>
+  </ul>
+</div>
+
+</body>
+</html>

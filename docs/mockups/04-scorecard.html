@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>RLC Liberty Scorecard with Sharing - Mockup</title>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Open+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    /* ===== BASE RESET & TOKENS ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --red: #ce1c22;
+      --blue: #233d93;
+      --gold: #ce1c22;
+      --white: #FFFFFF;
+      --light-gray: #F5F5F5;
+      --mid-gray: #E0E0E0;
+      --dark-gray: #333333;
+      --text: #1A1A1A;
+      --text-muted: #666666;
+      --green: #2E7D32;
+      --orange: #E65100;
+      --font-display: 'Oswald', sans-serif;
+      --font-body: 'Open Sans', sans-serif;
+      --max-width: 1200px;
+      --radius: 8px;
+      --shadow: 0 2px 8px rgba(0,0,0,0.1);
+      --shadow-lg: 0 4px 20px rgba(0,0,0,0.12);
+    }
+    html { font-size: 16px; }
+    body { font-family: var(--font-body); color: var(--text); background: var(--light-gray); line-height: 1.6; }
+    a { color: var(--blue); text-decoration: none; }
+    h1, h2, h3, h4 { font-family: var(--font-display); font-weight: 700; line-height: 1.2; }
+
+    /* ===== UTILITIES ===== */
+    .container { max-width: var(--max-width); margin: 0 auto; padding: 0 20px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: var(--radius); font-family: var(--font-display); font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; border: none; transition: transform 0.15s, box-shadow 0.15s; }
+    .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+    .btn-sm { padding: 6px 14px; font-size: 0.75rem; }
+    .btn-red { background: var(--red); color: var(--white); }
+    .btn-blue { background: var(--blue); color: var(--white); }
+    .btn-gold { background: var(--gold); color: var(--white); }
+    .btn-twitter { background: #1DA1F2; color: var(--white); }
+    .btn-facebook { background: #1877F2; color: var(--white); }
+    .btn-outline { background: transparent; border: 2px solid var(--mid-gray); color: var(--text-muted); }
+
+    /* ===== MOCKUP LABEL ===== */
+    .mockup-label {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--dark-gray); color: var(--white); text-align: center;
+      padding: 6px; font-size: 0.75rem; font-family: var(--font-body);
+      letter-spacing: 1px; text-transform: uppercase;
+    }
+    body { padding-top: 32px; }
+
+    /* ===== SCORECARD HEADER ===== */
+    .scorecard-header {
+      background: linear-gradient(135deg, var(--blue) 0%, #001a44 100%);
+      color: var(--white); padding: 40px 0 32px;
+    }
+    .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .header-top h1 { font-size: 2rem; text-transform: uppercase; letter-spacing: 2px; }
+    .header-top h1 span { color: var(--gold); }
+    .header-top p { opacity: 0.8; margin-top: 4px; font-size: 0.95rem; }
+    .share-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+    .share-buttons .btn { font-size: 0.8rem; padding: 8px 16px; }
+
+    /* ===== FILTER BAR ===== */
+    .filter-bar {
+      background: var(--white); border-bottom: 1px solid var(--mid-gray);
+      padding: 16px 0; box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+      position: sticky; top: 32px; z-index: 50;
+    }
+    .filter-inner { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+    .filter-select {
+      padding: 8px 32px 8px 12px; border: 2px solid var(--mid-gray);
+      border-radius: var(--radius); font-family: var(--font-body);
+      font-size: 0.9rem; background: var(--white); color: var(--text);
+      cursor: pointer; appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8L1 3h10z' fill='%23666'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: right 10px center;
+    }
+    .filter-select:focus { border-color: var(--blue); outline: none; }
+    .filter-search {
+      flex: 1; min-width: 200px; padding: 8px 16px 8px 36px;
+      border: 2px solid var(--mid-gray); border-radius: var(--radius);
+      font-family: var(--font-body); font-size: 0.9rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Ccircle cx='6.5' cy='6.5' r='5.5' fill='none' stroke='%23999' stroke-width='1.5'/%3E%3Cline x1='10.5' y1='10.5' x2='15' y2='15' stroke='%23999' stroke-width='1.5'/%3E%3C/svg%3E");
+      background-repeat: no-repeat; background-position: 10px center;
+    }
+    .filter-search:focus { border-color: var(--blue); outline: none; }
+    .result-count { font-size: 0.85rem; color: var(--text-muted); white-space: nowrap; }
+
+    /* ===== DESKTOP TABLE ===== */
+    .scorecard-table-wrap {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); margin: 24px 0; overflow: hidden;
+    }
+    .scorecard-table { width: 100%; border-collapse: collapse; }
+    .scorecard-table thead { background: var(--light-gray); }
+    .scorecard-table th {
+      padding: 12px 16px; text-align: left; font-family: var(--font-display);
+      font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px;
+      color: var(--text-muted); font-weight: 600; border-bottom: 2px solid var(--mid-gray);
+    }
+    .scorecard-table td { padding: 14px 16px; border-bottom: 1px solid var(--light-gray); vertical-align: middle; }
+    .scorecard-table tr:hover { background: #FAFAFA; }
+    .scorecard-table tr:last-child td { border-bottom: none; }
+
+    .legislator-cell { display: flex; align-items: center; gap: 12px; }
+    .legislator-avatar {
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--font-display); font-weight: 700; font-size: 0.9rem;
+      color: var(--white); flex-shrink: 0; border: 3px solid;
+    }
+    .legislator-avatar.r { background: #F5F5F5; color: var(--red); border-color: var(--red); }
+    .legislator-avatar.d { background: #F5F5F5; color: var(--blue); border-color: var(--blue); }
+    .legislator-name { font-weight: 700; font-size: 0.95rem; }
+    .legislator-district { font-size: 0.8rem; color: var(--text-muted); }
+
+    .party-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 12px;
+      font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px;
+    }
+    .party-badge.r { background: #FFEBEE; color: var(--red); }
+    .party-badge.d { background: #E3F2FD; color: var(--blue); }
+
+    .score-cell { display: flex; align-items: center; gap: 12px; }
+    .score-bar-container { flex: 1; min-width: 100px; }
+    .score-bar-bg { height: 10px; background: var(--mid-gray); border-radius: 5px; overflow: hidden; }
+    .score-bar-fill { height: 100%; border-radius: 5px; }
+    .score-bar-fill.green { background: var(--green); }
+    .score-bar-fill.yellow { background: var(--orange); }
+    .score-bar-fill.red { background: var(--red); }
+    .score-grade {
+      font-family: var(--font-display); font-size: 1.2rem; font-weight: 700;
+      min-width: 32px; text-align: center;
+    }
+    .score-grade.green { color: var(--green); }
+    .score-grade.yellow { color: var(--orange); }
+    .score-grade.red { color: var(--red); }
+
+    .champion-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: linear-gradient(135deg, var(--gold), #D4A843);
+      color: var(--white); padding: 3px 10px; border-radius: 12px;
+      font-size: 0.7rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .needs-improvement-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #FFEBEE; color: var(--red); padding: 3px 10px;
+      border-radius: 12px; font-size: 0.7rem; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.5px;
+    }
+
+    .action-cell { display: flex; gap: 8px; }
+    .share-icon-btn {
+      width: 32px; height: 32px; border-radius: 50%;
+      border: 1px solid var(--mid-gray); background: var(--white);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 0.8rem; color: var(--text-muted);
+      transition: all 0.15s;
+    }
+    .share-icon-btn:hover { border-color: var(--blue); color: var(--blue); background: #F0F4FF; }
+
+    /* ===== MOBILE CARDS (hidden on desktop) ===== */
+    .mobile-cards { display: none; }
+    .mobile-score-card {
+      background: var(--white); border-radius: var(--radius);
+      box-shadow: var(--shadow); padding: 20px; margin-bottom: 12px;
+    }
+    .mobile-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .mobile-card-body { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 0.85rem; margin-bottom: 12px; }
+    .mobile-card-label { color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.5px; }
+    .mobile-card-score { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .mobile-card-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
+    /* ===== ANNOTATIONS ===== */
+    .annotations {
+      background: #FFFDE7; border: 2px dashed var(--gold); border-radius: var(--radius);
+      padding: 24px; margin: 40px auto; max-width: var(--max-width);
+    }
+    .annotations h3 { font-family: var(--font-display); color: var(--gold); margin-bottom: 12px; font-size: 1.1rem; text-transform: uppercase; letter-spacing: 1px; }
+    .annotations ul { list-style: disc; padding-left: 20px; }
+    .annotations li { font-size: 0.9rem; color: var(--dark-gray); margin-bottom: 8px; line-height: 1.5; }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 1024px) {
+      .scorecard-table th:nth-child(5),
+      .scorecard-table td:nth-child(5) { display: none; }
+    }
+    @media (max-width: 768px) {
+      .scorecard-table-wrap { display: none; }
+      .mobile-cards { display: block; margin-top: 24px; }
+      .header-top { flex-direction: column; }
+      .header-top h1 { font-size: 1.5rem; }
+      .filter-inner { flex-direction: column; }
+      .filter-select, .filter-search { width: 100%; }
+    }
+    @media (max-width: 375px) {
+      .header-top h1 { font-size: 1.3rem; }
+      .share-buttons { width: 100%; }
+      .share-buttons .btn { flex: 1; justify-content: center; font-size: 0.7rem; padding: 8px 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="mockup-label">RLC Mockup 04 -- Scorecard with Sharing -- Design Reference</div>
+
+<!-- Header -->
+<div class="scorecard-header">
+  <div class="container">
+    <div class="header-top">
+      <div>
+        <h1>2025 <span>Liberty Scorecard</span></h1>
+        <p>US Congress -- How your representatives vote on liberty issues</p>
+      </div>
+      <div class="share-buttons">
+        <button class="btn btn-twitter btn-sm">Tweet This Scorecard</button>
+        <button class="btn btn-facebook btn-sm">Share on Facebook</button>
+        <button class="btn btn-outline btn-sm" style="border-color: rgba(255,255,255,0.4); color: var(--white);">Copy Link</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Filter Bar -->
+<div class="filter-bar">
+  <div class="container">
+    <div class="filter-inner">
+      <select class="filter-select">
+        <option>All Chambers</option>
+        <option>Senate</option>
+        <option>House</option>
+      </select>
+      <select class="filter-select">
+        <option>All Parties</option>
+        <option>Republican</option>
+        <option>Democrat</option>
+        <option>Independent</option>
+      </select>
+      <select class="filter-select">
+        <option>All States</option>
+        <option>Alabama</option>
+        <option>Alaska</option>
+        <option>Arizona</option>
+        <option>California</option>
+        <option>Florida</option>
+        <option>Texas</option>
+      </select>
+      <input class="filter-search" type="text" placeholder="Search legislators...">
+      <div class="result-count">Showing 12 of 534</div>
+    </div>
+  </div>
+</div>
+
+<!-- Desktop Table -->
+<div class="container">
+  <div class="scorecard-table-wrap">
+    <table class="scorecard-table">
+      <thead>
+        <tr>
+          <th>Legislator</th>
+          <th>State</th>
+          <th>Party</th>
+          <th>Liberty Score</th>
+          <th>Badge</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar r">RM</div>
+              <div><div class="legislator-name">Rep. Ron Mitchell</div><div class="legislator-district">District 14</div></div>
+            </div>
+          </td>
+          <td>Texas</td>
+          <td><span class="party-badge r">R</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill green" style="width: 95%;"></div></div></div>
+              <div class="score-grade green">A+</div>
+            </div>
+          </td>
+          <td><span class="champion-badge">&#9733; Champion</span></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar r">SH</div>
+              <div><div class="legislator-name">Sen. Sarah Harding</div><div class="legislator-district">Senior Senator</div></div>
+            </div>
+          </td>
+          <td>Florida</td>
+          <td><span class="party-badge r">R</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill green" style="width: 91%;"></div></div></div>
+              <div class="score-grade green">A</div>
+            </div>
+          </td>
+          <td><span class="champion-badge">&#9733; Champion</span></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar r">JK</div>
+              <div><div class="legislator-name">Rep. James Keller</div><div class="legislator-district">District 6</div></div>
+            </div>
+          </td>
+          <td>Arizona</td>
+          <td><span class="party-badge r">R</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill green" style="width: 88%;"></div></div></div>
+              <div class="score-grade green">A</div>
+            </div>
+          </td>
+          <td><span class="champion-badge">&#9733; Champion</span></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar r">PW</div>
+              <div><div class="legislator-name">Rep. Patricia Walsh</div><div class="legislator-district">District 3</div></div>
+            </div>
+          </td>
+          <td>Ohio</td>
+          <td><span class="party-badge r">R</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill green" style="width: 78%;"></div></div></div>
+              <div class="score-grade green">B+</div>
+            </div>
+          </td>
+          <td></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar r">TG</div>
+              <div><div class="legislator-name">Sen. Thomas Grant</div><div class="legislator-district">Junior Senator</div></div>
+            </div>
+          </td>
+          <td>Virginia</td>
+          <td><span class="party-badge r">R</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill green" style="width: 72%;"></div></div></div>
+              <div class="score-grade green">B</div>
+            </div>
+          </td>
+          <td></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar d">MR</div>
+              <div><div class="legislator-name">Rep. Maria Rodriguez</div><div class="legislator-district">District 18</div></div>
+            </div>
+          </td>
+          <td>California</td>
+          <td><span class="party-badge d">D</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill yellow" style="width: 52%;"></div></div></div>
+              <div class="score-grade yellow">C</div>
+            </div>
+          </td>
+          <td></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar d">JN</div>
+              <div><div class="legislator-name">Sen. James Nguyen</div><div class="legislator-district">Senior Senator</div></div>
+            </div>
+          </td>
+          <td>Washington</td>
+          <td><span class="party-badge d">D</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill yellow" style="width: 45%;"></div></div></div>
+              <div class="score-grade yellow">C-</div>
+            </div>
+          </td>
+          <td></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar r">BT</div>
+              <div><div class="legislator-name">Sen. Bill Thompson</div><div class="legislator-district">Senior Senator</div></div>
+            </div>
+          </td>
+          <td>Maine</td>
+          <td><span class="party-badge r">R</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill red" style="width: 35%;"></div></div></div>
+              <div class="score-grade red">D</div>
+            </div>
+          </td>
+          <td><span class="needs-improvement-badge">&#9888; Needs Improvement</span></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar d">LP</div>
+              <div><div class="legislator-name">Rep. Lisa Park</div><div class="legislator-district">District 22</div></div>
+            </div>
+          </td>
+          <td>California</td>
+          <td><span class="party-badge d">D</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill red" style="width: 19%;"></div></div></div>
+              <div class="score-grade red">F</div>
+            </div>
+          </td>
+          <td><span class="needs-improvement-badge">&#9888; Needs Improvement</span></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+        <tr>
+          <td>
+            <div class="legislator-cell">
+              <div class="legislator-avatar d">MD</div>
+              <div><div class="legislator-name">Sen. Mark Davis</div><div class="legislator-district">Junior Senator</div></div>
+            </div>
+          </td>
+          <td>New York</td>
+          <td><span class="party-badge d">D</span></td>
+          <td>
+            <div class="score-cell">
+              <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill red" style="width: 15%;"></div></div></div>
+              <div class="score-grade red">F</div>
+            </div>
+          </td>
+          <td><span class="needs-improvement-badge">&#9888; Needs Improvement</span></td>
+          <td><div class="action-cell" style="justify-content: flex-end;"><button class="share-icon-btn" title="Share">&#8599;</button><button class="share-icon-btn" title="Contact">&#9993;</button></div></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Mobile Cards -->
+  <div class="mobile-cards">
+    <div class="mobile-score-card">
+      <div class="mobile-card-header">
+        <div class="legislator-avatar r" style="width: 48px; height: 48px;">RM</div>
+        <div>
+          <div class="legislator-name">Rep. Ron Mitchell</div>
+          <div class="legislator-district">R - Texas, District 14</div>
+        </div>
+      </div>
+      <div class="mobile-card-score">
+        <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill green" style="width: 95%;"></div></div></div>
+        <div class="score-grade green" style="font-size: 1.4rem;">A+</div>
+      </div>
+      <div style="margin-bottom: 12px;"><span class="champion-badge">&#9733; Champion</span></div>
+      <div class="mobile-card-actions">
+        <button class="btn btn-blue btn-sm">Contact</button>
+        <button class="btn btn-outline btn-sm">Share</button>
+      </div>
+    </div>
+
+    <div class="mobile-score-card">
+      <div class="mobile-card-header">
+        <div class="legislator-avatar r" style="width: 48px; height: 48px;">SH</div>
+        <div>
+          <div class="legislator-name">Sen. Sarah Harding</div>
+          <div class="legislator-district">R - Florida</div>
+        </div>
+      </div>
+      <div class="mobile-card-score">
+        <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill green" style="width: 91%;"></div></div></div>
+        <div class="score-grade green" style="font-size: 1.4rem;">A</div>
+      </div>
+      <div style="margin-bottom: 12px;"><span class="champion-badge">&#9733; Champion</span></div>
+      <div class="mobile-card-actions">
+        <button class="btn btn-blue btn-sm">Contact</button>
+        <button class="btn btn-outline btn-sm">Share</button>
+      </div>
+    </div>
+
+    <div class="mobile-score-card">
+      <div class="mobile-card-header">
+        <div class="legislator-avatar d" style="width: 48px; height: 48px;">LP</div>
+        <div>
+          <div class="legislator-name">Rep. Lisa Park</div>
+          <div class="legislator-district">D - California, District 22</div>
+        </div>
+      </div>
+      <div class="mobile-card-score">
+        <div class="score-bar-container"><div class="score-bar-bg"><div class="score-bar-fill red" style="width: 19%;"></div></div></div>
+        <div class="score-grade red" style="font-size: 1.4rem;">F</div>
+      </div>
+      <div style="margin-bottom: 12px;"><span class="needs-improvement-badge">&#9888; Needs Improvement</span></div>
+      <div class="mobile-card-actions">
+        <button class="btn btn-blue btn-sm">Contact</button>
+        <button class="btn btn-outline btn-sm">Share</button>
+      </div>
+    </div>
+
+    <p style="text-align: center; color: var(--text-muted); font-size: 0.85rem; margin-top: 20px; font-style: italic;">
+      (Mobile view shows cards instead of table rows -- resize browser to 768px or narrower to see)
+    </p>
+  </div>
+</div>
+
+<!-- Annotations -->
+<div class="annotations container" style="margin: 40px auto 60px;">
+  <h3>Design Decisions</h3>
+  <ul>
+    <li><strong>Share buttons in header AND per-row:</strong> Two sharing contexts -- share the entire scorecard (header buttons) or share a specific legislator's score (row buttons). This enables both "look at this scorecard" and "look at how YOUR rep voted" sharing behaviors.</li>
+    <li><strong>Party-colored avatar borders:</strong> Red ring for Republicans, blue ring for Democrats. Instant party identification without reading the party column. Works for colorblind users because it's redundant with the text badge.</li>
+    <li><strong>Three-tier score colors (green/orange/red):</strong> A/B grades get green bars, C grades get orange, D/F get red. The visual gradient makes it trivially easy to scan and identify outliers in either direction.</li>
+    <li><strong>Champion badge (gold) and Needs Improvement badge (red):</strong> Gold star for scores above 85% creates aspiration and shareability ("Share your Champion"). Red warning for scores below 40% creates accountability and urgency. Both are designed to be screenshot-friendly for social media.</li>
+    <li><strong>Sticky filter bar:</strong> Remains visible while scrolling through hundreds of legislators. The combination of dropdowns + search covers both browsing and targeted lookup behaviors.</li>
+    <li><strong>Mobile card layout:</strong> Tables are notoriously bad on mobile. At 768px breakpoint, rows become stacked cards with the score bar prominently displayed. The contact and share buttons become full-width tap targets.</li>
+  </ul>
+</div>
+
+</body>
+</html>

@@ -93,8 +93,8 @@ export default function JoinPage() {
             </div>
             <div className="text-center">
               <div className="mb-4 flex justify-center">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rlc-gold/10">
-                  <Star className="h-8 w-8 text-rlc-gold" />
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rlc-red/10">
+                  <Star className="h-8 w-8 text-rlc-red" />
                 </div>
               </div>
               <h3 className="mb-2 text-xl font-semibold">Defend Liberty</h3>

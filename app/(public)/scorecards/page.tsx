@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Target } from 'lucide-react';
 import type { ScorecardSession } from '@/types';
 
 export const metadata: Metadata = {
@@ -63,11 +65,12 @@ export default async function ScorecardsPage() {
           )}
 
           {sessions.length === 0 && (
-            <div className="py-16 text-center">
-              <p className="text-lg text-muted-foreground">
-                Scorecards are being prepared. Check back soon!
-              </p>
-            </div>
+            <EmptyState
+              icon={<Target className="h-12 w-12" />}
+              title="Scorecards Coming Soon"
+              description="We're preparing Liberty Scorecards for this session. In the meantime, contact your reps directly."
+              action={{ label: 'Find Your Reps', href: '/action-center' }}
+            />
           )}
         </div>
       </section>

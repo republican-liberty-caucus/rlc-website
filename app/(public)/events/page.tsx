@@ -5,6 +5,8 @@ import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { formatDate } from '@/lib/utils';
 import { createServerClient } from '@/lib/supabase/server';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Calendar } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Events',
@@ -109,15 +111,12 @@ export default async function EventsPage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-lg border bg-muted/50 p-12 text-center">
-              <h2 className="mb-4 text-2xl font-semibold">No Upcoming Events</h2>
-              <p className="mb-6 text-muted-foreground">
-                Check back soon for upcoming RLC events and meetings.
-              </p>
-              <Button asChild variant="outline">
-                <Link href="/chapters">Find Your Local Chapter</Link>
-              </Button>
-            </div>
+            <EmptyState
+              icon={<Calendar className="h-12 w-12" />}
+              title="No Upcoming Events"
+              description="Find your local chapter to stay in the loop on upcoming RLC events and meetings."
+              action={{ label: 'Find Your Chapter', href: '/chapters' }}
+            />
           )}
         </div>
       </section>

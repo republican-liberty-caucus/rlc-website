@@ -160,8 +160,9 @@ export default async function ChapterDetailPage({ params }: ChapterDetailProps) 
                   ))}
                 </div>
               ) : (
-                <p className="text-muted-foreground">
-                  No upcoming events. Check back soon!
+                <p className="text-sm text-muted-foreground">
+                  No upcoming events for this chapter.{' '}
+                  <Link href="/events" className="text-rlc-red hover:underline">Browse all events →</Link>
                 </p>
               )}
             </section>
