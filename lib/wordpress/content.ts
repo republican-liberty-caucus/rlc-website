@@ -96,13 +96,32 @@ function promoteHeadings(html: string): string {
 function wpautop(text: string): string {
   if (!text || !text.trim()) return '';
 
-  // If content already has <p> tags, assume it's already formatted
-  if (/<p[\s>]/i.test(text)) return text;
-
   let output = text;
 
   // Normalize line endings
   output = output.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Handle mixed content: preserve existing <p>, <ol>, <ul> blocks as
+  // placeholders so they don't interfere with paragraph wrapping of the
+  // surrounding raw text.
+  const preserved: string[] = [];
+  if (/<p[\s>]/i.test(output)) {
+    output = output.replace(/<p\b[^>]*>[\s\S]*?<\/p>/gi, (match) => {
+      const idx = preserved.length;
+      preserved.push(match);
+      return `\n\nWPAUTO_BLOCK_${idx}\n\n`;
+    });
+    output = output.replace(/<ol\b[^>]*>[\s\S]*?<\/ol>/gi, (match) => {
+      const idx = preserved.length;
+      preserved.push(match);
+      return `\n\nWPAUTO_BLOCK_${idx}\n\n`;
+    });
+    output = output.replace(/<ul\b[^>]*>[\s\S]*?<\/ul>/gi, (match) => {
+      const idx = preserved.length;
+      preserved.push(match);
+      return `\n\nWPAUTO_BLOCK_${idx}\n\n`;
+    });
+  }
 
   // Block-level elements that should not be wrapped in <p>
   const blockTags =
@@ -136,6 +155,13 @@ function wpautop(text: string): string {
       return '<p>' + trimmed.replace(/\n/g, '<br>\n') + '</p>';
     })
     .join('\n');
+
+  // Restore preserved blocks — they were wrapped in <p> tags since
+  // the placeholder text doesn't look like a block element.
+  for (let i = 0; i < preserved.length; i++) {
+    output = output.replace(`<p>WPAUTO_BLOCK_${i}</p>`, preserved[i]);
+    output = output.replace(`WPAUTO_BLOCK_${i}`, preserved[i]);
+  }
 
   return output;
 }
