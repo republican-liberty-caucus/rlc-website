@@ -35,6 +35,7 @@ interface MemberRow {
   membership_tier: MembershipTier;
   membership_status: MembershipStatus;
   membership_expiry_date: string | null;
+  membership_join_date: string | null;
   created_at: string;
   primary_chapter: { name: string } | null;
 }
@@ -53,7 +54,7 @@ async function getMembers(
     .select(`
       id, email, first_name, last_name, phone,
       city, state, membership_tier, membership_status,
-      membership_expiry_date, created_at,
+      membership_expiry_date, membership_join_date, created_at,
       primary_chapter:rlc_chapters(name)
     `, { count: 'exact' })
     .order('created_at', { ascending: false })
@@ -163,7 +164,11 @@ export default async function AdminMembersPage({
                   <td className="px-4 py-3">
                     <StatusBadge status={member.membership_status} type="membership" />
                   </td>
-                  <td className="px-4 py-3 text-sm">{formatDate(member.created_at)}</td>
+                  <td className="px-4 py-3 text-sm">
+                    {member.membership_join_date
+                      ? formatDate(member.membership_join_date)
+                      : formatDate(member.created_at)}
+                  </td>
                   <td className="px-4 py-3">
                     <Link
                       href={`/admin/members/${member.id}`}
