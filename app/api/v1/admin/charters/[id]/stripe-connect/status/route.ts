@@ -31,7 +31,19 @@ export async function GET(
     .eq('charter_id', charterId)
     .single();
 
-  if (error || !data) {
+  if (error) {
+    if (error.code === 'PGRST116') {
+      // Not found — charter hasn't started onboarding
+      return NextResponse.json({
+        status: 'not_started',
+        charges_enabled: false,
+        payouts_enabled: false,
+      });
+    }
+    return NextResponse.json({ error: 'Failed to fetch Stripe account status' }, { status: 500 });
+  }
+
+  if (!data) {
     return NextResponse.json({
       status: 'not_started',
       charges_enabled: false,

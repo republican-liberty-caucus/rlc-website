@@ -23,8 +23,9 @@ export default async function DuesSharingDashboard() {
 
   const supabase = createServerClient();
 
-  // Fetch dashboard data
-  let baseQuery = supabase.from('rlc_split_ledger_entries').select('amount, status, recipient_charter_id, created_at');
+  // Fetch dashboard data (capped at 1000 entries for performance)
+  // TODO(matt): Replace with server-side aggregation RPC for production scale
+  let baseQuery = supabase.from('rlc_split_ledger_entries').select('amount, status, recipient_charter_id, created_at').limit(1000);
   if (ctx.visibleCharterIds !== null) {
     baseQuery = baseQuery.in('recipient_charter_id', ctx.visibleCharterIds);
   }

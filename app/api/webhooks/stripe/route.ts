@@ -560,11 +560,11 @@ async function handleAccountUpdated(
   const chargesEnabled = account.charges_enabled ?? false;
   const payoutsEnabled = account.payouts_enabled ?? false;
 
-  // Determine new status
+  // Determine new status (never regress from 'active')
   let newStatus: string = row.status;
   if (chargesEnabled && payoutsEnabled) {
     newStatus = 'active';
-  } else if (account.details_submitted) {
+  } else if (row.status !== 'active' && account.details_submitted) {
     newStatus = 'onboarding'; // Submitted but not yet verified
   }
 
@@ -608,13 +608,21 @@ async function drainPendingLedgerEntries(
   // Import transfer function lazily to avoid circular deps
   const { executeTransfer } = await import('@/lib/dues-sharing/transfer-engine');
 
+  // Atomic claim: UPDATE status to 'processing' WHERE status='pending', then SELECT
+  // This prevents duplicate transfers if drain is called concurrently
   const { data: pendingEntries, error } = await supabase
     .from('rlc_split_ledger_entries')
-    .select('id, amount, stripe_transfer_group_id')
+    .update({ status: 'processing' } as never)
     .eq('recipient_charter_id', charterId)
-    .eq('status', 'pending');
+    .eq('status', 'pending')
+    .select('id, amount, stripe_transfer_group_id')
+    .limit(50);
 
   if (error || !pendingEntries || pendingEntries.length === 0) return;
+
+  if (pendingEntries.length === 50) {
+    logger.warn(`drainPendingLedgerEntries: Batch limit reached for charter ${charterId}, more entries may remain`);
+  }
 
   logger.info(`Draining ${pendingEntries.length} pending ledger entries for charter ${charterId}`);
 
@@ -629,6 +637,7 @@ async function drainPendingLedgerEntries(
       });
     } catch (transferError) {
       logger.error(`Failed to drain ledger entry ${row.id} (non-fatal):`, transferError);
+      // executeTransfer already marks the entry as 'failed' on Stripe error
     }
   }
 }
@@ -650,7 +659,7 @@ async function handleChargeRefunded(
   // Find the contribution
   const { data: contribution, error: contribError } = await supabase
     .from('rlc_contributions')
-    .select('id, amount')
+    .select('id, amount, contribution_type')
     .eq('stripe_payment_intent_id', paymentIntentId)
     .single();
 
@@ -659,22 +668,54 @@ async function handleChargeRefunded(
     return;
   }
 
-  const contribRow = contribution as { id: string; amount: number };
+  const contribRow = contribution as { id: string; amount: number; contribution_type: string };
   const contributionAmountCents = Math.round(Number(contribRow.amount) * 100);
 
   // Determine if full or partial refund
   const refundedAmountCents = charge.amount_refunded;
   const isFullRefund = refundedAmountCents >= contributionAmountCents;
 
-  // Get ledger entries for this contribution (excluding existing reversals)
+  // Get original ledger entries for this contribution (excluding existing reversals)
   const { data: ledgerEntries, error: ledgerError } = await supabase
     .from('rlc_split_ledger_entries')
-    .select('id, amount, status, stripe_transfer_id, recipient_charter_id, reversal_of_id')
+    .select('id, amount, status, stripe_transfer_id, recipient_charter_id, source_type')
     .eq('contribution_id', contribRow.id)
     .is('reversal_of_id', null);
 
-  if (ledgerError || !ledgerEntries || ledgerEntries.length === 0) {
+  if (ledgerError) {
+    logger.error(`charge.refunded: Failed to fetch ledger entries for ${contribRow.id}:`, ledgerError);
+    throw new Error(`Database error fetching ledger entries: ${ledgerError.message}`);
+  }
+
+  if (!ledgerEntries || ledgerEntries.length === 0) {
     logger.info(`charge.refunded: No ledger entries for contribution ${contribRow.id}`);
+    return;
+  }
+
+  // H3: Account for prior partial refunds by checking existing reversals
+  let alreadyReversedCents = 0;
+  if (!isFullRefund) {
+    const { data: existingReversals } = await supabase
+      .from('rlc_split_ledger_entries')
+      .select('amount')
+      .eq('contribution_id', contribRow.id)
+      .not('reversal_of_id', 'is', null);
+
+    if (existingReversals && existingReversals.length > 0) {
+      alreadyReversedCents = existingReversals.reduce(
+        (sum, r) => sum + Math.abs(Math.round(Number((r as { amount: number }).amount) * 100)),
+        0
+      );
+    }
+  }
+
+  // Calculate the net new refund amount (what hasn't been reversed yet)
+  const netRefundCents = isFullRefund
+    ? contributionAmountCents
+    : Math.max(0, refundedAmountCents - alreadyReversedCents);
+
+  if (netRefundCents <= 0 && !isFullRefund) {
+    logger.info(`charge.refunded: All refund amounts already reversed for ${contribRow.id}`);
     return;
   }
 
@@ -687,60 +728,107 @@ async function handleChargeRefunded(
       status: string;
       stripe_transfer_id: string | null;
       recipient_charter_id: string;
-      reversal_of_id: string | null;
+      source_type: string;
     };
+
+    // Skip entries already reversed or failed
+    if (row.status === 'reversed' || row.status === 'failed') continue;
 
     const entryAmountCents = Math.round(Number(row.amount) * 100);
 
-    // Calculate proportional refund amount for partial refunds
+    // Calculate proportional refund amount
     let reversalAmountCents = entryAmountCents;
     if (!isFullRefund) {
-      const proportion = refundedAmountCents / contributionAmountCents;
+      const proportion = netRefundCents / contributionAmountCents;
       reversalAmountCents = Math.round(entryAmountCents * proportion);
     }
 
     if (row.status === 'transferred' && row.stripe_transfer_id) {
-      // Reverse the Stripe transfer
+      // Entry was transferred — reverse the Stripe transfer first
       try {
         await reverseTransfer(row.stripe_transfer_id);
       } catch (reverseError) {
         logger.error(`Failed to reverse transfer ${row.stripe_transfer_id}:`, reverseError);
-        // Mark as failed and continue
-        await supabase
+        // Mark original as failed (Stripe reversal failed, money still at charter)
+        const { error: failErr } = await supabase
           .from('rlc_split_ledger_entries')
           .update({ status: 'failed' } as never)
           .eq('id', row.id);
+        if (failErr) {
+          logger.error(`Failed to mark entry ${row.id} as failed:`, failErr);
+        }
         continue;
       }
+
+      // Stripe reversal succeeded — create reversal entry and mark original
+      const { error: insertErr } = await supabase.from('rlc_split_ledger_entries').insert({
+        contribution_id: contribRow.id,
+        source_type: row.source_type,
+        recipient_charter_id: row.recipient_charter_id,
+        amount: -(reversalAmountCents / 100),
+        currency: 'USD',
+        status: 'reversed',
+        reversal_of_id: row.id,
+        split_rule_snapshot: { reason: isFullRefund ? 'full_refund' : 'partial_refund', refunded_cents: netRefundCents },
+      } as never);
+
+      if (insertErr) {
+        logger.error(`Failed to insert reversal entry for ${row.id}:`, insertErr);
+        throw new Error(`Database error inserting reversal: ${insertErr.message}`);
+      }
+
+      const { error: updateErr } = await supabase
+        .from('rlc_split_ledger_entries')
+        .update({ status: 'reversed' } as never)
+        .eq('id', row.id);
+
+      if (updateErr) {
+        logger.error(`Failed to mark entry ${row.id} as reversed:`, updateErr);
+        throw new Error(`Database error updating entry status: ${updateErr.message}`);
+      }
+    } else if (row.status === 'pending' || row.status === 'processing') {
+      // C7: Entry was never transferred — mark as reversed directly (no Stripe call)
+      const { error: insertErr } = await supabase.from('rlc_split_ledger_entries').insert({
+        contribution_id: contribRow.id,
+        source_type: row.source_type,
+        recipient_charter_id: row.recipient_charter_id,
+        amount: -(reversalAmountCents / 100),
+        currency: 'USD',
+        status: 'reversed',
+        reversal_of_id: row.id,
+        split_rule_snapshot: { reason: isFullRefund ? 'full_refund' : 'partial_refund', refunded_cents: netRefundCents },
+      } as never);
+
+      if (insertErr) {
+        logger.error(`Failed to insert reversal entry for pending ${row.id}:`, insertErr);
+        throw new Error(`Database error inserting reversal: ${insertErr.message}`);
+      }
+
+      const { error: updateErr } = await supabase
+        .from('rlc_split_ledger_entries')
+        .update({ status: 'reversed' } as never)
+        .eq('id', row.id);
+
+      if (updateErr) {
+        logger.error(`Failed to mark pending entry ${row.id} as reversed:`, updateErr);
+        throw new Error(`Database error updating entry status: ${updateErr.message}`);
+      }
     }
-
-    // Create reversal ledger entry
-    await supabase.from('rlc_split_ledger_entries').insert({
-      contribution_id: contribRow.id,
-      source_type: 'membership',
-      recipient_charter_id: row.recipient_charter_id,
-      amount: -(reversalAmountCents / 100),
-      currency: 'USD',
-      status: 'reversed',
-      reversal_of_id: row.id,
-      split_rule_snapshot: { reason: isFullRefund ? 'full_refund' : 'partial_refund', refunded_cents: refundedAmountCents },
-    } as never);
-
-    // Mark original as reversed
-    await supabase
-      .from('rlc_split_ledger_entries')
-      .update({ status: 'reversed' } as never)
-      .eq('id', row.id);
   }
 
   // Update contribution payment status
-  await supabase
+  const { error: contribUpdateErr } = await supabase
     .from('rlc_contributions')
     .update({ payment_status: isFullRefund ? 'refunded' : 'completed' } as never)
     .eq('id', contribRow.id);
 
+  if (contribUpdateErr) {
+    logger.error(`Failed to update contribution ${contribRow.id} payment status:`, contribUpdateErr);
+    throw new Error(`Database error updating contribution: ${contribUpdateErr.message}`);
+  }
+
   logger.info(
     `charge.refunded: Processed ${isFullRefund ? 'full' : 'partial'} refund for contribution ${contribRow.id} ` +
-    `(${refundedAmountCents} cents refunded)`
+    `(${refundedAmountCents} cents total refunded, ${netRefundCents} cents net new)`
   );
 }

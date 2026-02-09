@@ -123,6 +123,15 @@ export function applyPercentageSplit(
   totalCents: number,
   rules: SplitRuleRow[]
 ): SplitAllocation[] {
+  // Validate that percentages sum to ~100%
+  const percentageSum = rules.reduce((sum, r) => sum + r.percentage, 0);
+  if (Math.abs(percentageSum - 100) > 0.1) {
+    logger.warn(
+      `applyPercentageSplit: Rule percentages sum to ${percentageSum}% (expected ~100%). ` +
+      `Proceeding with proportional distribution.`
+    );
+  }
+
   // Calculate raw (fractional) amounts
   const raw = rules.map((r) => ({
     recipientCharterId: r.recipient_charter_id,
@@ -182,7 +191,12 @@ export async function resolveStateCharter(charterId: string): Promise<string | n
       .eq('id', currentId)
       .single();
 
-    if (error || !data) return null;
+    if (error) {
+      if (error.code === 'PGRST116') return null; // Not found
+      logger.error(`resolveStateCharter: DB error looking up charter ${currentId}:`, error);
+      throw new Error(`Database error in resolveStateCharter: ${error.message}`);
+    }
+    if (!data) return null;
 
     const charter = data as Pick<Charter, 'id' | 'charter_level' | 'parent_charter_id'>;
 
@@ -227,8 +241,16 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
 
   const contribution = rawContribution as ContributionRow | null;
 
-  if (contribError || !contribution) {
-    logger.error(`processDuesSplit: Contribution ${contributionId} not found`, contribError);
+  if (contribError) {
+    if (contribError.code === 'PGRST116') {
+      logger.error(`processDuesSplit: Contribution ${contributionId} not found`);
+      return;
+    }
+    logger.error(`processDuesSplit: DB error fetching contribution ${contributionId}:`, contribError);
+    throw new Error(`Database error in processDuesSplit: ${contribError.message}`);
+  }
+  if (!contribution) {
+    logger.error(`processDuesSplit: Contribution ${contributionId} not found`);
     return;
   }
 
@@ -240,11 +262,12 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
   const totalCents = Math.round(Number(contribution.amount) * 100);
   if (totalCents <= 0) return;
 
-  // Idempotency: check if ledger entries already exist
+  // Idempotency: check if non-reversal ledger entries already exist
   const { data: existingEntries } = await supabase
     .from('rlc_split_ledger_entries')
     .select('id')
     .eq('contribution_id', contributionId)
+    .is('reversal_of_id', null)
     .limit(1);
 
   if (existingEntries && existingEntries.length > 0) {

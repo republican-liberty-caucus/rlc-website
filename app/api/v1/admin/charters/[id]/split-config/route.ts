@@ -143,10 +143,15 @@ export async function PUT(
   // Update rules if provided
   if (input.rules) {
     // Delete existing rules and recreate
-    await supabase
+    const { error: deleteError } = await supabase
       .from('rlc_charter_split_rules')
       .delete()
       .eq('config_id', configId);
+
+    if (deleteError) {
+      logger.error(`Failed to delete existing split rules for config ${configId}:`, deleteError);
+      return NextResponse.json({ error: 'Failed to update rules' }, { status: 500 });
+    }
 
     if (input.rules.length > 0) {
       const ruleInserts = input.rules.map((r, i) => ({

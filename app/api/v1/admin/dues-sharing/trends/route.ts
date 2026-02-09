@@ -15,7 +15,8 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const months = parseInt(searchParams.get('months') || '12', 10);
+  const rawMonths = parseInt(searchParams.get('months') || '12', 10);
+  const months = Number.isNaN(rawMonths) ? 12 : Math.max(1, Math.min(rawMonths, 60));
   const charterId = searchParams.get('charterId');
 
   if (charterId && ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {

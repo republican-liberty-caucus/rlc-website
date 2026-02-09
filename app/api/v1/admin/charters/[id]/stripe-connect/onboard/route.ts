@@ -60,10 +60,19 @@ export async function POST(
     stripeAccountId = existingRow.stripe_account_id;
   } else {
     // Create new Stripe Express account
-    const account = await createConnectAccount({
-      charterName: charterRow.name,
-      charterEmail: charterRow.contact_email || ctx.member.email,
-    });
+    let account;
+    try {
+      account = await createConnectAccount({
+        charterName: charterRow.name,
+        charterEmail: charterRow.contact_email || ctx.member.email,
+      });
+    } catch (stripeError) {
+      logger.error(`Failed to create Stripe Connect account for ${charterId}:`, stripeError);
+      return NextResponse.json(
+        { error: 'Failed to create Stripe account. Please try again or contact support.' },
+        { status: 500 }
+      );
+    }
 
     stripeAccountId = account.id;
 
@@ -87,11 +96,20 @@ export async function POST(
   const returnUrl = `${baseUrl}/admin/charters/${charterId}/banking?onboarding=complete`;
   const refreshUrl = `${baseUrl}/admin/charters/${charterId}/banking?onboarding=refresh`;
 
-  const accountLink = await createAccountLink({
-    stripeAccountId,
-    returnUrl,
-    refreshUrl,
-  });
+  let accountLink;
+  try {
+    accountLink = await createAccountLink({
+      stripeAccountId,
+      returnUrl,
+      refreshUrl,
+    });
+  } catch (stripeError) {
+    logger.error(`Failed to create account link for ${stripeAccountId}:`, stripeError);
+    return NextResponse.json(
+      { error: 'Failed to generate onboarding link. Please try again.' },
+      { status: 500 }
+    );
+  }
 
   return NextResponse.json({ url: accountLink.url });
 }
