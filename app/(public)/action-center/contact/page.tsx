@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { Metadata } from 'next';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
@@ -25,7 +26,9 @@ export default function ContactRepPage() {
       <section className="py-12">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-3xl">
-            <AddressLookup showResults />
+            <Suspense fallback={<div className="h-12 animate-pulse rounded-md bg-muted" />}>
+              <AddressLookup showResults />
+            </Suspense>
           </div>
         </div>
       </section>
