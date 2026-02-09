@@ -3,59 +3,30 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
-import { getVettingContext, canViewPipeline } from '@/lib/vetting/permissions';
-import { calculateUrgency, calculateVettingProgress, STAGE_ORDER } from '@/lib/vetting/engine';
+import {
+  getVettingContext,
+  canViewPipeline,
+  canCreateVetting,
+  canAssignSections,
+  canRecordInterview,
+  canMakeRecommendation,
+} from '@/lib/vetting/permissions';
+import { calculateVettingProgress } from '@/lib/vetting/engine';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatusBadge } from '@/components/ui/status-badge';
-import type { VettingStage, VettingSectionStatus, VettingReportSectionType } from '@/types';
+import { VettingDetailTabs } from '@/components/admin/vetting/vetting-detail-tabs';
+import type {
+  VettingFullData,
+  VettingPermissions,
+  ReportSectionWithAssignments,
+  CommitteeMemberOption,
+} from '@/components/admin/vetting/types';
+import type { VettingSectionStatus } from '@/types';
 
 export const metadata: Metadata = {
   title: 'Vetting Detail - Admin',
   description: 'Candidate vetting detail view',
 };
 
-interface VettingDetailRow {
-  id: string;
-  candidate_response_id: string;
-  candidate_name: string;
-  candidate_state: string | null;
-  candidate_office: string | null;
-  candidate_district: string | null;
-  candidate_party: string | null;
-  stage: VettingStage;
-  recommendation: string | null;
-  recommendation_notes: string | null;
-  interview_date: string | null;
-  created_at: string;
-  updated_at: string;
-  election_deadline: {
-    primary_date: string | null;
-    general_date: string | null;
-    state_code: string | null;
-    cycle_year: number | null;
-    office_type: string | null;
-  } | null;
-  committee: {
-    id: string;
-    name: string;
-  } | null;
-}
-
-interface SectionRow {
-  id: string;
-  section: VettingReportSectionType;
-  status: VettingSectionStatus;
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-}
-
-/** Convert snake_case to Title Case (e.g. "auto_audit" -> "Auto Audit") */
 function formatLabel(value: string): string {
   return value
     .replace(/_/g, ' ')
@@ -63,11 +34,11 @@ function formatLabel(value: string): string {
 }
 
 const sectionStatusIcon: Record<VettingSectionStatus, string> = {
-  section_not_started: '\u25CB',  // empty circle
-  section_assigned: '\u25D4',     // half circle
-  section_in_progress: '\u25D4',  // half circle
-  section_completed: '\u25CF',    // filled circle
-  needs_revision: '\u25CE',       // bullseye
+  section_not_started: '\u25CB',
+  section_assigned: '\u25D4',
+  section_in_progress: '\u25D4',
+  section_completed: '\u25CF',
+  needs_revision: '\u25CE',
 };
 
 const sectionStatusColor: Record<VettingSectionStatus, string> = {
@@ -91,15 +62,23 @@ export default async function VettingDetailPage({
 
   const supabase = createServerClient();
 
-  // Fetch vetting with related data
+  // Fetch vetting with all related data including sections+assignments+opponents
   const { data, error } = await supabase
     .from('rlc_candidate_vettings')
     .select(`
-      id, candidate_response_id, candidate_name, candidate_state, candidate_office,
-      candidate_district, candidate_party, stage, recommendation, recommendation_notes,
-      interview_date, created_at, updated_at,
-      election_deadline:rlc_candidate_election_deadlines(primary_date, general_date, state_code, cycle_year, office_type),
-      committee:rlc_candidate_vetting_committees(id, name)
+      *,
+      election_deadline:rlc_candidate_election_deadlines(id, primary_date, general_date, state_code, cycle_year, office_type),
+      committee:rlc_candidate_vetting_committees(id, name),
+      report_sections:rlc_candidate_vetting_report_sections(
+        *,
+        assignments:rlc_candidate_vetting_section_assignments(
+          *,
+          committee_member:rlc_candidate_vetting_committee_members(
+            id, role, contact:rlc_members(id, first_name, last_name, email)
+          )
+        )
+      ),
+      opponents:rlc_candidate_vetting_opponents(*)
     `)
     .eq('id', id)
     .single();
@@ -110,24 +89,34 @@ export default async function VettingDetailPage({
   }
   if (!data) notFound();
 
-  const vetting = data as unknown as VettingDetailRow;
+  const vetting = data as unknown as VettingFullData;
+  const sections = (vetting.report_sections ?? []) as ReportSectionWithAssignments[];
+  const progress = calculateVettingProgress(sections);
 
-  // Fetch report sections
-  const { data: sections, error: sectionsError } = await supabase
-    .from('rlc_candidate_vetting_report_sections')
-    .select('id, section, status')
-    .eq('vetting_id', id)
-    .order('created_at', { ascending: true });
+  // Fetch committee members for assignment dropdowns
+  let committeeMembers: CommitteeMemberOption[] = [];
+  if (vetting.committee?.id) {
+    const { data: members } = await supabase
+      .from('rlc_candidate_vetting_committee_members')
+      .select('id, contact_id, role, is_active, contact:rlc_members(id, first_name, last_name, email)')
+      .eq('committee_id', vetting.committee.id)
+      .eq('is_active', true);
 
-  if (sectionsError) {
-    throw new Error(`Failed to fetch report sections for vetting ${id}: ${sectionsError.message}`);
+    committeeMembers = (members ?? []) as unknown as CommitteeMemberOption[];
   }
 
-  const sectionRows = (sections ?? []) as SectionRow[];
-
-  const progress = calculateVettingProgress(sectionRows);
-  const urgency = calculateUrgency(vetting.election_deadline?.primary_date ?? null);
-  const stageIndex = STAGE_ORDER.indexOf(vetting.stage);
+  // Build serializable permissions object
+  const permissions: VettingPermissions = {
+    canCreateVetting: canCreateVetting(ctx),
+    canAssignSections: canAssignSections(ctx),
+    canEditAnySection: ctx.isChair || ctx.isNational,
+    canRecordInterview: canRecordInterview(ctx),
+    canMakeRecommendation: canMakeRecommendation(ctx),
+    isCommitteeMember: ctx.isCommitteeMember,
+    isChair: ctx.isChair,
+    isNational: ctx.isNational,
+    committeeMemberId: ctx.committeeMemberId,
+  };
 
   return (
     <div>
@@ -137,109 +126,13 @@ export default async function VettingDetailPage({
       />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {/* Main content area */}
-        <div className="space-y-6 lg:col-span-2">
-          {/* Candidate info card */}
-          <div className="rounded-lg border bg-card p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-lg font-semibold">{vetting.candidate_name}</h2>
-                <p className="text-sm text-muted-foreground">
-                  {[vetting.candidate_party, vetting.candidate_office, vetting.candidate_district]
-                    .filter(Boolean)
-                    .join(' \u2022 ') || 'No details yet'}
-                </p>
-                {vetting.candidate_state && (
-                  <p className="mt-1 text-sm text-muted-foreground">{vetting.candidate_state}</p>
-                )}
-              </div>
-              <StatusBadge status={vetting.stage} type="vetting" />
-            </div>
-
-            {/* Stage progress bar */}
-            <div className="mt-6">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                {STAGE_ORDER.map((stage, i) => (
-                  <span
-                    key={stage}
-                    className={
-                      i <= stageIndex
-                        ? 'font-medium text-foreground'
-                        : ''
-                    }
-                  >
-                    {formatLabel(stage)}
-                  </span>
-                ))}
-              </div>
-              <div className="mt-2 h-2 rounded-full bg-muted">
-                <div
-                  className="h-2 rounded-full bg-primary transition-all"
-                  style={{ width: `${((stageIndex + 1) / STAGE_ORDER.length) * 100}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Key details */}
-          <div className="rounded-lg border bg-card p-6">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-              Details
-            </h3>
-            <dl className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <dt className="text-sm text-muted-foreground">Committee</dt>
-                <dd className="text-sm font-medium">
-                  {vetting.committee?.name ?? 'Not assigned'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted-foreground">Primary Date</dt>
-                <dd className="text-sm font-medium">
-                  {vetting.election_deadline?.primary_date
-                    ? formatDate(vetting.election_deadline.primary_date)
-                    : 'Not set'}
-                  {urgency !== 'normal' && (
-                    <span className={`ml-2 text-xs font-semibold ${
-                      urgency === 'red'
-                        ? 'text-red-600 dark:text-red-400'
-                        : 'text-amber-600 dark:text-amber-400'
-                    }`}>
-                      {urgency === 'red' ? 'URGENT' : 'APPROACHING'}
-                    </span>
-                  )}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted-foreground">General Date</dt>
-                <dd className="text-sm font-medium">
-                  {vetting.election_deadline?.general_date
-                    ? formatDate(vetting.election_deadline.general_date)
-                    : 'Not set'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted-foreground">Recommendation</dt>
-                <dd className="text-sm font-medium">
-                  {vetting.recommendation
-                    ? formatLabel(vetting.recommendation)
-                    : 'Pending'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted-foreground">Interview</dt>
-                <dd className="text-sm font-medium">
-                  {vetting.interview_date
-                    ? formatDate(vetting.interview_date)
-                    : 'Not scheduled'}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-muted-foreground">Created</dt>
-                <dd className="text-sm font-medium">{formatDate(vetting.created_at)}</dd>
-              </div>
-            </dl>
-          </div>
+        {/* Main content area with tabs */}
+        <div className="lg:col-span-2">
+          <VettingDetailTabs
+            vetting={vetting}
+            permissions={permissions}
+            committeeMembers={committeeMembers}
+          />
         </div>
 
         {/* Sidebar: Section progress */}
@@ -263,7 +156,7 @@ export default async function VettingDetailPage({
             </div>
 
             <ul className="space-y-2">
-              {sectionRows.map((s) => (
+              {sections.map((s) => (
                 <li key={s.id} className="flex items-center gap-2 text-sm">
                   <span className={sectionStatusColor[s.status]}>
                     {sectionStatusIcon[s.status]}
@@ -271,9 +164,14 @@ export default async function VettingDetailPage({
                   <span className={s.status === 'section_completed' ? 'text-foreground' : 'text-muted-foreground'}>
                     {formatLabel(s.section)}
                   </span>
+                  {s.assignments.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      ({s.assignments.length} assigned)
+                    </span>
+                  )}
                 </li>
               ))}
-              {sectionRows.length === 0 && (
+              {sections.length === 0 && (
                 <li className="text-sm text-muted-foreground">No sections initialized</li>
               )}
             </ul>
