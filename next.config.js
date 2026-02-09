@@ -35,7 +35,13 @@ const nextConfig = {
   },
   async redirects() {
     return [
-      // Add redirects from old WordPress URLs here during migration
+      { source: '/chapters', destination: '/charters', permanent: true },
+      { source: '/chapters/:slug', destination: '/charters/:slug', permanent: true },
+      { source: '/admin/chapters', destination: '/admin/charters', permanent: true },
+      { source: '/admin/chapters/:path*', destination: '/admin/charters/:path*', permanent: true },
+      { source: '/api/v1/chapters', destination: '/api/v1/charters', permanent: true },
+      { source: '/api/v1/chapters/:path*', destination: '/api/v1/charters/:path*', permanent: true },
+      { source: '/api/v1/admin/chapters/:path*', destination: '/api/v1/admin/charters/:path*', permanent: true },
     ];
   },
 };

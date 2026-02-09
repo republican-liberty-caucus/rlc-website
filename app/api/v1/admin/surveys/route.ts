@@ -49,7 +49,7 @@ export async function POST(request: Request) {
     election_type: input.electionType || null,
     election_date: input.electionDate || null,
     state: input.state || null,
-    chapter_id: input.chapterId || null,
+    charter_id: input.charterId || null,
     created_by: member?.id || null,
   } as never);
 

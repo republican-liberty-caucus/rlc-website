@@ -37,17 +37,17 @@ export default async function AdminEventRegistrationsPage({ params }: Registrati
   // Fetch event
   const { data: eventData, error: eventError } = await supabase
     .from('rlc_events')
-    .select('id, title, chapter_id')
+    .select('id, title, charter_id')
     .eq('id', id)
     .single();
 
   if (eventError || !eventData) notFound();
 
-  const event = eventData as { id: string; title: string; chapter_id: string | null };
+  const event = eventData as { id: string; title: string; charter_id: string | null };
 
-  // Check chapter visibility
-  if (event.chapter_id && ctx.visibleChapterIds !== null) {
-    if (!ctx.visibleChapterIds.includes(event.chapter_id)) {
+  // Check charter visibility
+  if (event.charter_id && ctx.visibleCharterIds !== null) {
+    if (!ctx.visibleCharterIds.includes(event.charter_id)) {
       redirect('/admin/events?error=forbidden');
     }
   }

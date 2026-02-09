@@ -8,7 +8,7 @@ import { isStepEditable } from '@/lib/onboarding/engine';
 import type { OnboardingStepStatus } from '@/types';
 
 interface StripeConnectStepProps {
-  chapterId: string;
+  charterId: string;
   data: Record<string, unknown>;
   status: OnboardingStepStatus;
   isNational: boolean;
@@ -18,7 +18,7 @@ interface StripeConnectStepProps {
 }
 
 export function StripeConnectStep({
-  chapterId,
+  charterId,
   data,
   status,
   isNational,
@@ -36,7 +36,7 @@ export function StripeConnectStep({
   async function handleStartOnboarding() {
     setConnecting(true);
     try {
-      const res = await fetch(`/api/v1/admin/chapters/${chapterId}/stripe-connect/onboard`, {
+      const res = await fetch(`/api/v1/admin/charters/${charterId}/stripe-connect/onboard`, {
         method: 'POST',
       });
 
@@ -62,7 +62,7 @@ export function StripeConnectStep({
 
   async function handleCheckStatus() {
     try {
-      const res = await fetch(`/api/v1/admin/chapters/${chapterId}/stripe-connect/status`);
+      const res = await fetch(`/api/v1/admin/charters/${charterId}/stripe-connect/status`);
       if (!res.ok) throw new Error('Failed to check status');
 
       const { account } = await res.json();
@@ -91,7 +91,7 @@ export function StripeConnectStep({
       <div>
         <h3 className="text-lg font-semibold">Stripe Connect</h3>
         <p className="text-sm text-muted-foreground">
-          Connect a Stripe account so the chapter can process dues and receive payouts.
+          Connect a Stripe account so the charter can process dues and receive payouts.
         </p>
       </div>
 

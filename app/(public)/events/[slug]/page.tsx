@@ -32,9 +32,9 @@ interface EventRow {
   max_attendees: number | null;
   registration_fee: number | null;
   registration_deadline: string | null;
-  chapter_id: string | null;
+  charter_id: string | null;
   status: string;
-  chapter: { name: string; slug: string } | null;
+  charter: { name: string; slug: string } | null;
 }
 
 async function getEvent(slug: string) {
@@ -44,7 +44,7 @@ async function getEvent(slug: string) {
     .from('rlc_events')
     .select(`
       *,
-      chapter:rlc_chapters(name, slug)
+      charter:rlc_charters(name, slug)
     `)
     .eq('slug', slug)
     .eq('status', 'published')
@@ -93,12 +93,12 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                 <Video className="h-4 w-4" /> Virtual
               </span>
             )}
-            {event.chapter && (
+            {event.charter && (
               <Link
-                href={`/chapters/${event.chapter.slug}`}
+                href={`/charters/${event.charter.slug}`}
                 className="rounded-full bg-white/20 px-3 py-1 text-sm hover:bg-white/30"
               >
-                {event.chapter.name}
+                {event.charter.name}
               </Link>
             )}
             {event.event_type && (

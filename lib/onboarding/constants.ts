@@ -19,7 +19,7 @@ export const ONBOARDING_STEPS: StepDefinition[] = [
   {
     step: 'coordinator_appointment',
     label: 'Coordinator Appointment',
-    description: 'National assigns coordinator for the forming chapter.',
+    description: 'National assigns coordinator for the forming charter.',
     requiresReview: true,
     dependencies: ['coordinator_membership'],
   },

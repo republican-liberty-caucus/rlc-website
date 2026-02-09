@@ -1,7 +1,7 @@
-import type { OnboardingStep, OnboardingStepStatus, ChapterOnboardingStep } from '@/types';
+import type { OnboardingStep, OnboardingStepStatus, CharterOnboardingStep } from '@/types';
 import { ONBOARDING_STEPS, STEP_ORDER, DONE_STATUSES, getStepDefinition } from './constants';
 
-type StepState = Pick<ChapterOnboardingStep, 'step' | 'status'>;
+type StepState = Pick<CharterOnboardingStep, 'step' | 'status'>;
 
 export function calculateProgress(steps: StepState[]): { completed: number; total: number; percentage: number } {
   const total = STEP_ORDER.length;

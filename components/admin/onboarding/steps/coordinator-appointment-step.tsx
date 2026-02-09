@@ -44,7 +44,7 @@ export function CoordinatorAppointmentStep({
       <div>
         <h3 className="text-lg font-semibold">Coordinator Appointment</h3>
         <p className="text-sm text-muted-foreground">
-          A national admin assigns the coordinator for this forming chapter.
+          A national admin assigns the coordinator for this forming charter.
         </p>
       </div>
 

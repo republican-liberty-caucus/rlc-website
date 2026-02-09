@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { VALID_MEMBERSHIP_STATUSES, VALID_MEMBERSHIP_TIERS } from '@/lib/validations/admin';
-import type { Contact, UserRole, Chapter } from '@/types';
+import type { Contact, UserRole, Charter } from '@/types';
 
 // Role hierarchy: higher index = more privilege
 const ROLE_HIERARCHY: UserRole[] = [
@@ -26,7 +26,7 @@ const ADMIN_ROLES: UserRole[] = [
 export interface AdminRole {
   id: string;
   role: UserRole;
-  chapter_id: string | null;
+  charter_id: string | null;
   granted_by: string | null;
   granted_at: string;
   expires_at: string | null;
@@ -36,8 +36,8 @@ export interface AdminContext {
   member: Contact;
   roles: AdminRole[];
   highestRole: UserRole;
-  /** null = national admin, sees everything; string[] = scoped chapter IDs */
-  visibleChapterIds: string[] | null;
+  /** null = national admin, sees everything; string[] = scoped charter IDs */
+  visibleCharterIds: string[] | null;
   isNational: boolean;
 }
 
@@ -57,11 +57,11 @@ export function canManageRoles(ctx: AdminContext): boolean {
   return getRoleWeight(ctx.highestRole) >= getRoleWeight('national_board');
 }
 
-/** Returns true if the admin can view a member with the given primary_chapter_id */
-export function canViewMember(ctx: AdminContext, primaryChapterId: string | null): boolean {
-  if (ctx.visibleChapterIds === null) return true;
-  if (!primaryChapterId) return false;
-  return ctx.visibleChapterIds.includes(primaryChapterId);
+/** Returns true if the admin can view a member with the given primary_charter_id */
+export function canViewMember(ctx: AdminContext, primaryCharterId: string | null): boolean {
+  if (ctx.visibleCharterIds === null) return true;
+  if (!primaryCharterId) return false;
+  return ctx.visibleCharterIds.includes(primaryCharterId);
 }
 
 interface MemberFilterParams {
@@ -70,14 +70,14 @@ interface MemberFilterParams {
   tier?: string | null;
 }
 
-/** Apply standard member list filters (chapter scoping, search, status, tier) to a Supabase query builder. */
+/** Apply standard member list filters (charter scoping, search, status, tier) to a Supabase query builder. */
 export function applyMemberFilters<T extends { in: (col: string, vals: string[]) => T; or: (filter: string) => T; eq: (col: string, val: string) => T }>(
   query: T,
-  visibleChapterIds: string[] | null,
+  visibleCharterIds: string[] | null,
   filters: MemberFilterParams
 ): T {
-  if (visibleChapterIds !== null && visibleChapterIds.length > 0) {
-    query = query.in('primary_chapter_id', visibleChapterIds);
+  if (visibleCharterIds !== null && visibleCharterIds.length > 0) {
+    query = query.in('primary_charter_id', visibleCharterIds);
   }
   if (filters.search) {
     const safe = sanitizeSearch(filters.search);
@@ -107,33 +107,33 @@ export function sanitizeSearch(input: string): string {
 }
 
 /**
- * Build the set of chapter IDs visible to a scoped admin.
- * Walks the chapter tree downward from each role's chapter_id,
- * collecting all descendant chapter IDs.
+ * Build the set of charter IDs visible to a scoped admin.
+ * Walks the charter tree downward from each role's charter_id,
+ * collecting all descendant charter IDs.
  */
-function buildVisibleChapterIds(
+function buildVisibleCharterIds(
   roles: AdminRole[],
-  chapters: Pick<Chapter, 'id' | 'parent_chapter_id'>[]
+  charters: Pick<Charter, 'id' | 'parent_charter_id'>[]
 ): string[] {
-  const chapterIdSet = new Set(chapters.map((ch) => ch.id));
+  const charterIdSet = new Set(charters.map((ch) => ch.id));
 
   // Build parent→children map
   const childrenMap = new Map<string, string[]>();
-  for (const ch of chapters) {
-    if (ch.parent_chapter_id) {
-      const siblings = childrenMap.get(ch.parent_chapter_id) || [];
+  for (const ch of charters) {
+    if (ch.parent_charter_id) {
+      const siblings = childrenMap.get(ch.parent_charter_id) || [];
       siblings.push(ch.id);
-      childrenMap.set(ch.parent_chapter_id, siblings);
+      childrenMap.set(ch.parent_charter_id, siblings);
     }
   }
 
-  // Collect all descendant IDs from each role's chapter_id
+  // Collect all descendant IDs from each role's charter_id
   const visibleSet = new Set<string>();
   for (const role of roles) {
-    if (!role.chapter_id) continue;
-    // Skip roles referencing deleted chapters
-    if (!chapterIdSet.has(role.chapter_id)) continue;
-    const stack = [role.chapter_id];
+    if (!role.charter_id) continue;
+    // Skip roles referencing deleted charters
+    if (!charterIdSet.has(role.charter_id)) continue;
+    const stack = [role.charter_id];
     while (stack.length > 0) {
       const current = stack.pop()!;
       visibleSet.add(current);
@@ -162,7 +162,7 @@ export const getAdminContext = cache(async (clerkUserId: string): Promise<AdminC
   // Fetch admin-level roles, excluding expired ones
   const { data: roleData, error: roleError } = await supabase
     .from('rlc_member_roles')
-    .select('id, role, chapter_id, granted_by, granted_at, expires_at')
+    .select('id, role, charter_id, granted_by, granted_at, expires_at')
     .eq('member_id', member.id)
     .in('role', ADMIN_ROLES)
     .or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`);
@@ -179,23 +179,23 @@ export const getAdminContext = cache(async (clerkUserId: string): Promise<AdminC
 
   // National admins see everything
   if (isNational) {
-    return { member, roles, highestRole, visibleChapterIds: null, isNational: true };
+    return { member, roles, highestRole, visibleCharterIds: null, isNational: true };
   }
 
-  // Scoped admins: fetch all chapters and walk the tree
-  const { data: allChapters, error: chapterError } = await supabase
-    .from('rlc_chapters')
-    .select('id, parent_chapter_id');
+  // Scoped admins: fetch all charters and walk the tree
+  const { data: allCharters, error: charterError } = await supabase
+    .from('rlc_charters')
+    .select('id, parent_charter_id');
 
-  if (chapterError) {
-    throw new Error(`Failed to fetch chapters: ${chapterError.message}`);
+  if (charterError) {
+    throw new Error(`Failed to fetch charters: ${charterError.message}`);
   }
 
-  const chapters = (allChapters || []) as Pick<Chapter, 'id' | 'parent_chapter_id'>[];
-  const visibleChapterIds = buildVisibleChapterIds(roles, chapters);
+  const charters = (allCharters || []) as Pick<Charter, 'id' | 'parent_charter_id'>[];
+  const visibleCharterIds = buildVisibleCharterIds(roles, charters);
 
-  // If no visible chapters (all assigned chapters deleted), deny access
-  if (visibleChapterIds.length === 0) return null;
+  // If no visible charters (all assigned charters deleted), deny access
+  if (visibleCharterIds.length === 0) return null;
 
-  return { member, roles, highestRole, visibleChapterIds, isNational: false };
+  return { member, roles, highestRole, visibleCharterIds, isNational: false };
 });

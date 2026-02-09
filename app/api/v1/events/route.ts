@@ -7,7 +7,7 @@ export async function GET(request: Request) {
   const limit = parseInt(searchParams.get('limit') || '20', 10);
   const offset = parseInt(searchParams.get('offset') || '0', 10);
   const upcoming = searchParams.get('upcoming') !== 'false';
-  const chapterId = searchParams.get('chapter_id');
+  const charterId = searchParams.get('charter_id');
 
   try {
     const supabase = createServerClient();
@@ -19,7 +19,7 @@ export async function GET(request: Request) {
         start_date, end_date, timezone,
         is_virtual, location_name, address, city, state, postal_code, virtual_url,
         registration_required, max_attendees, registration_fee, registration_deadline,
-        chapter:rlc_chapters(id, name, slug),
+        charter:rlc_charters(id, name, slug),
         status
       `)
       .eq('status', 'published')
@@ -30,8 +30,8 @@ export async function GET(request: Request) {
       query = query.gte('start_date', new Date().toISOString());
     }
 
-    if (chapterId) {
-      query = query.eq('chapter_id', chapterId);
+    if (charterId) {
+      query = query.eq('charter_id', charterId);
     }
 
     const { data: events, error } = await query;

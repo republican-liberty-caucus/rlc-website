@@ -57,7 +57,7 @@ export async function executeTransfer(params: {
 
 /**
  * After a split is calculated and ledger entries are created,
- * attempt immediate transfers for chapters with active Stripe accounts.
+ * attempt immediate transfers for charters with active Stripe accounts.
  */
 export async function executeTransfersForContribution(contributionId: string): Promise<void> {
   const supabase = createServerClient();
@@ -65,39 +65,39 @@ export async function executeTransfersForContribution(contributionId: string): P
   // Get pending (non-National) ledger entries
   const { data: entries, error } = await supabase
     .from('rlc_split_ledger_entries')
-    .select('id, amount, recipient_chapter_id, stripe_transfer_group_id')
+    .select('id, amount, recipient_charter_id, stripe_transfer_group_id')
     .eq('contribution_id', contributionId)
     .eq('status', 'pending');
 
   if (error || !entries || entries.length === 0) return;
 
-  // Get Stripe accounts for all recipient chapters
-  const chapterIds = [...new Set((entries as { recipient_chapter_id: string }[]).map((e) => e.recipient_chapter_id))];
+  // Get Stripe accounts for all recipient charters
+  const charterIds = [...new Set((entries as { recipient_charter_id: string }[]).map((e) => e.recipient_charter_id))];
 
   const { data: stripeAccounts } = await supabase
-    .from('rlc_chapter_stripe_accounts')
-    .select('chapter_id, stripe_account_id')
-    .in('chapter_id', chapterIds)
+    .from('rlc_charter_stripe_accounts')
+    .select('charter_id, stripe_account_id')
+    .in('charter_id', charterIds)
     .eq('status', 'active');
 
   if (!stripeAccounts || stripeAccounts.length === 0) return;
 
   const accountMap = new Map<string, string>();
   for (const acct of stripeAccounts) {
-    const row = acct as { chapter_id: string; stripe_account_id: string };
-    accountMap.set(row.chapter_id, row.stripe_account_id);
+    const row = acct as { charter_id: string; stripe_account_id: string };
+    accountMap.set(row.charter_id, row.stripe_account_id);
   }
 
   for (const entry of entries) {
     const row = entry as {
       id: string;
       amount: number;
-      recipient_chapter_id: string;
+      recipient_charter_id: string;
       stripe_transfer_group_id: string | null;
     };
 
-    const stripeAccountId = accountMap.get(row.recipient_chapter_id);
-    if (!stripeAccountId) continue; // Chapter not onboarded yet — stays pending
+    const stripeAccountId = accountMap.get(row.recipient_charter_id);
+    if (!stripeAccountId) continue; // Charter not onboarded yet — stays pending
 
     try {
       await executeTransfer({

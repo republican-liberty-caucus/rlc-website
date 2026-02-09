@@ -25,14 +25,14 @@ export type ContributionType = 'membership' | 'donation' | 'event_registration' 
 
 export type PaymentStatus = 'pending' | 'completed' | 'failed' | 'refunded' | 'cancelled';
 
-export type ChapterLevel =
+export type CharterLevel =
   | 'national'
   | 'multi_state_region'
   | 'state'
   | 'intra_state_region'
   | 'county';
 
-export type ChapterStatus = 'active' | 'inactive' | 'forming';
+export type CharterStatus = 'active' | 'inactive' | 'forming';
 
 export type HouseholdRole = 'primary' | 'spouse' | 'child';
 
@@ -64,7 +64,7 @@ export interface Contact {
   membership_start_date: string | null;
   membership_expiry_date: string | null;
   membership_join_date: string | null;
-  primary_chapter_id: string | null;
+  primary_charter_id: string | null;
   highlevel_contact_id: string | null;
   civicrm_contact_id: number | null;
   stripe_customer_id: string | null;
@@ -79,15 +79,15 @@ export interface Contact {
   updated_at: string;
 }
 
-export interface Chapter {
+export interface Charter {
   id: string;
   name: string;
   slug: string;
-  chapter_level: ChapterLevel;
-  parent_chapter_id: string | null;
+  charter_level: CharterLevel;
+  parent_charter_id: string | null;
   state_code: string | null;
   region_name: string | null;
-  status: ChapterStatus;
+  status: CharterStatus;
   website_url: string | null;
   contact_email: string | null;
   leadership: Record<string, unknown>;
@@ -106,7 +106,7 @@ export interface Contribution {
   stripe_subscription_id: string | null;
   payment_status: PaymentStatus;
   payment_method: string | null;
-  chapter_id: string | null;
+  charter_id: string | null;
   campaign_id: string | null;
   is_recurring: boolean;
   recurring_interval: string | null;
@@ -137,7 +137,7 @@ export interface Event {
   max_attendees: number | null;
   registration_fee: number | null;
   registration_deadline: string | null;
-  chapter_id: string | null;
+  charter_id: string | null;
   organizer_id: string | null;
   status: string;
   created_at: string;
@@ -164,7 +164,7 @@ export interface Post {
   excerpt: string | null;
   featured_image_url: string | null;
   author_id: string | null;
-  chapter_id: string | null;
+  charter_id: string | null;
   status: string;
   published_at: string | null;
   categories: string[];
@@ -188,7 +188,7 @@ export interface Survey {
   election_type: string | null;
   election_date: string | null;
   state: string | null;
-  chapter_id: string | null;
+  charter_id: string | null;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -261,7 +261,7 @@ export interface ScorecardSession {
   slug: string;
   jurisdiction: Jurisdiction;
   state_code: string | null;
-  chapter_id: string | null;
+  charter_id: string | null;
   session_year: number;
   status: ScorecardSessionStatus;
   created_by: string | null;
@@ -303,7 +303,7 @@ export interface ActionCampaign {
   slug: string;
   description: string | null;
   bill_id: string | null;
-  chapter_id: string | null;
+  charter_id: string | null;
   target_chamber: LegislativeChamber | null;
   target_state_code: string | null;
   message_template: string | null;
@@ -332,9 +332,9 @@ export type StripeConnectStatus = 'not_started' | 'onboarding' | 'active' | 'dis
 export type SplitLedgerStatus = 'pending' | 'transferred' | 'reversed' | 'failed';
 export type SplitSourceType = 'membership' | 'donation' | 'event_registration';
 
-export interface ChapterStripeAccount {
+export interface CharterStripeAccount {
   id: string;
-  chapter_id: string;
+  charter_id: string;
   stripe_account_id: string;
   status: StripeConnectStatus;
   charges_enabled: boolean;
@@ -344,9 +344,9 @@ export interface ChapterStripeAccount {
   updated_at: string;
 }
 
-export interface ChapterSplitConfig {
+export interface CharterSplitConfig {
   id: string;
-  chapter_id: string;
+  charter_id: string;
   disbursement_model: DisbursementModel;
   is_active: boolean;
   updated_by_id: string | null;
@@ -354,10 +354,10 @@ export interface ChapterSplitConfig {
   updated_at: string;
 }
 
-export interface ChapterSplitRule {
+export interface CharterSplitRule {
   id: string;
   config_id: string;
-  recipient_chapter_id: string;
+  recipient_charter_id: string;
   percentage: number;
   sort_order: number;
   is_active: boolean;
@@ -369,7 +369,7 @@ export interface SplitLedgerEntry {
   id: string;
   contribution_id: string;
   source_type: SplitSourceType;
-  recipient_chapter_id: string;
+  recipient_charter_id: string;
   amount: number;
   currency: string;
   status: SplitLedgerStatus;
@@ -381,7 +381,7 @@ export interface SplitLedgerEntry {
   created_at: string;
 }
 
-// Officer Position & Chapter Onboarding types
+// Officer Position & Charter Onboarding types
 
 export type OfficerTitle =
   | 'chair'
@@ -408,7 +408,7 @@ export type OnboardingStep =
 export interface OfficerPosition {
   id: string;
   member_id: string;
-  chapter_id: string;
+  charter_id: string;
   title: OfficerTitle;
   committee_name: string | null;
   started_at: string;
@@ -420,9 +420,9 @@ export interface OfficerPosition {
   updated_at: string;
 }
 
-export interface ChapterOnboarding {
+export interface CharterOnboarding {
   id: string;
-  chapter_id: string;
+  charter_id: string;
   coordinator_id: string;
   current_step: OnboardingStep;
   started_at: string;
@@ -434,7 +434,7 @@ export interface ChapterOnboarding {
   updated_at: string;
 }
 
-export interface ChapterOnboardingStep {
+export interface CharterOnboardingStep {
   id: string;
   onboarding_id: string;
   step: OnboardingStep;

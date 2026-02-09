@@ -13,8 +13,8 @@ export const metadata: Metadata = {
 
 export default async function DonatePage() {
   const supabase = createServerClient();
-  const { data: chapters } = await supabase
-    .from('rlc_chapters')
+  const { data: charters } = await supabase
+    .from('rlc_charters')
     .select('id, name')
     .eq('status', 'active')
     .order('name');
@@ -39,7 +39,7 @@ export default async function DonatePage() {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl">
             <DonationForm
-              chapters={(chapters || []) as { id: string; name: string }[]}
+              charters={(charters || []) as { id: string; name: string }[]}
             />
           </div>
         </div>
@@ -61,7 +61,7 @@ export default async function DonatePage() {
             <div className="rounded-lg bg-card p-6 text-center">
               <div className="mb-4 text-4xl font-bold text-rlc-blue">$100</div>
               <p className="text-muted-foreground">
-                Supports training materials for new chapter leaders across the country
+                Supports training materials for new charter leaders across the country
               </p>
             </div>
             <div className="rounded-lg bg-card p-6 text-center">
@@ -86,7 +86,7 @@ export default async function DonatePage() {
               <Link href="/join">Become a Member</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href="/chapters">Find Your Chapter</Link>
+              <Link href="/charters">Find Your Charter</Link>
             </Button>
           </div>
         </div>

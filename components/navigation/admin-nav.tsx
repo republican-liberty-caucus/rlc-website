@@ -41,8 +41,8 @@ const navSections: NavSection[] = [
     label: 'People',
     items: [
       { href: '/admin/members', label: 'Members', icon: Users },
-      { href: '/admin/chapters', label: 'Chapters', icon: MapPin },
-      { href: '/admin/chapters?status=forming', label: 'Onboarding', icon: Rocket },
+      { href: '/admin/charters', label: 'Charters', icon: MapPin },
+      { href: '/admin/charters?status=forming', label: 'Onboarding', icon: Rocket },
     ],
   },
   {

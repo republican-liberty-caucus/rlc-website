@@ -6,24 +6,24 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 import { Plus, Trash2 } from 'lucide-react';
 import { ADMIN_INPUT_CLASS } from '@/components/admin/form-styles';
-import type { Chapter, UserRole } from '@/types';
+import type { Charter, UserRole } from '@/types';
 import { formatDate } from '@/lib/utils';
 
 interface RoleRow {
   id: string;
   role: UserRole;
-  chapter_id: string | null;
+  charter_id: string | null;
   granted_by: string | null;
   granted_at: string;
   expires_at: string | null;
-  chapter: { name: string } | null;
+  charter: { name: string } | null;
   granter: { first_name: string; last_name: string } | null;
 }
 
 interface MemberRolesCardProps {
   memberId: string;
   roles: RoleRow[];
-  chapters: Pick<Chapter, 'id' | 'name'>[];
+  charters: Pick<Charter, 'id' | 'name'>[];
 }
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
@@ -36,7 +36,7 @@ const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'super_admin', label: 'Super Admin' },
 ];
 
-export function MemberRolesCard({ memberId, roles, chapters }: MemberRolesCardProps) {
+export function MemberRolesCard({ memberId, roles, charters }: MemberRolesCardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
@@ -50,7 +50,7 @@ export function MemberRolesCard({ memberId, roles, chapters }: MemberRolesCardPr
     const formData = new FormData(e.currentTarget);
     const body = {
       role: formData.get('role') as string,
-      chapterId: (formData.get('chapterId') as string) || null,
+      charterId: (formData.get('charterId') as string) || null,
     };
 
     try {
@@ -143,10 +143,10 @@ export function MemberRolesCard({ memberId, roles, chapters }: MemberRolesCardPr
             </select>
           </div>
           <div>
-            <label className="block text-xs font-medium mb-1">Chapter (optional for national roles)</label>
-            <select name="chapterId" className={ADMIN_INPUT_CLASS}>
+            <label className="block text-xs font-medium mb-1">Charter (optional for national roles)</label>
+            <select name="charterId" className={ADMIN_INPUT_CLASS}>
               <option value="">None (National)</option>
-              {chapters.map((ch) => (
+              {charters.map((ch) => (
                 <option key={ch.id} value={ch.id}>{ch.name}</option>
               ))}
             </select>
@@ -170,7 +170,7 @@ export function MemberRolesCard({ memberId, roles, chapters }: MemberRolesCardPr
               <div>
                 <span className="text-sm font-medium capitalize">{r.role.replace(/_/g, ' ')}</span>
                 <p className="text-xs text-muted-foreground">
-                  {r.chapter?.name || 'National'}
+                  {r.charter?.name || 'National'}
                 </p>
                 <p className="text-xs text-muted-foreground">
                   Granted {formatDate(r.granted_at)}

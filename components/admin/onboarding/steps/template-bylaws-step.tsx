@@ -46,7 +46,7 @@ export function TemplateBylawsStep({
       <div className="rounded-md border bg-muted/30 p-4">
         <p className="text-sm font-medium mb-2">Template Bylaws</p>
         <p className="text-xs text-muted-foreground mb-3">
-          Download the template, review all sections, and customize for your chapter.
+          Download the template, review all sections, and customize for your charter.
         </p>
         <label className="flex items-center gap-2 text-sm">
           <input

@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 };
 
 interface EventRow extends Event {
-  chapter?: { id: string; name: string } | null;
+  charter?: { id: string; name: string } | null;
   organizer?: { first_name: string; last_name: string } | null;
 }
 
@@ -26,20 +26,20 @@ interface EventWithCount extends EventRow {
   registrationCount: number;
 }
 
-async function getEvents(visibleChapterIds: string[] | null): Promise<EventWithCount[]> {
+async function getEvents(visibleCharterIds: string[] | null): Promise<EventWithCount[]> {
   const supabase = createServerClient();
 
   let query = supabase
     .from('rlc_events')
     .select(`
       *,
-      chapter:rlc_chapters(id, name),
+      charter:rlc_charters(id, name),
       organizer:rlc_members(first_name, last_name)
     `)
     .order('start_date', { ascending: false });
 
-  if (visibleChapterIds !== null && visibleChapterIds.length > 0) {
-    query = query.in('chapter_id', visibleChapterIds);
+  if (visibleCharterIds !== null && visibleCharterIds.length > 0) {
+    query = query.in('charter_id', visibleCharterIds);
   }
 
   const { data, error } = await query;
@@ -77,7 +77,7 @@ export default async function AdminEventsPage() {
   const ctx = await getAdminContext(userId);
   if (!ctx) redirect('/dashboard?error=unauthorized');
 
-  const events = await getEvents(ctx.visibleChapterIds);
+  const events = await getEvents(ctx.visibleCharterIds);
 
   const now = new Date();
   const upcomingEvents = events.filter((e) => new Date(e.start_date) >= now);

@@ -18,17 +18,17 @@ export default async function AdminCreateEventPage() {
 
   const supabase = createServerClient();
 
-  let chapterQuery = supabase
-    .from('rlc_chapters')
+  let charterQuery = supabase
+    .from('rlc_charters')
     .select('id, name')
     .eq('status', 'active')
     .order('name');
 
-  if (ctx.visibleChapterIds !== null && ctx.visibleChapterIds.length > 0) {
-    chapterQuery = chapterQuery.in('id', ctx.visibleChapterIds);
+  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
+    charterQuery = charterQuery.in('id', ctx.visibleCharterIds);
   }
 
-  const { data: chapters } = await chapterQuery;
+  const { data: charters } = await charterQuery;
 
   return (
     <div>
@@ -41,7 +41,7 @@ export default async function AdminCreateEventPage() {
 
       <EventDetailForm
         event={null}
-        chapters={(chapters || []) as { id: string; name: string }[]}
+        charters={(charters || []) as { id: string; name: string }[]}
       />
     </div>
   );

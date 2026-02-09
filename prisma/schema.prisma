@@ -51,7 +51,7 @@ enum PaymentStatus {
   cancelled
 }
 
-enum ChapterLevel {
+enum CharterLevel {
   national
   multi_state_region
   state
@@ -59,7 +59,7 @@ enum ChapterLevel {
   county
 }
 
-enum ChapterStatus {
+enum CharterStatus {
   active
   inactive
   forming
@@ -182,17 +182,17 @@ enum SplitSourceType {
 // ===========================================
 
 /// Organizational hierarchy (self-referential)
-model Chapter {
+model Charter {
   id               String        @id @default(uuid())
   name             String
   slug             String        @unique
-  chapterLevel     ChapterLevel  @map("chapter_level")
-  parentChapterId  String?       @map("parent_chapter_id")
-  parent           Chapter?      @relation("ChapterHierarchy", fields: [parentChapterId], references: [id])
-  children         Chapter[]     @relation("ChapterHierarchy")
+  charterLevel     CharterLevel  @map("charter_level")
+  parentCharterId  String?       @map("parent_charter_id")
+  parent           Charter?      @relation("CharterHierarchy", fields: [parentCharterId], references: [id])
+  children         Charter[]     @relation("CharterHierarchy")
   stateCode        String?       @map("state_code") @db.Char(2)
   regionName       String?       @map("region_name")
-  status           ChapterStatus @default(active)
+  status           CharterStatus @default(active)
   websiteUrl       String?       @map("website_url")
   contactEmail     String?       @map("contact_email")
   leadership       Json          @default("{}")
@@ -211,12 +211,12 @@ model Chapter {
   actionCampaigns    ActionCampaign[]
 
   // Dues sharing relations
-  stripeAccount        ChapterStripeAccount?
-  splitConfig          ChapterSplitConfig?
-  splitRulesAsRecipient ChapterSplitRule[]   @relation("SplitRuleRecipient")
+  stripeAccount        CharterStripeAccount?
+  splitConfig          CharterSplitConfig?
+  splitRulesAsRecipient CharterSplitRule[]   @relation("SplitRuleRecipient")
   splitLedgerEntries   SplitLedgerEntry[]    @relation("LedgerRecipient")
 
-  @@map("rlc_chapters")
+  @@map("rlc_charters")
 }
 
 /// Contacts (everyone in the database - synced with Clerk users)
@@ -241,9 +241,9 @@ model Contact {
   membershipExpiryDate DateTime?        @map("membership_expiry_date")
   membershipJoinDate   DateTime?        @map("membership_join_date")
 
-  // Chapter affiliation
-  primaryChapterId     String?          @map("primary_chapter_id")
-  primaryChapter       Chapter?         @relation(fields: [primaryChapterId], references: [id])
+  // Charter affiliation
+  primaryCharterId     String?          @map("primary_charter_id")
+  primaryCharter       Charter?         @relation(fields: [primaryCharterId], references: [id])
 
   // External IDs
   highlevelContactId   String?          @unique @map("highlevel_contact_id")
@@ -294,7 +294,7 @@ model Contact {
   campaignParticipations  CampaignParticipation[]
 
   // Dues sharing relations
-  splitConfigsUpdated    ChapterSplitConfig[] @relation("SplitConfigUpdater")
+  splitConfigsUpdated    CharterSplitConfig[] @relation("SplitConfigUpdater")
 
   @@map("rlc_members")
 }
@@ -330,14 +330,14 @@ model ContactRole {
   contactId   String    @map("contact_id")
   contact     Contact   @relation("ContactRoles", fields: [contactId], references: [id], onDelete: Cascade)
   role        UserRole
-  chapterId   String?   @map("chapter_id")
-  chapter     Chapter?  @relation(fields: [chapterId], references: [id])
+  charterId   String?   @map("charter_id")
+  charter     Charter?  @relation(fields: [charterId], references: [id])
   grantedById String?   @map("granted_by")
   grantedBy   Contact?  @relation("GrantedRoles", fields: [grantedById], references: [id])
   grantedAt   DateTime  @default(now()) @map("granted_at")
   expiresAt   DateTime? @map("expires_at")
 
-  @@unique([contactId, role, chapterId])
+  @@unique([contactId, role, charterId])
   @@map("rlc_member_roles")
 }
 
@@ -357,8 +357,8 @@ model Contribution {
   paymentMethod         String?          @map("payment_method")
 
   // Attribution
-  chapterId             String?          @map("chapter_id")
-  chapter               Chapter?         @relation(fields: [chapterId], references: [id])
+  charterId             String?          @map("charter_id")
+  charter               Charter?         @relation(fields: [charterId], references: [id])
   campaignId            String?          @map("campaign_id")
 
   // For recurring
@@ -409,8 +409,8 @@ model Event {
   registrationDeadline DateTime? @map("registration_deadline")
 
   // Ownership
-  chapterId            String?   @map("chapter_id")
-  chapter              Chapter?  @relation(fields: [chapterId], references: [id])
+  charterId            String?   @map("charter_id")
+  charter              Charter?  @relation(fields: [charterId], references: [id])
   organizerId          String?   @map("organizer_id")
   organizer             Contact?   @relation(fields: [organizerId], references: [id])
 
@@ -461,8 +461,8 @@ model Post {
 
   authorId         String?   @map("author_id")
   author           Contact?   @relation(fields: [authorId], references: [id])
-  chapterId        String?   @map("chapter_id")
-  chapter          Chapter?  @relation(fields: [chapterId], references: [id])
+  charterId        String?   @map("charter_id")
+  charter          Charter?  @relation(fields: [charterId], references: [id])
 
   status           String    @default("draft")
   publishedAt      DateTime? @map("published_at")
@@ -524,8 +524,8 @@ model Survey {
   electionType  String?      @map("election_type")
   electionDate  String?      @map("election_date")
   state         String?
-  chapterId     String?      @map("chapter_id")
-  chapter       Chapter?     @relation(fields: [chapterId], references: [id])
+  charterId     String?      @map("charter_id")
+  charter       Charter?     @relation(fields: [charterId], references: [id])
   createdBy     String?      @map("created_by")
   creator          Contact?      @relation("SurveyCreator", fields: [createdBy], references: [id])
   createdAt     DateTime     @default(now()) @map("created_at")
@@ -622,8 +622,8 @@ model ScorecardSession {
   slug          String                  @unique
   jurisdiction  Jurisdiction            @default(federal)
   stateCode     String?                 @map("state_code")
-  chapterId     String?                 @map("chapter_id")
-  chapter       Chapter?                @relation(fields: [chapterId], references: [id])
+  charterId     String?                 @map("charter_id")
+  charter       Charter?                @relation(fields: [charterId], references: [id])
   sessionYear   Int                     @map("session_year")
   status        ScorecardSessionStatus  @default(draft)
   createdBy     String?                 @map("created_by")
@@ -686,8 +686,8 @@ model ActionCampaign {
   description     String?             @db.Text
   billId          String?             @map("bill_id")
   bill            ScorecardBill?      @relation(fields: [billId], references: [id])
-  chapterId       String?             @map("chapter_id")
-  chapter         Chapter?            @relation(fields: [chapterId], references: [id])
+  charterId       String?             @map("charter_id")
+  charter         Charter?            @relation(fields: [charterId], references: [id])
   targetChamber   LegislativeChamber? @map("target_chamber")
   targetStateCode String?             @map("target_state_code")
   messageTemplate String?             @map("message_template") @db.Text
@@ -725,11 +725,11 @@ model CampaignParticipation {
 // Dues Sharing & Revenue Split
 // ===========================================
 
-/// Stripe Connect Express account for a chapter (1:1)
-model ChapterStripeAccount {
+/// Stripe Connect Express account for a charter (1:1)
+model CharterStripeAccount {
   id                    String              @id @default(uuid())
-  chapterId             String              @unique @map("chapter_id")
-  chapter               Chapter             @relation(fields: [chapterId], references: [id])
+  charterId             String              @unique @map("charter_id")
+  charter               Charter             @relation(fields: [charterId], references: [id])
   stripeAccountId       String              @unique @map("stripe_account_id")
   status                StripeConnectStatus @default(not_started)
   chargesEnabled        Boolean             @default(false) @map("charges_enabled")
@@ -738,14 +738,14 @@ model ChapterStripeAccount {
   createdAt             DateTime            @default(now()) @map("created_at")
   updatedAt             DateTime            @updatedAt @map("updated_at")
 
-  @@map("rlc_chapter_stripe_accounts")
+  @@map("rlc_charter_stripe_accounts")
 }
 
-/// Disbursement preferences for a chapter (1:1)
-model ChapterSplitConfig {
+/// Disbursement preferences for a charter (1:1)
+model CharterSplitConfig {
   id                 String             @id @default(uuid())
-  chapterId          String             @unique @map("chapter_id")
-  chapter            Chapter            @relation(fields: [chapterId], references: [id])
+  charterId          String             @unique @map("charter_id")
+  charter            Charter            @relation(fields: [charterId], references: [id])
   disbursementModel  DisbursementModel  @default(national_managed) @map("disbursement_model")
   isActive           Boolean            @default(true) @map("is_active")
   updatedById        String?            @map("updated_by_id")
@@ -753,26 +753,26 @@ model ChapterSplitConfig {
   createdAt          DateTime           @default(now()) @map("created_at")
   updatedAt          DateTime           @updatedAt @map("updated_at")
 
-  rules              ChapterSplitRule[]
+  rules              CharterSplitRule[]
 
-  @@map("rlc_chapter_split_configs")
+  @@map("rlc_charter_split_configs")
 }
 
-/// Individual percentage allocation to a sub-chapter
-model ChapterSplitRule {
+/// Individual percentage allocation to a sub-charter
+model CharterSplitRule {
   id                  String             @id @default(uuid())
   configId            String             @map("config_id")
-  config              ChapterSplitConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
-  recipientChapterId  String             @map("recipient_chapter_id")
-  recipientChapter    Chapter            @relation("SplitRuleRecipient", fields: [recipientChapterId], references: [id])
+  config              CharterSplitConfig @relation(fields: [configId], references: [id], onDelete: Cascade)
+  recipientCharterId  String             @map("recipient_charter_id")
+  recipientCharter    Charter            @relation("SplitRuleRecipient", fields: [recipientCharterId], references: [id])
   percentage          Decimal            @db.Decimal(5, 2)
   sortOrder           Int                @default(0) @map("sort_order")
   isActive            Boolean            @default(true) @map("is_active")
   createdAt           DateTime           @default(now()) @map("created_at")
   updatedAt           DateTime           @updatedAt @map("updated_at")
 
-  @@unique([configId, recipientChapterId])
-  @@map("rlc_chapter_split_rules")
+  @@unique([configId, recipientCharterId])
+  @@map("rlc_charter_split_rules")
 }
 
 /// Immutable audit trail: one row per recipient per payment
@@ -781,8 +781,8 @@ model SplitLedgerEntry {
   contributionId         String            @map("contribution_id")
   contribution           Contribution      @relation(fields: [contributionId], references: [id])
   sourceType             SplitSourceType   @map("source_type")
-  recipientChapterId     String            @map("recipient_chapter_id")
-  recipientChapter       Chapter           @relation("LedgerRecipient", fields: [recipientChapterId], references: [id])
+  recipientCharterId     String            @map("recipient_charter_id")
+  recipientCharter       Charter           @relation("LedgerRecipient", fields: [recipientCharterId], references: [id])
   amount                 Decimal           @db.Decimal(10, 2)
   currency               String            @default("USD")
   status                 SplitLedgerStatus @default(pending)
@@ -795,7 +795,7 @@ model SplitLedgerEntry {
   splitRuleSnapshot      Json              @default("{}") @map("split_rule_snapshot")
   createdAt              DateTime          @default(now()) @map("created_at")
 
-  @@unique([contributionId, recipientChapterId])
-  @@index([recipientChapterId, status, createdAt])
+  @@unique([contributionId, recipientCharterId])
+  @@index([recipientCharterId, status, createdAt])
   @@map("rlc_split_ledger_entries")
 }

@@ -9,7 +9,7 @@ const donateSchema = z.object({
   amount: z.number().int().min(100).max(10000000), // $1 to $100,000 in cents
   isRecurring: z.boolean().default(false),
   email: z.string().email(),
-  chapterId: z.string().uuid().optional(),
+  charterId: z.string().uuid().optional(),
   campaignId: z.string().optional(),
 });
 
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { amount, isRecurring, email, chapterId, campaignId } = parseResult.data;
+    const { amount, isRecurring, email, charterId, campaignId } = parseResult.data;
     const origin = new URL(request.url).origin;
 
     // Check if user is authenticated
@@ -49,7 +49,7 @@ export async function POST(request: Request) {
       isRecurring,
       donorEmail: email,
       memberId,
-      chapterId,
+      charterId,
       campaignId,
       successUrl: `${origin}/donate/success?session_id={CHECKOUT_SESSION_ID}`,
       cancelUrl: `${origin}/donate?cancelled=true`,

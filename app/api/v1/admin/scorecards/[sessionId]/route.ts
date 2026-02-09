@@ -55,7 +55,7 @@ export async function PATCH(
   if (input.status !== undefined) updatePayload.status = input.status;
   if (input.jurisdiction !== undefined) updatePayload.jurisdiction = input.jurisdiction;
   if (input.stateCode !== undefined) updatePayload.state_code = input.stateCode || null;
-  if (input.chapterId !== undefined) updatePayload.chapter_id = input.chapterId || null;
+  if (input.charterId !== undefined) updatePayload.charter_id = input.charterId || null;
   if (input.sessionYear !== undefined) updatePayload.session_year = input.sessionYear;
 
   const { data, error } = await supabase

@@ -35,7 +35,7 @@ async function trySyncRoleToClerk(
   try {
     const { data: roles } = await supabase
       .from('rlc_member_roles')
-      .select('id, role, chapter_id, granted_by, granted_at, expires_at')
+      .select('id, role, charter_id, granted_by, granted_at, expires_at')
       .eq('member_id', memberId);
 
     const highest = getHighestRole((roles || []) as AdminRole[]);
@@ -81,7 +81,7 @@ export async function POST(
     );
   }
 
-  const { role, chapterId } = parseResult.data;
+  const { role, charterId } = parseResult.data;
 
   // Prevent assigning roles equal to or above the caller's own level
   if (getRoleWeight(role) >= getRoleWeight(ctx.highestRole)) {
@@ -104,7 +104,7 @@ export async function POST(
     .insert({
       member_id: memberId,
       role,
-      chapter_id: chapterId,
+      charter_id: charterId,
       granted_by: ctx.member.id,
     } as never)
     .select()

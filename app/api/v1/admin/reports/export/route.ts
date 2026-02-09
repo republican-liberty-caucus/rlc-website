@@ -27,7 +27,7 @@ export async function GET(request: Request) {
     .select(`
       id, amount, contribution_type, payment_status, created_at, is_recurring,
       member:rlc_members(first_name, last_name, email),
-      chapter:rlc_chapters(name)
+      charter:rlc_charters(name)
     `)
     .eq('payment_status', 'completed')
     .order('created_at', { ascending: false })
@@ -39,8 +39,8 @@ export async function GET(request: Request) {
   if (endParam) {
     query = query.lte('created_at', new Date(endParam).toISOString());
   }
-  if (ctx.visibleChapterIds !== null && ctx.visibleChapterIds.length > 0) {
-    query = query.in('chapter_id', ctx.visibleChapterIds);
+  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
+    query = query.in('charter_id', ctx.visibleCharterIds);
   }
 
   const { data, error } = await query;
@@ -58,13 +58,13 @@ export async function GET(request: Request) {
     created_at: string;
     is_recurring: boolean;
     member: { first_name: string; last_name: string; email: string } | null;
-    chapter: { name: string } | null;
+    charter: { name: string } | null;
   };
 
   const rows = (data || []) as ContributionRow[];
 
   // Build CSV
-  const headers = ['Date', 'Name', 'Email', 'Type', 'Amount', 'Recurring', 'Chapter', 'Status'];
+  const headers = ['Date', 'Name', 'Email', 'Type', 'Amount', 'Recurring', 'Charter', 'Status'];
   const csvLines = [headers.join(',')];
 
   for (const row of rows) {
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
       row.contribution_type,
       Number(row.amount).toFixed(2),
       row.is_recurring ? 'Yes' : 'No',
-      row.chapter?.name || 'National',
+      row.charter?.name || 'National',
       row.payment_status,
     ].join(',');
     csvLines.push(line);

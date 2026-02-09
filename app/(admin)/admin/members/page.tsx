@@ -37,12 +37,12 @@ interface ContactRow {
   membership_expiry_date: string | null;
   membership_join_date: string | null;
   created_at: string;
-  primary_chapter: { name: string } | null;
+  primary_charter: { name: string } | null;
 }
 
 async function getMembers(
   searchParams: SearchParams,
-  visibleChapterIds: string[] | null
+  visibleCharterIds: string[] | null
 ) {
   const supabase = createServerClient();
   const page = parseInt(searchParams.page || '1', 10);
@@ -55,12 +55,12 @@ async function getMembers(
       id, email, first_name, last_name, phone,
       city, state, membership_tier, membership_status,
       membership_expiry_date, membership_join_date, created_at,
-      primary_chapter:rlc_chapters(name)
+      primary_charter:rlc_charters(name)
     `, { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  query = applyMemberFilters(query, visibleChapterIds, searchParams);
+  query = applyMemberFilters(query, visibleCharterIds, searchParams);
 
   const { data, count, error } = await query;
   if (error) {
@@ -106,7 +106,7 @@ export default async function AdminMembersPage({
   const params = await searchParams;
   const { members, total, page, totalPages } = await getMembers(
     params,
-    ctx.visibleChapterIds
+    ctx.visibleCharterIds
   );
 
   return (
@@ -136,7 +136,7 @@ export default async function AdminMembersPage({
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left text-sm font-medium">Name</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Email</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Chapter</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Charter</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Tier</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Joined</th>
@@ -158,7 +158,7 @@ export default async function AdminMembersPage({
                   </td>
                   <td className="px-4 py-3 text-sm">{member.email}</td>
                   <td className="px-4 py-3 text-sm">
-                    {member.primary_chapter?.name || '-'}
+                    {member.primary_charter?.name || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm capitalize">{member.membership_tier}</td>
                   <td className="px-4 py-3">

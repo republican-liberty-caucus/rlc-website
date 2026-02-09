@@ -1,7 +1,7 @@
 import { z } from 'zod';
 
 export const splitRuleSchema = z.object({
-  recipientChapterId: z.string().uuid('Invalid chapter ID'),
+  recipientCharterId: z.string().uuid('Invalid charter ID'),
   percentage: z.number().min(0.01, 'Percentage must be > 0').max(100, 'Percentage must be <= 100'),
   sortOrder: z.number().int().min(0).default(0),
   isActive: z.boolean().default(true),

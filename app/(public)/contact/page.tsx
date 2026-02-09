@@ -7,7 +7,7 @@ import { Mail, Phone, MapPin } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Contact Us',
-  description: 'Get in touch with the Republican Liberty Caucus. Find contact information for the national office and your state chapter.',
+  description: 'Get in touch with the Republican Liberty Caucus. Find contact information for the national office and your state charter.',
 };
 
 export default function ContactPage() {
@@ -69,7 +69,7 @@ export default function ContactPage() {
             <div className="mt-12 rounded-lg border bg-card p-8 text-center">
               <h2 className="font-heading text-2xl font-bold">Want to Get Involved?</h2>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-                Whether you want to volunteer, start a chapter, or simply learn more about the RLC,
+                Whether you want to volunteer, start a charter, or simply learn more about the RLC,
                 we&apos;re here to help you take the next step for liberty.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
@@ -77,7 +77,7 @@ export default function ContactPage() {
                   <Link href="/join">Become a Member</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/chapters">Find Your Chapter</Link>
+                  <Link href="/charters">Find Your Charter</Link>
                 </Button>
               </div>
             </div>

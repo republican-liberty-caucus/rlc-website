@@ -6,7 +6,7 @@ export const postCreateSchema = z.object({
   content: z.string().optional().nullable(),
   excerpt: z.string().max(500).optional().nullable(),
   featuredImageUrl: z.string().url().optional().nullable(),
-  chapterId: z.string().uuid().optional().nullable(),
+  charterId: z.string().uuid().optional().nullable(),
   status: z.enum(['draft', 'published']).default('draft'),
   categories: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),

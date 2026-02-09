@@ -13,7 +13,7 @@ interface PositionRow {
   started_at: string;
   ended_at: string | null;
   is_active: boolean;
-  chapter: { id: string; name: string } | null;
+  charter: { id: string; name: string } | null;
   appointed_by: { first_name: string; last_name: string } | null;
 }
 
@@ -45,7 +45,7 @@ export function MemberPositionsCard({ positions }: MemberPositionsCardProps) {
                     {p.committee_name && ` — ${p.committee_name}`}
                   </span>
                   <p className="text-xs text-muted-foreground">
-                    {p.chapter?.name || 'National'} · Since {formatDate(p.started_at)}
+                    {p.charter?.name || 'National'} · Since {formatDate(p.started_at)}
                   </p>
                 </div>
                 <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs text-green-800">Active</span>
@@ -61,7 +61,7 @@ export function MemberPositionsCard({ positions }: MemberPositionsCardProps) {
               {past.slice(0, 5).map((p) => (
                 <li key={p.id} className="flex items-center justify-between text-xs text-muted-foreground">
                   <span>
-                    {OFFICER_TITLE_LABELS[p.title]} — {p.chapter?.name || 'National'}
+                    {OFFICER_TITLE_LABELS[p.title]} — {p.charter?.name || 'National'}
                   </span>
                   <span>{p.ended_at ? formatDate(p.ended_at) : ''}</span>
                 </li>

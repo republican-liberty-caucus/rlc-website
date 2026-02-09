@@ -261,7 +261,7 @@ async function handleCheckoutComplete(
     throw updateError;
   }
 
-  // Create contribution record — attribute to member's primary chapter for dues splitting
+  // Create contribution record — attribute to member's primary charter for dues splitting
   const { data: contributionRow, error: insertError } = await supabase
     .from('rlc_contributions')
     .insert({
@@ -272,7 +272,7 @@ async function handleCheckoutComplete(
       stripe_payment_intent_id: paymentIntentId,
       payment_status: 'completed',
       is_recurring: session.mode === 'subscription',
-      chapter_id: member.primary_chapter_id || null,
+      charter_id: member.primary_charter_id || null,
     } as never)
     .select('id')
     .single();
@@ -399,7 +399,7 @@ async function handleInvoicePaid(
     }
   }
 
-  // Attribute renewal to member's current chapter (at time of renewal)
+  // Attribute renewal to member's current charter (at time of renewal)
   const { data: contributionRow, error: insertError } = await supabase
     .from('rlc_contributions')
     .insert({
@@ -410,7 +410,7 @@ async function handleInvoicePaid(
       stripe_payment_intent_id: paymentIntentId,
       payment_status: 'completed',
       is_recurring: true,
-      chapter_id: member.primary_chapter_id || null,
+      charter_id: member.primary_charter_id || null,
     } as never)
     .select('id')
     .single();
@@ -467,7 +467,7 @@ async function handleDonationCheckout(
 ) {
   const memberEmail = session.customer_email;
   const memberId = session.metadata?.member_id || null;
-  const chapterId = session.metadata?.chapter_id || null;
+  const charterId = session.metadata?.charter_id || null;
   const campaignId = session.metadata?.campaign_id || null;
   const paymentIntentId = (session.payment_intent as string | null) || null;
 
@@ -518,7 +518,7 @@ async function handleDonationCheckout(
     currency: session.currency?.toUpperCase() || 'USD',
     stripe_payment_intent_id: paymentIntentId,
     payment_status: 'completed',
-    chapter_id: chapterId || null,
+    charter_id: charterId || null,
     campaign_id: campaignId || null,
     is_recurring: session.mode === 'subscription',
     source: 'website',
@@ -543,20 +543,20 @@ async function handleAccountUpdated(
 ) {
   const stripeAccountId = account.id;
 
-  // Find the chapter stripe account
-  const { data: chapterAccount, error: lookupError } = await supabase
-    .from('rlc_chapter_stripe_accounts')
-    .select('id, chapter_id, status')
+  // Find the charter stripe account
+  const { data: charterAccount, error: lookupError } = await supabase
+    .from('rlc_charter_stripe_accounts')
+    .select('id, charter_id, status')
     .eq('stripe_account_id', stripeAccountId)
     .single();
 
-  if (lookupError || !chapterAccount) {
+  if (lookupError || !charterAccount) {
     // Not one of our connected accounts — ignore
     logger.info(`account.updated for unknown account ${stripeAccountId}, ignoring`);
     return;
   }
 
-  const row = chapterAccount as { id: string; chapter_id: string; status: string };
+  const row = charterAccount as { id: string; charter_id: string; status: string };
   const chargesEnabled = account.charges_enabled ?? false;
   const payoutsEnabled = account.payouts_enabled ?? false;
 
@@ -580,18 +580,18 @@ async function handleAccountUpdated(
   }
 
   const { error: updateError } = await supabase
-    .from('rlc_chapter_stripe_accounts')
+    .from('rlc_charter_stripe_accounts')
     .update(updatePayload as never)
     .eq('id', row.id);
 
   if (updateError) {
-    logger.error(`Failed to update ChapterStripeAccount for ${stripeAccountId}:`, updateError);
+    logger.error(`Failed to update CharterStripeAccount for ${stripeAccountId}:`, updateError);
     throw updateError;
   }
 
   // If newly active, drain pending ledger entries
   if (newStatus === 'active' && row.status !== 'active') {
-    await drainPendingLedgerEntries(supabase, row.chapter_id, stripeAccountId);
+    await drainPendingLedgerEntries(supabase, row.charter_id, stripeAccountId);
   }
 
   logger.info(
@@ -599,10 +599,10 @@ async function handleAccountUpdated(
   );
 }
 
-/** Transfer all pending ledger entries for a chapter that just became active */
+/** Transfer all pending ledger entries for a charter that just became active */
 async function drainPendingLedgerEntries(
   supabase: ReturnType<typeof createServerClient>,
-  chapterId: string,
+  charterId: string,
   stripeAccountId: string
 ) {
   // Import transfer function lazily to avoid circular deps
@@ -611,12 +611,12 @@ async function drainPendingLedgerEntries(
   const { data: pendingEntries, error } = await supabase
     .from('rlc_split_ledger_entries')
     .select('id, amount, stripe_transfer_group_id')
-    .eq('recipient_chapter_id', chapterId)
+    .eq('recipient_charter_id', charterId)
     .eq('status', 'pending');
 
   if (error || !pendingEntries || pendingEntries.length === 0) return;
 
-  logger.info(`Draining ${pendingEntries.length} pending ledger entries for chapter ${chapterId}`);
+  logger.info(`Draining ${pendingEntries.length} pending ledger entries for charter ${charterId}`);
 
   for (const entry of pendingEntries) {
     const row = entry as { id: string; amount: number; stripe_transfer_group_id: string | null };
@@ -669,7 +669,7 @@ async function handleChargeRefunded(
   // Get ledger entries for this contribution (excluding existing reversals)
   const { data: ledgerEntries, error: ledgerError } = await supabase
     .from('rlc_split_ledger_entries')
-    .select('id, amount, status, stripe_transfer_id, recipient_chapter_id, reversal_of_id')
+    .select('id, amount, status, stripe_transfer_id, recipient_charter_id, reversal_of_id')
     .eq('contribution_id', contribRow.id)
     .is('reversal_of_id', null);
 
@@ -686,7 +686,7 @@ async function handleChargeRefunded(
       amount: number;
       status: string;
       stripe_transfer_id: string | null;
-      recipient_chapter_id: string;
+      recipient_charter_id: string;
       reversal_of_id: string | null;
     };
 
@@ -718,7 +718,7 @@ async function handleChargeRefunded(
     await supabase.from('rlc_split_ledger_entries').insert({
       contribution_id: contribRow.id,
       source_type: 'membership',
-      recipient_chapter_id: row.recipient_chapter_id,
+      recipient_charter_id: row.recipient_charter_id,
       amount: -(reversalAmountCents / 100),
       currency: 'USD',
       status: 'reversed',

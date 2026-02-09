@@ -56,7 +56,7 @@ const primaryNavItems: NavItem[] = [
       { href: '/endorsements/elected-officials', label: 'Elected Officials', description: 'RLC-endorsed officeholders', icon: UserCheck },
     ],
   },
-  { href: '/chapters', label: 'Chapters' },
+  { href: '/charters', label: 'Charters' },
   { href: '/scorecards', label: 'Scorecards' },
   { href: '/action-center', label: 'Action Center' },
 ];

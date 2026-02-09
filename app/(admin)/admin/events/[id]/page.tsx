@@ -34,19 +34,19 @@ export default async function AdminEventDetailPage({ params }: EventDetailPagePr
   if (eventError || !eventData) notFound();
   const event = eventData as Event;
 
-  let chaptersQuery = supabase.from('rlc_chapters').select('id, name').eq('status', 'active').order('name');
-  if (ctx.visibleChapterIds !== null && ctx.visibleChapterIds.length > 0) {
-    chaptersQuery = chaptersQuery.in('id', ctx.visibleChapterIds);
+  let chartersQuery = supabase.from('rlc_charters').select('id, name').eq('status', 'active').order('name');
+  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
+    chartersQuery = chartersQuery.in('id', ctx.visibleCharterIds);
   }
 
-  const [chaptersResult, regCountResult] = await Promise.all([
-    chaptersQuery,
+  const [chartersResult, regCountResult] = await Promise.all([
+    chartersQuery,
     supabase.from('rlc_event_registrations').select('*', { count: 'exact', head: true }).eq('event_id', id),
   ]);
 
-  // Check chapter visibility
-  if (event.chapter_id && ctx.visibleChapterIds !== null) {
-    if (!ctx.visibleChapterIds.includes(event.chapter_id)) {
+  // Check charter visibility
+  if (event.charter_id && ctx.visibleCharterIds !== null) {
+    if (!ctx.visibleCharterIds.includes(event.charter_id)) {
       redirect('/admin/events?error=forbidden');
     }
   }
@@ -75,7 +75,7 @@ export default async function AdminEventDetailPage({ params }: EventDetailPagePr
 
       <EventDetailForm
         event={event}
-        chapters={(chaptersResult.data || []) as { id: string; name: string }[]}
+        charters={(chartersResult.data || []) as { id: string; name: string }[]}
       />
     </div>
   );

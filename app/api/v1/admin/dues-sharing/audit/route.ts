@@ -18,11 +18,11 @@ export async function GET(request: Request) {
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = Math.min(parseInt(searchParams.get('limit') || '50', 10), 200);
   const offset = (page - 1) * limit;
-  const chapterId = searchParams.get('chapterId');
+  const charterId = searchParams.get('charterId');
   const status = searchParams.get('status');
   const contributionId = searchParams.get('contributionId');
 
-  if (chapterId && ctx.visibleChapterIds !== null && !ctx.visibleChapterIds.includes(chapterId)) {
+  if (charterId && ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -35,10 +35,10 @@ export async function GET(request: Request) {
     .range(offset, offset + limit - 1);
 
   // Filters
-  if (chapterId) {
-    query = query.eq('recipient_chapter_id', chapterId);
-  } else if (ctx.visibleChapterIds !== null) {
-    query = query.in('recipient_chapter_id', ctx.visibleChapterIds);
+  if (charterId) {
+    query = query.eq('recipient_charter_id', charterId);
+  } else if (ctx.visibleCharterIds !== null) {
+    query = query.in('recipient_charter_id', ctx.visibleCharterIds);
   }
 
   if (status) {
@@ -55,23 +55,23 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Failed to fetch audit trail' }, { status: 500 });
   }
 
-  // Enrich with chapter names
+  // Enrich with charter names
   const rows = (entries || []) as Record<string, unknown>[];
-  const chapterIds = [...new Set(rows.map((r) => r.recipient_chapter_id as string))];
+  const charterIds = [...new Set(rows.map((r) => r.recipient_charter_id as string))];
 
-  let chapterNameMap = new Map<string, string>();
-  if (chapterIds.length > 0) {
-    const { data: chapters } = await supabase
-      .from('rlc_chapters')
+  let charterNameMap = new Map<string, string>();
+  if (charterIds.length > 0) {
+    const { data: charters } = await supabase
+      .from('rlc_charters')
       .select('id, name')
-      .in('id', chapterIds);
+      .in('id', charterIds);
 
-    chapterNameMap = new Map((chapters || []).map((c: { id: string; name: string }) => [c.id, c.name]));
+    charterNameMap = new Map((charters || []).map((c: { id: string; name: string }) => [c.id, c.name]));
   }
 
   const enriched = rows.map((r) => ({
     ...r,
-    chapter_name: chapterNameMap.get(r.recipient_chapter_id as string) || 'Unknown',
+    charter_name: charterNameMap.get(r.recipient_charter_id as string) || 'Unknown',
   }));
 
   return NextResponse.json({

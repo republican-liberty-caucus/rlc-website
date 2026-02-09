@@ -11,11 +11,11 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Shield, CreditCard as CreditCardIcon, Users, Calendar } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import type { Contact, Chapter, Contribution, OfficerTitle } from '@/types';
+import type { Contact, Charter, Contribution, OfficerTitle } from '@/types';
 import type { AdminRole } from '@/lib/admin/permissions';
 
 interface ContactRoleRow extends AdminRole {
-  chapter: { name: string } | null;
+  charter: { name: string } | null;
   granter: { first_name: string; last_name: string } | null;
 }
 
@@ -57,16 +57,16 @@ export default async function AdminMemberDetailPage({
   if (memberError || !memberData) notFound();
   const member = memberData as Contact;
 
-  // Check chapter visibility
-  if (!canViewMember(ctx, member.primary_chapter_id)) {
+  // Check charter visibility
+  if (!canViewMember(ctx, member.primary_charter_id)) {
     redirect('/admin/members?error=forbidden');
   }
 
-  // Fetch chapters, contributions, memberships, roles, household, and positions in parallel
-  const [chaptersRes, contributionsRes, membershipsRes, rolesRes, householdRes, positionsRes] = await Promise.all([
-    (ctx.visibleChapterIds !== null
-      ? supabase.from('rlc_chapters').select('id, name').in('id', ctx.visibleChapterIds).order('name')
-      : supabase.from('rlc_chapters').select('id, name').order('name')
+  // Fetch charters, contributions, memberships, roles, household, and positions in parallel
+  const [chartersRes, contributionsRes, membershipsRes, rolesRes, householdRes, positionsRes] = await Promise.all([
+    (ctx.visibleCharterIds !== null
+      ? supabase.from('rlc_charters').select('id, name').in('id', ctx.visibleCharterIds).order('name')
+      : supabase.from('rlc_charters').select('id, name').order('name')
     ),
     supabase
       .from('rlc_contributions')
@@ -82,8 +82,8 @@ export default async function AdminMemberDetailPage({
     supabase
       .from('rlc_member_roles')
       .select(`
-        id, role, chapter_id, granted_by, granted_at, expires_at,
-        chapter:rlc_chapters(name),
+        id, role, charter_id, granted_by, granted_at, expires_at,
+        charter:rlc_charters(name),
         granter:rlc_members!rlc_member_roles_granted_by_fkey(first_name, last_name)
       `)
       .eq('member_id', id),
@@ -99,7 +99,7 @@ export default async function AdminMemberDetailPage({
       .from('rlc_officer_positions')
       .select(`
         id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
-        chapter:rlc_chapters(id, name),
+        charter:rlc_charters(id, name),
         appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
       `)
       .eq('member_id', id)
@@ -107,13 +107,13 @@ export default async function AdminMemberDetailPage({
       .order('started_at', { ascending: false }),
   ]);
 
-  if (chaptersRes.error) logger.error('Error fetching chapters:', chaptersRes.error);
+  if (chartersRes.error) logger.error('Error fetching charters:', chartersRes.error);
   if (contributionsRes.error) logger.error('Error fetching contributions:', contributionsRes.error);
   if (membershipsRes.error) logger.error('Error fetching memberships:', membershipsRes.error);
   if (rolesRes.error) logger.error('Error fetching member roles:', rolesRes.error);
   if (positionsRes.error) logger.error('Error fetching member positions:', positionsRes.error);
 
-  const chapters = (chaptersRes.data || []) as Pick<Chapter, 'id' | 'name'>[];
+  const charters = (chartersRes.data || []) as Pick<Charter, 'id' | 'name'>[];
   const contributions = (contributionsRes.data || []) as Contribution[];
   const memberships = (membershipsRes.data || []) as {
     id: string;
@@ -139,7 +139,7 @@ export default async function AdminMemberDetailPage({
     started_at: string;
     ended_at: string | null;
     is_active: boolean;
-    chapter: { id: string; name: string } | null;
+    charter: { id: string; name: string } | null;
     appointed_by: { first_name: string; last_name: string } | null;
   }[];
 
@@ -167,7 +167,7 @@ export default async function AdminMemberDetailPage({
       <div className="grid gap-8 lg:grid-cols-3">
         {/* Left Column: Edit Form (2/3 width) */}
         <div className="lg:col-span-2">
-          <MemberDetailForm member={member} chapters={chapters} isNational={ctx.isNational} />
+          <MemberDetailForm member={member} charters={charters} isNational={ctx.isNational} />
         </div>
 
         {/* Right Column: Info Cards (1/3 width) */}
@@ -318,7 +318,7 @@ export default async function AdminMemberDetailPage({
             <MemberRolesCard
               memberId={member.id}
               roles={memberRoles}
-              chapters={chapters}
+              charters={charters}
             />
           ) : (
             memberRoles.length > 0 && (
@@ -332,7 +332,7 @@ export default async function AdminMemberDetailPage({
                     {memberRoles.map((r) => (
                       <li key={r.id} className="flex items-center justify-between text-sm">
                         <span className="capitalize">{r.role.replace(/_/g, ' ')}</span>
-                        <span className="text-muted-foreground">{r.chapter?.name || 'National'}</span>
+                        <span className="text-muted-foreground">{r.charter?.name || 'National'}</span>
                       </li>
                     ))}
                   </ul>

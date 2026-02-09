@@ -11,7 +11,7 @@ import {
 // Self-hosted to avoid external CDN dependency
 const GEO_URL = '/data/us-states-10m.json';
 
-export interface ChapterMapData {
+export interface CharterMapData {
   slug: string;
   name: string;
   state_code: string;
@@ -21,7 +21,7 @@ export interface ChapterMapData {
 }
 
 interface USStateMapProps {
-  chapters: ChapterMapData[];
+  charters: CharterMapData[];
 }
 
 interface TooltipState {
@@ -29,7 +29,7 @@ interface TooltipState {
   x: number;
   y: number;
   stateName: string;
-  chapter: ChapterMapData | null;
+  charter: CharterMapData | null;
 }
 
 // FIPS code to state abbreviation mapping
@@ -53,32 +53,32 @@ const STATUS_COLORS = {
   none: { default: '#d1d5db', hover: '#9ca3af' },
 } as const;
 
-function getLeaderName(chapter: ChapterMapData | null): string | null {
-  if (!chapter?.leadership) return null;
-  const l = chapter.leadership;
+function getLeaderName(charter: CharterMapData | null): string | null {
+  if (!charter?.leadership) return null;
+  const l = charter.leadership;
   return l.chair || l.chairman || l.president || l.coordinator || Object.values(l)[0] || null;
 }
 
-function USStateMapInner({ chapters }: USStateMapProps) {
+function USStateMapInner({ charters }: USStateMapProps) {
   const router = useRouter();
   const [tooltip, setTooltip] = useState<TooltipState>({
-    visible: false, x: 0, y: 0, stateName: '', chapter: null,
+    visible: false, x: 0, y: 0, stateName: '', charter: null,
   });
   const lastHoveredState = useRef<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const chaptersByState = useMemo(
-    () => new Map(chapters.map((ch) => [ch.state_code, ch])),
-    [chapters]
+  const chartersByState = useMemo(
+    () => new Map(charters.map((ch) => [ch.state_code, ch])),
+    [charters]
   );
 
   const getStatus = useCallback(
     (stateCode: string): keyof typeof STATUS_COLORS => {
-      const ch = chaptersByState.get(stateCode);
+      const ch = chartersByState.get(stateCode);
       if (!ch) return 'none';
       return ch.status === 'active' ? 'active' : ch.status === 'forming' ? 'forming' : 'none';
     },
-    [chaptersByState]
+    [chartersByState]
   );
 
   const handleMouseMove = useCallback(
@@ -103,10 +103,10 @@ function USStateMapInner({ chapters }: USStateMapProps) {
         x: clampedX,
         y: flipped ? rawY + 24 : rawY,
         stateName,
-        chapter: chaptersByState.get(stateCode) || null,
+        charter: chartersByState.get(stateCode) || null,
       });
     },
-    [chaptersByState]
+    [chartersByState]
   );
 
   const handleMouseLeave = useCallback(() => {
@@ -116,14 +116,14 @@ function USStateMapInner({ chapters }: USStateMapProps) {
 
   const handleClick = useCallback(
     (stateCode: string) => {
-      const ch = chaptersByState.get(stateCode);
+      const ch = chartersByState.get(stateCode);
       if (ch) {
-        router.push(`/chapters/${ch.slug}`);
+        router.push(`/charters/${ch.slug}`);
       } else {
         router.push('/contact');
       }
     },
-    [chaptersByState, router]
+    [chartersByState, router]
   );
 
   return (
@@ -145,7 +145,7 @@ function USStateMapInner({ chapters }: USStateMapProps) {
 
               const status = getStatus(stateCode);
               const colors = STATUS_COLORS[status];
-              const chapter = chaptersByState.get(stateCode);
+              const charter = chartersByState.get(stateCode);
 
               return (
                 <Geography
@@ -161,7 +161,7 @@ function USStateMapInner({ chapters }: USStateMapProps) {
                       handleClick(stateCode);
                     }
                   }}
-                  aria-label={`${stateName}${chapter ? ` - ${chapter.name}` : ' - No chapter yet'}`}
+                  aria-label={`${stateName}${charter ? ` - ${charter.name}` : ' - No charter yet'}`}
                   style={{
                     default: {
                       fill: colors.default,
@@ -203,20 +203,20 @@ function USStateMapInner({ chapters }: USStateMapProps) {
           }}
         >
           <p className="font-semibold">{tooltip.stateName}</p>
-          {tooltip.chapter ? (
+          {tooltip.charter ? (
             <>
-              <p className="text-xs text-muted-foreground">{tooltip.chapter.name}</p>
-              {tooltip.chapter.status === 'forming' && (
+              <p className="text-xs text-muted-foreground">{tooltip.charter.name}</p>
+              {tooltip.charter.status === 'forming' && (
                 <p className="text-xs font-medium text-amber-600">Forming</p>
               )}
-              {getLeaderName(tooltip.chapter) && (
+              {getLeaderName(tooltip.charter) && (
                 <p className="text-xs text-muted-foreground">
-                  Contact: {getLeaderName(tooltip.chapter)}
+                  Contact: {getLeaderName(tooltip.charter)}
                 </p>
               )}
             </>
           ) : (
-            <p className="text-xs text-muted-foreground">Click to start a chapter</p>
+            <p className="text-xs text-muted-foreground">Click to start a charter</p>
           )}
         </div>
       )}
@@ -225,7 +225,7 @@ function USStateMapInner({ chapters }: USStateMapProps) {
       <div className="mt-4 flex flex-wrap items-center justify-center gap-6 text-sm">
         <div className="flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: STATUS_COLORS.active.default }} />
-          <span className="text-muted-foreground">Active Chapter</span>
+          <span className="text-muted-foreground">Active Charter</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: STATUS_COLORS.forming.default }} />
@@ -233,7 +233,7 @@ function USStateMapInner({ chapters }: USStateMapProps) {
         </div>
         <div className="flex items-center gap-2">
           <span className="inline-block h-3 w-3 rounded-sm" style={{ backgroundColor: STATUS_COLORS.none.default }} />
-          <span className="text-muted-foreground">Start a Chapter</span>
+          <span className="text-muted-foreground">Start a Charter</span>
         </div>
       </div>
     </div>

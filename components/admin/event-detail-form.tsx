@@ -9,7 +9,7 @@ import type { Event } from '@/types';
 
 interface EventDetailFormProps {
   event: Event | null;
-  chapters: { id: string; name: string }[];
+  charters: { id: string; name: string }[];
 }
 
 function slugify(text: string): string {
@@ -22,7 +22,7 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
-export function EventDetailForm({ event, chapters }: EventDetailFormProps) {
+export function EventDetailForm({ event, charters }: EventDetailFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -53,7 +53,7 @@ export function EventDetailForm({ event, chapters }: EventDetailFormProps) {
       maxAttendees: fd.get('maxAttendees') ? Number(fd.get('maxAttendees')) : null,
       registrationFee: fd.get('registrationFee') ? Number(fd.get('registrationFee')) : null,
       registrationDeadline: (fd.get('registrationDeadline') as string) || null,
-      chapterId: (fd.get('chapterId') as string) || null,
+      charterId: (fd.get('charterId') as string) || null,
       status: fd.get('status') as string,
     };
 
@@ -159,10 +159,10 @@ export function EventDetailForm({ event, chapters }: EventDetailFormProps) {
             </select>
           </div>
           <div>
-            <label className={ADMIN_LABEL_CLASS}>Chapter</label>
-            <select name="chapterId" defaultValue={event?.chapter_id || ''} className={ADMIN_INPUT_CLASS}>
-              <option value="">National (no chapter)</option>
-              {chapters.map((ch) => (
+            <label className={ADMIN_LABEL_CLASS}>Charter</label>
+            <select name="charterId" defaultValue={event?.charter_id || ''} className={ADMIN_INPUT_CLASS}>
+              <option value="">National (no charter)</option>
+              {charters.map((ch) => (
                 <option key={ch.id} value={ch.id}>{ch.name}</option>
               ))}
             </select>

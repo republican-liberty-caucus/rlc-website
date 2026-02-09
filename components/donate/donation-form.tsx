@@ -7,16 +7,16 @@ import { Button } from '@/components/ui/button';
 const PRESET_AMOUNTS = [25, 50, 100, 250, 500, 1000];
 
 interface DonationFormProps {
-  chapters: { id: string; name: string }[];
+  charters: { id: string; name: string }[];
 }
 
-export function DonationForm({ chapters }: DonationFormProps) {
+export function DonationForm({ charters }: DonationFormProps) {
   const { user } = useUser();
   const [selectedAmount, setSelectedAmount] = React.useState<number | null>(100);
   const [customAmount, setCustomAmount] = React.useState('');
   const [isRecurring, setIsRecurring] = React.useState(false);
   const [email, setEmail] = React.useState('');
-  const [chapterId, setChapterId] = React.useState('');
+  const [charterId, setCharterId] = React.useState('');
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -55,7 +55,7 @@ export function DonationForm({ chapters }: DonationFormProps) {
           amount: effectiveAmount,
           isRecurring,
           email,
-          chapterId: chapterId || undefined,
+          charterId: charterId || undefined,
         }),
       });
 
@@ -170,19 +170,19 @@ export function DonationForm({ chapters }: DonationFormProps) {
         </div>
       )}
 
-      {/* Chapter Attribution */}
-      {chapters.length > 0 && (
+      {/* Charter Attribution */}
+      {charters.length > 0 && (
         <div className="mb-6">
           <label className="mb-1 block text-sm font-medium">
-            Attribute to a Chapter <span className="text-muted-foreground">(optional)</span>
+            Attribute to a Charter <span className="text-muted-foreground">(optional)</span>
           </label>
           <select
-            value={chapterId}
-            onChange={(e) => setChapterId(e.target.value)}
+            value={charterId}
+            onChange={(e) => setCharterId(e.target.value)}
             className="w-full rounded-lg border bg-background px-4 py-3 focus:border-rlc-red focus:outline-none focus:ring-1 focus:ring-rlc-red"
           >
-            <option value="">National (no specific chapter)</option>
-            {chapters.map((ch) => (
+            <option value="">National (no specific charter)</option>
+            {charters.map((ch) => (
               <option key={ch.id} value={ch.id}>
                 {ch.name}
               </option>

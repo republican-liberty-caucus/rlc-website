@@ -15,14 +15,14 @@ import { LegalEntityStep } from './steps/legal-entity-step';
 import { StripeConnectStep } from './steps/stripe-connect-step';
 import { STEP_ORDER } from '@/lib/onboarding/constants';
 import { getNextStep } from '@/lib/onboarding/engine';
-import type { OnboardingStep, OnboardingStepStatus, ChapterOnboarding, ChapterOnboardingStep } from '@/types';
+import type { OnboardingStep, OnboardingStepStatus, CharterOnboarding, CharterOnboardingStep } from '@/types';
 
 interface OnboardingWizardProps {
-  chapterId: string;
-  chapterName: string;
-  onboarding: (ChapterOnboarding & {
+  charterId: string;
+  charterName: string;
+  onboarding: (CharterOnboarding & {
     coordinator: { id: string; first_name: string; last_name: string; email: string };
-    steps: ChapterOnboardingStep[];
+    steps: CharterOnboardingStep[];
   }) | null;
   activeStep?: string;
   isNational: boolean;
@@ -30,8 +30,8 @@ interface OnboardingWizardProps {
 }
 
 export function OnboardingWizard({
-  chapterId,
-  chapterName,
+  charterId,
+  charterName,
   onboarding,
   activeStep,
   isNational,
@@ -56,7 +56,7 @@ export function OnboardingWizard({
   const handleAction = useCallback(async (action: string, data?: Record<string, unknown>, reviewNotes?: string) => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/v1/admin/chapters/${chapterId}/onboarding/steps/${currentStep}`, {
+      const res = await fetch(`/api/v1/admin/charters/${charterId}/onboarding/steps/${currentStep}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action, data, reviewNotes }),
@@ -84,7 +84,7 @@ export function OnboardingWizard({
     } finally {
       setSaving(false);
     }
-  }, [chapterId, currentStep, router, toast]);
+  }, [charterId, currentStep, router, toast]);
 
   const handleSaveDraft = useCallback((data: Record<string, unknown>) => handleAction('save_draft', data), [handleAction]);
   const handleComplete = useCallback((data: Record<string, unknown>) => handleAction('complete', data), [handleAction]);
@@ -98,16 +98,16 @@ export function OnboardingWizard({
   if (!onboarding) {
     return (
       <div className="text-center py-12">
-        <h2 className="text-2xl font-bold mb-2">Start Chapter Onboarding</h2>
+        <h2 className="text-2xl font-bold mb-2">Start Charter Onboarding</h2>
         <p className="text-muted-foreground mb-6">
-          Begin the 8-step onboarding process for {chapterName}.
+          Begin the 8-step onboarding process for {charterName}.
         </p>
         {isNational ? (
           <Button
             onClick={async () => {
               setCreating(true);
               try {
-                const res = await fetch(`/api/v1/admin/chapters/${chapterId}/onboarding`, {
+                const res = await fetch(`/api/v1/admin/charters/${charterId}/onboarding`, {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({ coordinatorId: currentMemberId }),
@@ -219,7 +219,7 @@ export function OnboardingWizard({
         return (
           <StripeConnectStep
             {...commonProps}
-            chapterId={chapterId}
+            charterId={charterId}
             onSaveDraft={handleSaveDraft}
             onComplete={handleComplete}
           />
@@ -235,8 +235,8 @@ export function OnboardingWizard({
       <div className="lg:col-span-1">
         <div className="sticky top-4 rounded-lg border bg-card p-4">
           <OnboardingProgress
-            chapterId={chapterId}
-            chapterName={chapterName}
+            charterId={charterId}
+            charterName={charterName}
             steps={stepsState}
             activeStep={currentStep}
           />

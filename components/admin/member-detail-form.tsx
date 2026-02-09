@@ -5,11 +5,11 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 import { ADMIN_INPUT_CLASS, ADMIN_LABEL_CLASS } from '@/components/admin/form-styles';
-import type { Contact, Chapter, MembershipTier, MembershipStatus } from '@/types';
+import type { Contact, Charter, MembershipTier, MembershipStatus } from '@/types';
 
 interface MemberDetailFormProps {
   member: Contact;
-  chapters: Pick<Chapter, 'id' | 'name'>[];
+  charters: Pick<Charter, 'id' | 'name'>[];
   isNational: boolean;
 }
 
@@ -34,7 +34,7 @@ const STATUS_OPTIONS: { value: MembershipStatus; label: string }[] = [
   { value: 'expiring', label: 'Expiring' },
 ];
 
-export function MemberDetailForm({ member, chapters, isNational }: MemberDetailFormProps) {
+export function MemberDetailForm({ member, charters, isNational }: MemberDetailFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -64,7 +64,7 @@ export function MemberDetailForm({ member, chapters, isNational }: MemberDetailF
     if (isNational) {
       body.membershipTier = formData.get('membershipTier') as string;
       body.membershipStatus = formData.get('membershipStatus') as string;
-      body.primaryChapterId = (formData.get('primaryChapterId') as string) || null;
+      body.primaryCharterId = (formData.get('primaryCharterId') as string) || null;
       body.membershipExpiryDate = (formData.get('membershipExpiryDate') as string) || null;
     }
 
@@ -175,10 +175,10 @@ export function MemberDetailForm({ member, chapters, isNational }: MemberDetailF
             </select>
           </div>
           <div>
-            <label className={ADMIN_LABEL_CLASS}>Chapter</label>
-            <select name="primaryChapterId" defaultValue={member.primary_chapter_id || ''} disabled={!isNational} className={`${ADMIN_INPUT_CLASS} ${!isNational ? 'opacity-60' : ''}`}>
-              <option value="">No Chapter</option>
-              {chapters.map((ch) => (
+            <label className={ADMIN_LABEL_CLASS}>Charter</label>
+            <select name="primaryCharterId" defaultValue={member.primary_charter_id || ''} disabled={!isNational} className={`${ADMIN_INPUT_CLASS} ${!isNational ? 'opacity-60' : ''}`}>
+              <option value="">No Charter</option>
+              {charters.map((ch) => (
                 <option key={ch.id} value={ch.id}>{ch.name}</option>
               ))}
             </select>

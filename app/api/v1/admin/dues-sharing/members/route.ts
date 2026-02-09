@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const chapterId = searchParams.get('chapterId');
+  const charterId = searchParams.get('charterId');
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
   const offset = (page - 1) * limit;
@@ -27,21 +27,21 @@ export async function GET(request: Request) {
     .from('rlc_contributions')
     .select(`
       id, member_id, amount, contribution_type, payment_status, created_at,
-      rlc_members!inner(id, first_name, last_name, email, primary_chapter_id)
+      rlc_members!inner(id, first_name, last_name, email, primary_charter_id)
     `, { count: 'exact' })
     .eq('contribution_type', 'membership')
     .eq('payment_status', 'completed')
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  // Filter by chapter
-  if (chapterId) {
-    if (ctx.visibleChapterIds !== null && !ctx.visibleChapterIds.includes(chapterId)) {
+  // Filter by charter
+  if (charterId) {
+    if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    query = query.eq('chapter_id', chapterId);
-  } else if (ctx.visibleChapterIds !== null) {
-    query = query.in('chapter_id', ctx.visibleChapterIds);
+    query = query.eq('charter_id', charterId);
+  } else if (ctx.visibleCharterIds !== null) {
+    query = query.in('charter_id', ctx.visibleCharterIds);
   }
 
   const { data: contributions, count, error } = await query;
@@ -57,7 +57,7 @@ export async function GET(request: Request) {
   if (contributionIds.length > 0) {
     const { data: entries } = await supabase
       .from('rlc_split_ledger_entries')
-      .select('contribution_id, recipient_chapter_id, amount, status')
+      .select('contribution_id, recipient_charter_id, amount, status')
       .in('contribution_id', contributionIds);
 
     ledgerEntries = (entries || []) as Record<string, unknown>[];

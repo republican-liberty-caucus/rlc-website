@@ -13,8 +13,8 @@ interface AuditEntry {
   id: string;
   contribution_id: string;
   source_type: string;
-  recipient_chapter_id: string;
-  chapter_name: string;
+  recipient_charter_id: string;
+  charter_name: string;
   amount: number;
   currency: string;
   status: string;
@@ -119,7 +119,7 @@ export default function AuditTrailPage() {
                 <thead>
                   <tr className="border-b text-left">
                     <th className="p-2">Date</th>
-                    <th className="p-2">Chapter</th>
+                    <th className="p-2">Charter</th>
                     <th className="p-2">Amount</th>
                     <th className="p-2">Status</th>
                     <th className="p-2">Type</th>
@@ -133,7 +133,7 @@ export default function AuditTrailPage() {
                       <td className="whitespace-nowrap p-2">
                         {new Date(entry.created_at).toLocaleString()}
                       </td>
-                      <td className="p-2">{entry.chapter_name}</td>
+                      <td className="p-2">{entry.charter_name}</td>
                       <td className="p-2 font-mono">
                         {formatCurrency(Number(entry.amount))}
                       </td>

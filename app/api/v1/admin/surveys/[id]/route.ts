@@ -57,7 +57,7 @@ export async function PATCH(
   if (input.electionType !== undefined) updatePayload.election_type = input.electionType || null;
   if (input.electionDate !== undefined) updatePayload.election_date = input.electionDate || null;
   if (input.state !== undefined) updatePayload.state = input.state || null;
-  if (input.chapterId !== undefined) updatePayload.chapter_id = input.chapterId || null;
+  if (input.charterId !== undefined) updatePayload.charter_id = input.charterId || null;
 
   const { data, error } = await supabase
     .from('rlc_surveys')

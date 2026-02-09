@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   description: 'Upcoming Republican Liberty Caucus events, meetings, and conventions.',
 };
 
-interface EventWithChapter {
+interface EventWithCharter {
   id: string;
   title: string;
   slug: string;
@@ -24,24 +24,24 @@ interface EventWithChapter {
   is_virtual: boolean;
   city: string | null;
   state: string | null;
-  chapter: { name: string; slug: string } | null;
+  charter: { name: string; slug: string } | null;
 }
 
-async function getEvents(): Promise<EventWithChapter[]> {
+async function getEvents(): Promise<EventWithCharter[]> {
   try {
     const supabase = createServerClient();
     const { data } = await supabase
       .from('rlc_events')
       .select(`
         *,
-        chapter:rlc_chapters(name, slug)
+        charter:rlc_charters(name, slug)
       `)
       .eq('status', 'published')
       .gte('start_date', new Date().toISOString())
       .order('start_date', { ascending: true })
       .limit(20);
 
-    return (data || []) as EventWithChapter[];
+    return (data || []) as EventWithCharter[];
   } catch {
     return [];
   }
@@ -105,9 +105,9 @@ export default async function EventsPage() {
                             Virtual
                           </span>
                         )}
-                        {event.chapter && (
+                        {event.charter && (
                           <span className="rounded-full bg-muted px-2 py-1 text-xs font-medium">
-                            {event.chapter.name}
+                            {event.charter.name}
                           </span>
                         )}
                       </div>
@@ -138,8 +138,8 @@ export default async function EventsPage() {
             <EmptyState
               icon={<Calendar className="h-12 w-12" />}
               title="No Upcoming Events"
-              description="Find your local chapter to stay in the loop on upcoming RLC events and meetings."
-              action={{ label: 'Find Your Chapter', href: '/chapters' }}
+              description="Find your local charter to stay in the loop on upcoming RLC events and meetings."
+              action={{ label: 'Find Your Charter', href: '/charters' }}
             />
           )}
         </div>
@@ -150,8 +150,8 @@ export default async function EventsPage() {
         <div className="container mx-auto px-4 text-center">
           <h2 className="mb-4 text-2xl font-bold">Want to Host an Event?</h2>
           <p className="mb-6 text-muted-foreground">
-            If you&apos;re a chapter leader or member interested in organizing an RLC event, contact
-            your state chapter or the national office.
+            If you&apos;re a charter leader or member interested in organizing an RLC event, contact
+            your state charter or the national office.
           </p>
           <Button asChild className="bg-rlc-red hover:bg-rlc-red/90">
             <Link href="/contact">Contact Us</Link>
