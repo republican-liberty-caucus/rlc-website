@@ -2,7 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
-import { BookOpen, History, ScrollText, Users, Mic } from 'lucide-react';
+import { BookOpen, History, ScrollText, Users, Mic, Shield } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'About Us',
@@ -22,6 +22,12 @@ const subPages = [
     icon: History,
     title: 'History of the RLC',
     description: 'Our founding story and journey since 1991',
+  },
+  {
+    href: '/about/officers',
+    icon: Shield,
+    title: 'Officers & Board',
+    description: 'National leadership team',
   },
   {
     href: '/about/bylaws',
