@@ -41,6 +41,7 @@
     "validate:highlevel": "tsx --env-file=.env.local scripts/civicrm/validate-highlevel-import.ts",
     "rollback:highlevel": "tsx --env-file=.env.local scripts/civicrm/rollback-highlevel.ts",
     "sync:highlevel": "tsx --env-file=.env.local scripts/civicrm/sync-highlevel.ts",
+    "stripe:setup-products": "tsx --env-file=.env.local scripts/stripe-setup-products.ts",
     "migrate:wordpress": "tsx scripts/wordpress/migrate-wordpress.ts",
     "migrate:wordpress:dry-run": "tsx scripts/wordpress/migrate-wordpress.ts --dry-run",
     "migrate:wordpress:media": "tsx scripts/wordpress/migrate-media.ts",

@@ -24,7 +24,8 @@ export function getStripe(): Stripe {
 export interface TierConfig {
   tier: MembershipTier;
   name: string;
-  price: number; // in cents
+  price: number; // in cents (kept for display and fallback)
+  stripePriceId: string | null; // null = fallback to price_data
   interval: 'year';
   description: string;
   features: string[];
@@ -33,11 +34,23 @@ export interface TierConfig {
   featured: boolean;
 }
 
+// Map tier slugs to env var values for persistent Stripe Price IDs
+const STRIPE_PRICE_MAP: Record<MembershipTier, string | undefined> = {
+  student_military: process.env.STRIPE_PRICE_STUDENT_MILITARY,
+  individual: process.env.STRIPE_PRICE_INDIVIDUAL,
+  premium: process.env.STRIPE_PRICE_PREMIUM,
+  sustaining: process.env.STRIPE_PRICE_SUSTAINING,
+  patron: process.env.STRIPE_PRICE_PATRON,
+  benefactor: process.env.STRIPE_PRICE_BENEFACTOR,
+  roundtable: process.env.STRIPE_PRICE_ROUNDTABLE,
+};
+
 export const MEMBERSHIP_TIERS: TierConfig[] = [
   {
     tier: 'student_military',
     name: 'Student/Military',
     price: 3000,
+    stripePriceId: STRIPE_PRICE_MAP.student_military || null,
     interval: 'year',
     description: 'Discounted membership for students and military service members',
     features: [
@@ -54,6 +67,7 @@ export const MEMBERSHIP_TIERS: TierConfig[] = [
     tier: 'individual',
     name: 'Individual',
     price: 4500,
+    stripePriceId: STRIPE_PRICE_MAP.individual || null,
     interval: 'year',
     description: 'Standard membership for one person',
     features: [
@@ -71,6 +85,7 @@ export const MEMBERSHIP_TIERS: TierConfig[] = [
     tier: 'premium',
     name: 'Premium',
     price: 7500,
+    stripePriceId: STRIPE_PRICE_MAP.premium || null,
     interval: 'year',
     description: 'Membership for you and your spouse',
     features: [
@@ -87,6 +102,7 @@ export const MEMBERSHIP_TIERS: TierConfig[] = [
     tier: 'sustaining',
     name: 'Sustaining',
     price: 15000,
+    stripePriceId: STRIPE_PRICE_MAP.sustaining || null,
     interval: 'year',
     description: 'Family membership with ongoing support',
     features: [
@@ -103,6 +119,7 @@ export const MEMBERSHIP_TIERS: TierConfig[] = [
     tier: 'patron',
     name: 'Patron',
     price: 35000,
+    stripePriceId: STRIPE_PRICE_MAP.patron || null,
     interval: 'year',
     description: 'Major supporter of the liberty movement',
     features: [
@@ -119,6 +136,7 @@ export const MEMBERSHIP_TIERS: TierConfig[] = [
     tier: 'benefactor',
     name: 'Benefactor',
     price: 75000,
+    stripePriceId: STRIPE_PRICE_MAP.benefactor || null,
     interval: 'year',
     description: 'Top-tier individual supporter',
     features: [
@@ -135,6 +153,7 @@ export const MEMBERSHIP_TIERS: TierConfig[] = [
     tier: 'roundtable',
     name: 'Roundtable',
     price: 150000,
+    stripePriceId: STRIPE_PRICE_MAP.roundtable || null,
     interval: 'year',
     description: 'Leadership roundtable membership',
     features: [
@@ -157,6 +176,59 @@ export function getTierConfig(tier: MembershipTier): TierConfig | undefined {
 // Checkout session creation
 // ===========================================
 
+/**
+ * Find or create a Stripe Customer scoped to the website.
+ * Never searches Stripe by email (would find HighLevel-created Customers).
+ * Instead: checks rlc_members for existing stripe_customer_id, or creates new.
+ */
+async function findOrCreateWebsiteCustomer(
+  stripe: Stripe,
+  email: string,
+  memberId?: string
+): Promise<Stripe.Customer> {
+  // If we have a memberId, check for existing stripe_customer_id in the database
+  if (memberId) {
+    const { createServerClient } = await import('@/lib/supabase/server');
+    const supabase = createServerClient();
+    const { data } = await supabase
+      .from('rlc_members')
+      .select('stripe_customer_id')
+      .eq('id', memberId)
+      .single();
+
+    const row = data as { stripe_customer_id: string | null } | null;
+    if (row?.stripe_customer_id) {
+      // Verify the customer still exists in Stripe
+      try {
+        const existing = await stripe.customers.retrieve(row.stripe_customer_id);
+        if (!existing.deleted) {
+          return existing as Stripe.Customer;
+        }
+      } catch {
+        // Customer doesn't exist in Stripe — create a new one below
+      }
+    }
+  }
+
+  // Create a new Customer scoped to our website
+  const newCustomer = await stripe.customers.create({
+    email,
+    metadata: { source: 'rlc-website' },
+  });
+
+  // Save the customer ID to prevent duplicate Customers on next checkout
+  if (memberId) {
+    const { createServerClient: createClient } = await import('@/lib/supabase/server');
+    const sb = createClient();
+    await sb
+      .from('rlc_members')
+      .update({ stripe_customer_id: newCustomer.id } as never)
+      .eq('id', memberId);
+  }
+
+  return newCustomer;
+}
+
 export async function createCheckoutSession(params: {
   tier: MembershipTier;
   memberEmail: string;
@@ -171,35 +243,47 @@ export async function createCheckoutSession(params: {
     throw new Error(`Invalid membership tier: ${params.tier}`);
   }
 
-  const session = await stripe.checkout.sessions.create({
-    mode: 'payment',
-    customer_email: params.memberEmail,
-    line_items: [
-      {
+  const useSubscription = !!tierConfig.stripePriceId;
+  const mode = useSubscription ? 'subscription' : 'payment';
+
+  // Build line item: persistent Price ID (subscription) or dynamic price_data (fallback)
+  const lineItem: Stripe.Checkout.SessionCreateParams.LineItem = tierConfig.stripePriceId
+    ? { price: tierConfig.stripePriceId, quantity: 1 }
+    : {
         price_data: {
           currency: 'usd',
           product_data: {
             name: `RLC ${tierConfig.name} Membership`,
             description: tierConfig.description,
-            metadata: {
-              tier: params.tier,
-            },
+            metadata: { tier: params.tier },
           },
           unit_amount: tierConfig.price,
         },
         quantity: 1,
-      },
-    ],
+      };
+
+  // Subscription mode requires an explicit Customer (not customer_email)
+  const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    mode,
+    line_items: [lineItem],
     metadata: {
       tier: params.tier,
       type: 'membership',
+      source: 'rlc-website',
       member_id: params.memberId || '',
     },
     success_url: params.successUrl,
     cancel_url: params.cancelUrl,
-  });
+  };
 
-  return session;
+  if (useSubscription) {
+    const customer = await findOrCreateWebsiteCustomer(stripe, params.memberEmail, params.memberId);
+    sessionParams.customer = customer.id;
+  } else {
+    sessionParams.customer_email = params.memberEmail;
+  }
+
+  return stripe.checkout.sessions.create(sessionParams);
 }
 
 // ===========================================
@@ -220,16 +304,19 @@ export async function createDonationCheckoutSession(params: {
 
   const metadata: Record<string, string> = {
     type: 'donation',
+    source: 'rlc-website',
     member_id: params.memberId || '',
     charter_id: params.charterId || '',
     campaign_id: params.campaignId || '',
   };
 
   if (params.isRecurring) {
-    // Create a price for the recurring donation
+    // Recurring donations require a Customer (subscription mode) — use website-scoped Customer
+    const customer = await findOrCreateWebsiteCustomer(stripe, params.donorEmail, params.memberId);
+
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
-      customer_email: params.donorEmail,
+      customer: customer.id,
       line_items: [
         {
           price_data: {
