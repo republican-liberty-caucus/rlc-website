@@ -236,7 +236,8 @@ export type Jurisdiction = 'federal' | 'state';
 export type ScorecardSessionStatus = 'draft' | 'active' | 'published' | 'archived';
 export type LibertyPosition = 'yea' | 'nay';
 export type BillTrackingStatus = 'tracking' | 'voted' | 'no_vote';
-export type VoteChoice = 'yea' | 'nay' | 'not_voting' | 'absent';
+export type VoteChoice = 'yea' | 'nay' | 'not_voting' | 'absent' | 'present' | 'not_applicable';
+export type SponsorshipRole = 'sponsor' | 'cosponsor';
 export type LegislativeChamber = 'us_house' | 'us_senate' | 'state_house' | 'state_senate';
 export type CampaignStatus = 'draft' | 'active' | 'completed' | 'cancelled';
 
@@ -264,6 +265,9 @@ export interface ScorecardSession {
   charter_id: string | null;
   session_year: number;
   status: ScorecardSessionStatus;
+  chamber: LegislativeChamber | null;
+  party_filter: string | null;
+  absence_penalty_threshold: number;
   created_by: string | null;
   created_at: string;
   updated_at: string;
@@ -284,6 +288,10 @@ export interface ScorecardBill {
   vote_date: string | null;
   bill_status: BillTrackingStatus;
   legiscan_roll_call_id: number | null;
+  sort_order: number;
+  is_bonus: boolean;
+  bonus_point_value: number;
+  vote_result_summary: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -294,7 +302,21 @@ export interface ScorecardVote {
   legislator_id: string;
   vote: VoteChoice;
   aligned_with_liberty: boolean;
+  sponsorship_role: SponsorshipRole | null;
   created_at: string;
+}
+
+export interface ScorecardLegislatorScore {
+  id: string;
+  session_id: string;
+  legislator_id: string;
+  votes_aligned: number;
+  total_bills: number;
+  absences: number;
+  bonus_points: number;
+  liberty_score: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export interface ActionCampaign {
