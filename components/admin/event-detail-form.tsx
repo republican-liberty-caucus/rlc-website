@@ -1,15 +1,23 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 import { ADMIN_INPUT_CLASS, ADMIN_LABEL_CLASS } from '@/components/admin/form-styles';
 import type { Event } from '@/types';
 
+interface OrganizerInfo {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string | null;
+}
+
 interface EventDetailFormProps {
   event: Event | null;
   charters: { id: string; name: string }[];
+  organizer?: OrganizerInfo | null;
 }
 
 function slugify(text: string): string {
@@ -22,11 +30,51 @@ const STATUS_OPTIONS = [
   { value: 'cancelled', label: 'Cancelled' },
 ];
 
-export function EventDetailForm({ event, charters }: EventDetailFormProps) {
+export function EventDetailForm({ event, charters, organizer }: EventDetailFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!event);
+
+  // Organizer search state
+  const [organizerId, setOrganizerId] = useState<string | null>(event?.organizer_id || null);
+  const [organizerQuery, setOrganizerQuery] = useState(
+    organizer ? `${organizer.first_name} ${organizer.last_name}` : ''
+  );
+  const [organizerResults, setOrganizerResults] = useState<OrganizerInfo[]>([]);
+  const [showOrganizerDropdown, setShowOrganizerDropdown] = useState(false);
+  const organizerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+
+  const searchContacts = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setOrganizerResults([]);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/v1/admin/contacts/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        setOrganizerResults(data.contacts || []);
+        setShowOrganizerDropdown(true);
+      }
+    } catch {
+      // Non-fatal
+    }
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (organizerRef.current && !organizerRef.current.contains(e.target as Node)) {
+        setShowOrganizerDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -38,6 +86,7 @@ export function EventDetailForm({ event, charters }: EventDetailFormProps) {
       title: fd.get('title') as string,
       slug: fd.get('slug') as string,
       description: (fd.get('description') as string) || null,
+      featuredImageUrl: (fd.get('featuredImageUrl') as string) || null,
       eventType: (fd.get('eventType') as string) || null,
       startDate: fd.get('startDate') as string,
       endDate: (fd.get('endDate') as string) || null,
@@ -54,6 +103,7 @@ export function EventDetailForm({ event, charters }: EventDetailFormProps) {
       registrationFee: fd.get('registrationFee') ? Number(fd.get('registrationFee')) : null,
       registrationDeadline: (fd.get('registrationDeadline') as string) || null,
       charterId: (fd.get('charterId') as string) || null,
+      organizerId: organizerId || null,
       status: fd.get('status') as string,
     };
 
@@ -166,6 +216,67 @@ export function EventDetailForm({ event, charters }: EventDetailFormProps) {
                 <option key={ch.id} value={ch.id}>{ch.name}</option>
               ))}
             </select>
+          </div>
+          <div className="md:col-span-2">
+            <label className={ADMIN_LABEL_CLASS}>Featured Image URL</label>
+            <input
+              name="featuredImageUrl"
+              type="url"
+              defaultValue={event?.featured_image_url || ''}
+              className={ADMIN_INPUT_CLASS}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
+          <div className="md:col-span-2" ref={organizerRef}>
+            <label className={ADMIN_LABEL_CLASS}>Event Organizer</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={organizerQuery}
+                onChange={(e) => {
+                  setOrganizerQuery(e.target.value);
+                  clearTimeout(debounceRef.current);
+                  debounceRef.current = setTimeout(() => searchContacts(e.target.value), 300);
+                }}
+                className={ADMIN_INPUT_CLASS}
+                placeholder="Search contacts by name..."
+              />
+              {showOrganizerDropdown && organizerResults.length > 0 && (
+                <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover shadow-md">
+                  {organizerResults.map((c) => (
+                    <li key={c.id}>
+                      <button
+                        type="button"
+                        className="w-full px-3 py-2 text-left text-sm hover:bg-accent"
+                        onClick={() => {
+                          setOrganizerId(c.id);
+                          setOrganizerQuery(`${c.first_name} ${c.last_name}`);
+                          setShowOrganizerDropdown(false);
+                        }}
+                      >
+                        {c.first_name} {c.last_name}
+                        {c.email && <span className="ml-2 text-muted-foreground">({c.email})</span>}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            {organizerId && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Selected: {organizerQuery}{' '}
+                <button
+                  type="button"
+                  className="text-rlc-red hover:underline"
+                  onClick={() => {
+                    setOrganizerId(null);
+                    setOrganizerQuery('');
+                  }}
+                >
+                  Clear
+                </button>
+              </p>
+            )}
           </div>
         </div>
       </div>

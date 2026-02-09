@@ -29,10 +29,16 @@ export default async function AdminEventDetailPage({ params }: EventDetailPagePr
   const supabase = createServerClient();
 
   const { data: eventData, error: eventError } = await supabase
-    .from('rlc_events').select('*').eq('id', id).single();
+    .from('rlc_events')
+    .select(`*, organizer:rlc_contacts!organizer_id(id, first_name, last_name, email)`)
+    .eq('id', id)
+    .single();
 
   if (eventError || !eventData) notFound();
-  const event = eventData as Event;
+  const { organizer, ...eventFields } = eventData as Event & {
+    organizer: { id: string; first_name: string; last_name: string; email: string | null } | null;
+  };
+  const event = eventFields as Event;
 
   let chartersQuery = supabase.from('rlc_charters').select('id, name').eq('status', 'active').order('name');
   if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
@@ -76,6 +82,7 @@ export default async function AdminEventDetailPage({ params }: EventDetailPagePr
       <EventDetailForm
         event={event}
         charters={(chartersResult.data || []) as { id: string; name: string }[]}
+        organizer={organizer}
       />
     </div>
   );
