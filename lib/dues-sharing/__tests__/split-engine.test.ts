@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { calculateMembershipSplit, applyPercentageSplit } from '../split-engine';
 
 const NATIONAL_ID = 'national-charter-uuid';
@@ -292,5 +292,425 @@ describe('applyPercentageSplit', () => {
 
     const total = result.reduce((s, a) => s + a.amountCents, 0);
     expect(total).toBe(10000);
+  });
+});
+
+// ─── processDuesSplit integration tests ──────────────────────────────────────
+
+vi.mock('@/lib/supabase/server', () => ({
+  createServerClient: vi.fn(),
+}));
+
+vi.mock('../constants', () => ({
+  NATIONAL_FLAT_FEE_CENTS: 1500,
+  getNationalCharterId: () => 'national-uuid',
+}));
+
+vi.mock('../transfer-engine', () => ({
+  executeTransfersForContribution: vi.fn(),
+}));
+
+vi.mock('@/lib/logger', () => ({
+  logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn() },
+}));
+
+/**
+ * Build a chainable Supabase mock.
+ *
+ * `tableHandlers` maps table names to the result that the terminal method
+ * (.single(), .limit(), the end of a select chain, or .insert()) should return.
+ *
+ * Each handler is `{ data, error? }`.  The builder tracks which table was
+ * addressed by `.from()` and returns the corresponding result at the terminal.
+ */
+interface TableResponse {
+  data: unknown;
+  error?: { code?: string; message?: string } | null;
+}
+
+type TableHandlerFn = (callIndex: number) => TableResponse;
+type TableHandler = TableResponse | TableHandlerFn;
+
+function createMockSupabase(tableHandlers: Record<string, TableHandler | TableHandler[]>) {
+  // Track how many times each table has been accessed (for ordered multi-call scenarios)
+  const callCounts: Record<string, number> = {};
+
+  function resolveHandler(table: string): TableResponse {
+    const handler = tableHandlers[table];
+    if (!handler) {
+      return { data: null, error: null };
+    }
+
+    const idx = callCounts[table] ?? 0;
+    callCounts[table] = idx + 1;
+
+    if (Array.isArray(handler)) {
+      const entry = handler[idx] ?? handler[handler.length - 1];
+      if (typeof entry === 'function') return entry(idx);
+      return entry;
+    }
+
+    if (typeof handler === 'function') return handler(idx);
+    return handler;
+  }
+
+  function makeChain(table: string) {
+    const chain: Record<string, unknown> = {};
+    const terminal = () => resolveHandler(table);
+
+    chain.select = vi.fn().mockReturnValue(chain);
+    chain.eq = vi.fn().mockReturnValue(chain);
+    chain.is = vi.fn().mockReturnValue(chain);
+    chain.limit = vi.fn().mockImplementation(() => terminal());
+    chain.order = vi.fn().mockImplementation(() => terminal());
+    chain.single = vi.fn().mockImplementation(() => terminal());
+    chain.insert = vi.fn().mockImplementation(() => resolveHandler(`${table}:insert`));
+
+    return chain;
+  }
+
+  return {
+    from: vi.fn().mockImplementation((table: string) => makeChain(table)),
+  };
+}
+
+describe('processDuesSplit', () => {
+  let mockExecuteTransfers: ReturnType<typeof vi.fn>;
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    // Reset the dynamic import mock
+    const transferEngine = await import('../transfer-engine');
+    mockExecuteTransfers = transferEngine.executeTransfersForContribution as ReturnType<typeof vi.fn>;
+    mockExecuteTransfers.mockResolvedValue(undefined);
+  });
+
+  async function importAndRun(contributionId: string) {
+    // Re-import to pick up fresh mocks each time
+    const { processDuesSplit } = await import('../split-engine');
+    return processDuesSplit(contributionId);
+  }
+
+  it('creates 2 ledger entries for membership with state charter (happy path)', async () => {
+    const mockSb = createMockSupabase({
+      // 1) Fetch contribution
+      rlc_contributions: {
+        data: {
+          id: 'contrib-1',
+          amount: 45,
+          currency: 'USD',
+          contribution_type: 'membership',
+          member_id: 'member-1',
+          charter_id: 'county-charter-uuid',
+        },
+      },
+      // 2) Idempotency check (no existing entries), then insert
+      rlc_split_ledger_entries: [
+        { data: [], error: null },
+      ],
+      'rlc_split_ledger_entries:insert': { data: null, error: null },
+      // 3) resolveStateCharter walks hierarchy: county → state
+      rlc_charters: [
+        { data: { id: 'county-charter-uuid', charter_level: 'county', parent_charter_id: 'state-charter-uuid' } },
+        { data: { id: 'state-charter-uuid', charter_level: 'state', parent_charter_id: 'national-uuid' } },
+      ],
+      // 4) Split config lookup (none configured → default split)
+      rlc_charter_split_configs: { data: null, error: { code: 'PGRST116', message: 'not found' } },
+    });
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    (createServerClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSb);
+
+    await importAndRun('contrib-1');
+
+    // Verify insert was called on ledger entries
+    const insertCalls = mockSb.from.mock.calls.filter(
+      (call) => call[0] === 'rlc_split_ledger_entries'
+    );
+    // Should have been called at least twice: once for idempotency check, once for chain leading to insert
+    expect(insertCalls.length).toBeGreaterThanOrEqual(2);
+
+    // Find the chain that had .insert() called on it (the second call to rlc_split_ledger_entries)
+    const lastLedgerChain = mockSb.from.mock.results.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (result: any, idx: number) =>
+        mockSb.from.mock.calls[idx][0] === 'rlc_split_ledger_entries' && result.value.insert.mock.calls.length > 0
+    );
+    expect(lastLedgerChain).toBeDefined();
+
+    const insertedEntries = lastLedgerChain!.value.insert.mock.calls[0][0];
+    expect(insertedEntries).toHaveLength(2);
+
+    // National entry: $15, status='transferred'
+    const nationalEntry = insertedEntries.find(
+      (e: { recipient_charter_id: string }) => e.recipient_charter_id === 'national-uuid'
+    );
+    expect(nationalEntry.amount).toBe(15);
+    expect(nationalEntry.status).toBe('transferred');
+
+    // State entry: $30, status='pending'
+    const stateEntry = insertedEntries.find(
+      (e: { recipient_charter_id: string }) => e.recipient_charter_id === 'state-charter-uuid'
+    );
+    expect(stateEntry.amount).toBe(30);
+    expect(stateEntry.status).toBe('pending');
+
+    // Transfer engine should have been invoked
+    expect(mockExecuteTransfers).toHaveBeenCalledWith('contrib-1');
+  });
+
+  it('skips processing when ledger entries already exist (idempotency)', async () => {
+    const mockSb = createMockSupabase({
+      rlc_contributions: {
+        data: {
+          id: 'contrib-2',
+          amount: 45,
+          currency: 'USD',
+          contribution_type: 'membership',
+          member_id: 'member-1',
+          charter_id: 'some-charter',
+        },
+      },
+      // Idempotency check returns existing entry
+      rlc_split_ledger_entries: { data: [{ id: 'existing-entry' }], error: null },
+    });
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    (createServerClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSb);
+
+    await importAndRun('contrib-2');
+
+    // No insert should have been called — the function returned early
+    const allCalls = mockSb.from.mock.calls;
+    const ledgerInsertChains = allCalls
+      .map((_: unknown, idx: number) => mockSb.from.mock.results[idx].value)
+      .filter((chain: { insert: ReturnType<typeof vi.fn> }) => chain.insert.mock.calls.length > 0);
+    expect(ledgerInsertChains).toHaveLength(0);
+
+    // Transfer engine should NOT have been called
+    expect(mockExecuteTransfers).not.toHaveBeenCalled();
+  });
+
+  it('returns early for non-membership contributions', async () => {
+    const mockSb = createMockSupabase({
+      rlc_contributions: {
+        data: {
+          id: 'contrib-3',
+          amount: 100,
+          currency: 'USD',
+          contribution_type: 'donation',
+          member_id: 'member-1',
+          charter_id: 'some-charter',
+        },
+      },
+    });
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    (createServerClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSb);
+
+    await importAndRun('contrib-3');
+
+    // Should not reach idempotency check or insert
+    const ledgerCalls = mockSb.from.mock.calls.filter(
+      (call) => call[0] === 'rlc_split_ledger_entries'
+    );
+    expect(ledgerCalls).toHaveLength(0);
+    expect(mockExecuteTransfers).not.toHaveBeenCalled();
+  });
+
+  it('returns early when amount is zero', async () => {
+    const mockSb = createMockSupabase({
+      rlc_contributions: {
+        data: {
+          id: 'contrib-4',
+          amount: 0,
+          currency: 'USD',
+          contribution_type: 'membership',
+          member_id: 'member-1',
+          charter_id: 'some-charter',
+        },
+      },
+    });
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    (createServerClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSb);
+
+    await importAndRun('contrib-4');
+
+    const ledgerCalls = mockSb.from.mock.calls.filter(
+      (call) => call[0] === 'rlc_split_ledger_entries'
+    );
+    expect(ledgerCalls).toHaveLength(0);
+    expect(mockExecuteTransfers).not.toHaveBeenCalled();
+  });
+
+  it('allocates 100% to National when member has no charter_id', async () => {
+    const mockSb = createMockSupabase({
+      rlc_contributions: {
+        data: {
+          id: 'contrib-5',
+          amount: 45,
+          currency: 'USD',
+          contribution_type: 'membership',
+          member_id: 'member-1',
+          charter_id: null,
+        },
+      },
+      rlc_split_ledger_entries: [
+        { data: [], error: null },
+      ],
+      'rlc_split_ledger_entries:insert': { data: null, error: null },
+    });
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    (createServerClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSb);
+
+    await importAndRun('contrib-5');
+
+    // Find the insert call
+    const insertChain = mockSb.from.mock.results.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (result: any, idx: number) =>
+        mockSb.from.mock.calls[idx][0] === 'rlc_split_ledger_entries' && result.value.insert.mock.calls.length > 0
+    );
+    expect(insertChain).toBeDefined();
+
+    const insertedEntries = insertChain!.value.insert.mock.calls[0][0];
+
+    // Only one entry — all to National
+    expect(insertedEntries).toHaveLength(1);
+    expect(insertedEntries[0].recipient_charter_id).toBe('national-uuid');
+    expect(insertedEntries[0].amount).toBe(45);
+    expect(insertedEntries[0].status).toBe('transferred');
+  });
+
+  it('still creates ledger entries when transfer engine throws (non-fatal)', async () => {
+    const mockSb = createMockSupabase({
+      rlc_contributions: {
+        data: {
+          id: 'contrib-6',
+          amount: 45,
+          currency: 'USD',
+          contribution_type: 'membership',
+          member_id: 'member-1',
+          charter_id: null,
+        },
+      },
+      rlc_split_ledger_entries: [
+        { data: [], error: null },
+      ],
+      'rlc_split_ledger_entries:insert': { data: null, error: null },
+    });
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    (createServerClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSb);
+
+    // Make the transfer engine throw
+    mockExecuteTransfers.mockRejectedValue(new Error('Stripe unavailable'));
+
+    // Should NOT throw — the error is caught internally
+    await expect(importAndRun('contrib-6')).resolves.toBeUndefined();
+
+    // Ledger insert should still have happened before the transfer attempt
+    const insertChain = mockSb.from.mock.results.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (result: any, idx: number) =>
+        mockSb.from.mock.calls[idx][0] === 'rlc_split_ledger_entries' && result.value.insert.mock.calls.length > 0
+    );
+    expect(insertChain).toBeDefined();
+    expect(insertChain!.value.insert.mock.calls[0][0]).toHaveLength(1);
+  });
+
+  it('returns early when amount is NaN (totalCents <= 0 after Math.round)', async () => {
+    const mockSb = createMockSupabase({
+      rlc_contributions: {
+        data: {
+          id: 'contrib-7',
+          amount: NaN,
+          currency: 'USD',
+          contribution_type: 'membership',
+          member_id: 'member-1',
+          charter_id: 'some-charter',
+        },
+      },
+    });
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    (createServerClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSb);
+
+    await importAndRun('contrib-7');
+
+    // NaN * 100 = NaN, Math.round(NaN) = NaN, NaN <= 0 is false... but let's verify behavior
+    // Actually: NaN <= 0 evaluates to false in JS, so it would NOT early return on the <= 0 check.
+    // However, the function would proceed and calculateMembershipSplit would get NaN totalCents.
+    // Let's check: with no charter_id it allocates NaN cents to national, then filters amountCents > 0
+    // which NaN > 0 is false, so entries would be empty, and entries.length === 0 → early return.
+    // Either way, no insert should happen.
+    const ledgerInsertChains = mockSb.from.mock.calls
+      .map((_: unknown, idx: number) => mockSb.from.mock.results[idx].value)
+      .filter((chain: { insert: ReturnType<typeof vi.fn> }) => chain.insert.mock.calls.length > 0);
+    expect(ledgerInsertChains).toHaveLength(0);
+    expect(mockExecuteTransfers).not.toHaveBeenCalled();
+  });
+
+  it('sets status=transferred for national entries and status=pending for non-national', async () => {
+    const mockSb = createMockSupabase({
+      rlc_contributions: {
+        data: {
+          id: 'contrib-8',
+          amount: 45,
+          currency: 'USD',
+          contribution_type: 'membership',
+          member_id: 'member-1',
+          charter_id: 'state-charter-uuid',
+        },
+      },
+      rlc_split_ledger_entries: [
+        { data: [], error: null },
+      ],
+      'rlc_split_ledger_entries:insert': { data: null, error: null },
+      // charter_id is already state-level
+      rlc_charters: [
+        { data: { id: 'state-charter-uuid', charter_level: 'state', parent_charter_id: 'national-uuid' } },
+      ],
+      rlc_charter_split_configs: { data: null, error: { code: 'PGRST116', message: 'not found' } },
+    });
+
+    const { createServerClient } = await import('@/lib/supabase/server');
+    (createServerClient as ReturnType<typeof vi.fn>).mockReturnValue(mockSb);
+
+    await importAndRun('contrib-8');
+
+    const insertChain = mockSb.from.mock.results.find(
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (result: any, idx: number) =>
+        mockSb.from.mock.calls[idx][0] === 'rlc_split_ledger_entries' && result.value.insert.mock.calls.length > 0
+    );
+    expect(insertChain).toBeDefined();
+
+    const entries = insertChain!.value.insert.mock.calls[0][0];
+    expect(entries).toHaveLength(2);
+
+    // National entry
+    const nationalEntry = entries.find(
+      (e: { recipient_charter_id: string }) => e.recipient_charter_id === 'national-uuid'
+    );
+    expect(nationalEntry).toBeDefined();
+    expect(nationalEntry.status).toBe('transferred');
+    expect(nationalEntry.transferred_at).toBeTruthy();
+    expect(nationalEntry.amount).toBe(15);
+
+    // State entry
+    const stateEntry = entries.find(
+      (e: { recipient_charter_id: string }) => e.recipient_charter_id === 'state-charter-uuid'
+    );
+    expect(stateEntry).toBeDefined();
+    expect(stateEntry.status).toBe('pending');
+    expect(stateEntry.transferred_at).toBeNull();
+    expect(stateEntry.amount).toBe(30);
+
+    // Both entries should have the same transfer group
+    expect(nationalEntry.stripe_transfer_group_id).toBe(stateEntry.stripe_transfer_group_id);
+    expect(nationalEntry.stripe_transfer_group_id).toBe('split_contrib-8');
   });
 });

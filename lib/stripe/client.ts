@@ -334,15 +334,19 @@ export async function createTransfer(params: {
   destinationAccountId: string;
   transferGroup?: string;
   description?: string;
+  idempotencyKey?: string;
 }): Promise<Stripe.Transfer> {
   const stripe = getStripe();
-  return stripe.transfers.create({
-    amount: params.amount,
-    currency: 'usd',
-    destination: params.destinationAccountId,
-    transfer_group: params.transferGroup,
-    description: params.description,
-  });
+  return stripe.transfers.create(
+    {
+      amount: params.amount,
+      currency: 'usd',
+      destination: params.destinationAccountId,
+      transfer_group: params.transferGroup,
+      description: params.description,
+    },
+    params.idempotencyKey ? { idempotencyKey: params.idempotencyKey } : undefined
+  );
 }
 
 /** Reverse a transfer (for refunds) */

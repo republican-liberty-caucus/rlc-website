@@ -64,9 +64,20 @@ export async function GET(request: Request) {
   }[];
 
   if (format === 'csv') {
-    const header = 'ID,Contribution ID,Source Type,Recipient Charter,Amount,Currency,Status,Transfer ID,Transferred At,Created At';
+    // Escape CSV fields to prevent formula injection and handle special characters
+    const escapeCsvField = (value: string | number | null | undefined): string => {
+      const str = String(value ?? '');
+      // Prefix formula-triggering characters with a single quote
+      const sanitized = /^[=+\-@\t\r]/.test(str) ? `'${str}` : str;
+      // Wrap in double quotes and escape internal quotes
+      return `"${sanitized.replace(/"/g, '""')}"`;
+    };
+
+    const header = '"ID","Contribution ID","Source Type","Recipient Charter","Amount","Currency","Status","Transfer ID","Transferred At","Created At"';
     const csvRows = rows.map((r) =>
-      `${r.id},${r.contribution_id},${r.source_type},${r.recipient_charter_id},${r.amount},${r.currency},${r.status},${r.stripe_transfer_id || ''},${r.transferred_at || ''},${r.created_at}`
+      [r.id, r.contribution_id, r.source_type, r.recipient_charter_id, r.amount, r.currency, r.status, r.stripe_transfer_id || '', r.transferred_at || '', r.created_at]
+        .map(escapeCsvField)
+        .join(',')
     );
 
     return new Response([header, ...csvRows].join('\n'), {

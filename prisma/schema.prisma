@@ -173,6 +173,7 @@ enum StripeConnectStatus {
 
 enum SplitLedgerStatus {
   pending
+  processing
   transferred
   reversed
   failed
@@ -898,7 +899,7 @@ model SplitLedgerEntry {
   splitRuleSnapshot      Json              @default("{}") @map("split_rule_snapshot")
   createdAt              DateTime          @default(now()) @map("created_at")
 
-  @@unique([contributionId, recipientCharterId])
+  @@index([contributionId, recipientCharterId])
   @@index([recipientCharterId, status, createdAt])
   @@map("rlc_split_ledger_entries")
 }

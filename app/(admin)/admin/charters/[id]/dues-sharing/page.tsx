@@ -38,7 +38,6 @@ export default function CharterDuesSharingPage() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [childCharters, setChildCharters] = useState<{ id: string; name: string; charter_level: string }[]>([]);
 
   const fetchConfig = useCallback(async () => {
     try {
@@ -71,16 +70,7 @@ export default function CharterDuesSharingPage() {
 
   useEffect(() => {
     fetchConfig();
-    fetchChildCharters();
   }, [charterId, fetchConfig]);
-
-  async function fetchChildCharters() {
-    // Get charters that could be recipients (self + descendants)
-    const res = await fetch(`/api/v1/admin/charters/${charterId}/split-config`);
-    // For now, we just provide an input for charter ID
-    // In a full implementation, we'd fetch the tree
-    void res;
-  }
 
   function addRule() {
     setRules([...rules, {
