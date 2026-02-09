@@ -7,11 +7,11 @@ import { AnimatedCounter } from '@/components/ui/animated-counter';
 
 interface HeroSectionProps {
   memberCount: number;
-  campaignCount: number;
+  charterCount: number;
   stateCount: number;
 }
 
-export function HeroSection({ memberCount, campaignCount, stateCount }: HeroSectionProps) {
+export function HeroSection({ memberCount, charterCount, stateCount }: HeroSectionProps) {
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-rlc-blue via-rlc-blue to-rlc-red py-20 text-white sm:py-28">
       {/* Subtle pattern overlay */}
@@ -87,9 +87,8 @@ export function HeroSection({ memberCount, campaignCount, stateCount }: HeroSect
             steps={40}
           />
           <AnimatedCounter
-            value={campaignCount}
-            label="Campaigns"
-            suffix="+"
+            value={charterCount}
+            label="State Charters"
             valueClassName="block font-heading text-4xl font-bold sm:text-5xl"
             labelClassName="mt-1 block text-sm uppercase tracking-wider text-white/70"
             duration={1500}
@@ -97,7 +96,7 @@ export function HeroSection({ memberCount, campaignCount, stateCount }: HeroSect
           />
           <AnimatedCounter
             value={stateCount}
-            label="States"
+            label="States Active"
             suffix="+"
             valueClassName="block font-heading text-4xl font-bold sm:text-5xl"
             labelClassName="mt-1 block text-sm uppercase tracking-wider text-white/70"
