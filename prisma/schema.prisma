@@ -223,7 +223,7 @@ model Chapter {
 model Member {
   id                   String           @id @default(uuid())
   clerkUserId          String?          @unique @map("clerk_user_id")
-  email                String           @unique
+  email                String?          @unique
   firstName            String           @map("first_name")
   lastName             String           @map("last_name")
   phone                String?
@@ -255,6 +255,20 @@ model Member {
   smsOptIn             Boolean          @default(false) @map("sms_opt_in")
   doNotPhone           Boolean          @default(false) @map("do_not_phone")
 
+  // Email validation (Reoon)
+  emailValidatedAt     DateTime?        @map("email_validated_at")
+  emailStatus          String?          @map("email_status")
+  emailOverallScore    Int?             @map("email_overall_score")
+  emailIsSafeToSend    Boolean?         @map("email_is_safe_to_send")
+  emailIsValidSyntax   Boolean?         @map("email_is_valid_syntax")
+  emailIsDisposable    Boolean?         @map("email_is_disposable")
+  emailIsRoleAccount   Boolean?         @map("email_is_role_account")
+  emailIsSpamtrap      Boolean?         @map("email_is_spamtrap")
+  emailIsFreeEmail     Boolean?         @map("email_is_free_email")
+  emailIsDeliverable   Boolean?         @map("email_is_deliverable")
+  emailIsCatchAll      Boolean?         @map("email_is_catch_all")
+  emailMxAcceptsMail   Boolean?         @map("email_mx_accepts_mail")
+
   // Household / family members
   householdId          String?          @map("household_id")
   householdRole        HouseholdRole?   @map("household_role")
@@ -267,6 +281,7 @@ model Member {
   updatedAt            DateTime         @updatedAt @map("updated_at")
 
   // Relations
+  memberships             Membership[]     @relation("MemberMemberships")
   roles                   MemberRole[]     @relation("MemberRoles")
   grantedRoles            MemberRole[]     @relation("GrantedRoles")
   contributions           Contribution[]
@@ -282,6 +297,31 @@ model Member {
   splitConfigsUpdated    ChapterSplitConfig[] @relation("SplitConfigUpdater")
 
   @@map("rlc_members")
+}
+
+/// Membership records (1-to-many with Member for membership history)
+model Membership {
+  id                   String           @id @default(uuid())
+  contactId            String           @map("contact_id")
+  contact              Member           @relation("MemberMemberships", fields: [contactId], references: [id], onDelete: Cascade)
+  membershipTier       MembershipTier   @map("membership_tier")
+  membershipStatus     MembershipStatus @map("membership_status")
+  startDate            DateTime?        @map("start_date")
+  expiryDate           DateTime?        @map("expiry_date")
+  joinDate             DateTime?        @map("join_date")
+  amount               Decimal?         @db.Decimal(10, 2)
+  currency             String?          @default("USD")
+  civicrmMembershipId  Int?             @unique @map("civicrm_membership_id")
+  isAutoRenew          Boolean          @default(false) @map("is_auto_renew")
+  stripeSubscriptionId String?          @map("stripe_subscription_id")
+  metadata             Json             @default("{}")
+  createdAt            DateTime         @default(now()) @map("created_at")
+  updatedAt            DateTime         @updatedAt @map("updated_at")
+
+  @@index([contactId])
+  @@index([membershipStatus])
+  @@index([expiryDate])
+  @@map("rlc_memberships")
 }
 
 /// Member roles (multi-role support)
