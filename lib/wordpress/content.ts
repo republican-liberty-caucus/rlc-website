@@ -12,7 +12,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
   ]),
   allowedAttributes: {
     ...sanitizeHtml.defaults.allowedAttributes,
-    img: ['src', 'alt', 'title', 'width', 'height', 'loading'],
+    img: ['src', 'alt', 'title', 'loading'],
     iframe: ['src', 'width', 'height', 'frameborder', 'allowfullscreen', 'title'],
     video: ['src', 'controls', 'width', 'height'],
     source: ['src', 'type'],
