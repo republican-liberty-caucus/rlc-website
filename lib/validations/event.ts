@@ -4,6 +4,7 @@ export const eventCreateSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200),
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/, 'Slug must be lowercase with hyphens'),
   description: z.string().optional().nullable(),
+  featuredImageUrl: z.string().url().optional().nullable(),
   eventType: z.string().optional().nullable(),
   startDate: z.coerce.date(),
   endDate: z.coerce.date().optional().nullable(),
@@ -20,6 +21,7 @@ export const eventCreateSchema = z.object({
   registrationFee: z.number().positive().optional().nullable(),
   registrationDeadline: z.coerce.date().optional().nullable(),
   charterId: z.string().uuid().optional().nullable(),
+  organizerId: z.string().uuid().optional().nullable(),
   status: z.enum(['draft', 'published', 'cancelled']).default('draft'),
 });
 

@@ -88,7 +88,9 @@ export async function PATCH(
   if (input.maxAttendees !== undefined) updatePayload.max_attendees = input.maxAttendees || null;
   if (input.registrationFee !== undefined) updatePayload.registration_fee = input.registrationFee || null;
   if (input.registrationDeadline !== undefined) updatePayload.registration_deadline = input.registrationDeadline?.toISOString() || null;
+  if (input.featuredImageUrl !== undefined) updatePayload.featured_image_url = input.featuredImageUrl || null;
   if (input.charterId !== undefined) updatePayload.charter_id = input.charterId || null;
+  if (input.organizerId !== undefined) updatePayload.organizer_id = input.organizerId || null;
   if (input.status !== undefined) updatePayload.status = input.status;
 
   const { data, error } = await supabase

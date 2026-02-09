@@ -122,6 +122,7 @@ export interface Event {
   title: string;
   slug: string;
   description: string | null;
+  featured_image_url: string | null;
   event_type: string | null;
   start_date: string;
   end_date: string | null;

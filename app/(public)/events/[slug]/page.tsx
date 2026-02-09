@@ -5,7 +5,8 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import { Calendar, MapPin, Video, Users, Clock, DollarSign } from 'lucide-react';
+import Image from 'next/image';
+import { Calendar, MapPin, Video, Users, Clock, DollarSign, Mail, User } from 'lucide-react';
 import { RegistrationButton } from '@/components/events/registration-button';
 
 interface EventDetailProps {
@@ -17,6 +18,7 @@ interface EventRow {
   title: string;
   slug: string;
   description: string | null;
+  featured_image_url: string | null;
   event_type: string | null;
   start_date: string;
   end_date: string | null;
@@ -35,6 +37,7 @@ interface EventRow {
   charter_id: string | null;
   status: string;
   charter: { name: string; slug: string } | null;
+  organizer: { first_name: string; last_name: string; email: string | null } | null;
 }
 
 async function getEvent(slug: string) {
@@ -44,7 +47,8 @@ async function getEvent(slug: string) {
     .from('rlc_events')
     .select(`
       *,
-      charter:rlc_charters(name, slug)
+      charter:rlc_charters(name, slug),
+      organizer:rlc_contacts!organizer_id(first_name, last_name, email)
     `)
     .eq('slug', slug)
     .eq('status', 'published')
@@ -62,6 +66,9 @@ export async function generateMetadata({ params }: EventDetailProps): Promise<Me
   return {
     title: `${event.title} - RLC Events`,
     description: event.description?.slice(0, 160) || `Join us for ${event.title}`,
+    ...(event.featured_image_url && {
+      openGraph: { images: [{ url: event.featured_image_url }] },
+    }),
   };
 }
 
@@ -83,6 +90,19 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
   return (
     <div className="flex min-h-screen flex-col">
       <MainNav />
+
+      {/* Featured Image */}
+      {event.featured_image_url && (
+        <div className="relative h-64 w-full md:h-96">
+          <Image
+            src={event.featured_image_url}
+            alt={event.title}
+            fill
+            className="object-cover"
+            priority
+          />
+        </div>
+      )}
 
       {/* Hero */}
       <section className="bg-rlc-blue py-16 text-white">
@@ -212,6 +232,32 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                 </p>
               )}
             </div>
+
+            {/* Event Organizer */}
+            {event.organizer && (
+              <div className="rounded-lg border bg-card p-6">
+                <h3 className="mb-3 text-lg font-semibold">Event Organizer</h3>
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rlc-blue/10">
+                    <User className="h-5 w-5 text-rlc-blue" />
+                  </div>
+                  <div>
+                    <p className="font-medium">
+                      {event.organizer.first_name} {event.organizer.last_name}
+                    </p>
+                    {event.organizer.email && (
+                      <a
+                        href={`mailto:${event.organizer.email}`}
+                        className="flex items-center gap-1 text-sm text-rlc-red hover:underline"
+                      >
+                        <Mail className="h-3 w-3" />
+                        {event.organizer.email}
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Back */}
             <Link href="/events" className="block text-sm text-rlc-red hover:underline">

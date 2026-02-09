@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
+import Image from 'next/image';
 import { auth } from '@clerk/nextjs/server';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
@@ -20,6 +21,7 @@ interface EventWithCharter {
   title: string;
   slug: string;
   description: string | null;
+  featured_image_url: string | null;
   start_date: string;
   is_virtual: boolean;
   city: string | null;
@@ -92,9 +94,19 @@ export default async function EventsPage() {
                 <Link
                   key={event.id}
                   href={`/events/${event.slug}`}
-                  className="group rounded-lg border bg-card p-6 transition-colors hover:border-rlc-red"
+                  className="group overflow-hidden rounded-lg border bg-card transition-colors hover:border-rlc-red"
                 >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                  {event.featured_image_url && (
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={event.featured_image_url}
+                        alt={event.title}
+                        fill
+                        className="object-cover"
+                      />
+                    </div>
+                  )}
+                  <div className="flex flex-col gap-4 p-6 md:flex-row md:items-start md:justify-between">
                     <div>
                       <div className="mb-2 flex flex-wrap items-center gap-2">
                         {registeredEventIds.has(event.id) && (

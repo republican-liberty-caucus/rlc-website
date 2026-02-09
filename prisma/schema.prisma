@@ -393,6 +393,7 @@ model Event {
   title                String
   slug                 String    @unique
   description          String?   @db.Text
+  featuredImageUrl     String?   @map("featured_image_url")
   eventType            String?   @map("event_type")
 
   // Timing
