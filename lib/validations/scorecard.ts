@@ -7,6 +7,9 @@ export const sessionCreateSchema = z.object({
   stateCode: z.string().max(2).optional(),
   charterId: z.string().optional(),
   sessionYear: z.number().int().min(2000).max(2100),
+  chamber: z.enum(['us_house', 'us_senate', 'state_house', 'state_senate']).optional(),
+  partyFilter: z.string().max(50).optional(),
+  absencePenaltyThreshold: z.number().int().min(0).max(50).default(3),
 });
 
 export const sessionUpdateSchema = z.object({
@@ -17,6 +20,9 @@ export const sessionUpdateSchema = z.object({
   stateCode: z.string().max(2).optional(),
   charterId: z.string().optional(),
   sessionYear: z.number().int().min(2000).max(2100).optional(),
+  chamber: z.enum(['us_house', 'us_senate', 'state_house', 'state_senate']).nullable().optional(),
+  partyFilter: z.string().max(50).nullable().optional(),
+  absencePenaltyThreshold: z.number().int().min(0).max(50).optional(),
 });
 
 export const billCreateSchema = z.object({
@@ -29,6 +35,10 @@ export const billCreateSchema = z.object({
   weight: z.number().min(0.1).max(10).default(1),
   voteDate: z.string().optional(),
   legiscanRollCallId: z.number().int().optional(),
+  sortOrder: z.number().int().min(0).default(0),
+  isBonus: z.boolean().default(false),
+  bonusPointValue: z.number().min(0).max(100).default(0),
+  voteResultSummary: z.string().optional(),
 });
 
 export const billUpdateSchema = z.object({
@@ -43,6 +53,10 @@ export const billUpdateSchema = z.object({
   voteDate: z.string().optional(),
   billStatus: z.enum(['tracking', 'voted', 'no_vote']).optional(),
   legiscanRollCallId: z.number().int().optional(),
+  sortOrder: z.number().int().min(0).optional(),
+  isBonus: z.boolean().optional(),
+  bonusPointValue: z.number().min(0).max(100).optional(),
+  voteResultSummary: z.string().nullable().optional(),
 });
 
 export const legislatorCreateSchema = z.object({
@@ -58,7 +72,8 @@ export const legislatorCreateSchema = z.object({
 export const voteImportSchema = z.object({
   votes: z.array(z.object({
     legislatorId: z.string(),
-    vote: z.enum(['yea', 'nay', 'not_voting', 'absent']),
+    vote: z.enum(['yea', 'nay', 'not_voting', 'absent', 'present', 'not_applicable']),
     alignedWithLiberty: z.boolean(),
+    sponsorshipRole: z.enum(['sponsor', 'cosponsor']).optional(),
   })).min(1),
 });

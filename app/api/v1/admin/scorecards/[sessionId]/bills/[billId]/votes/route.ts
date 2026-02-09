@@ -12,6 +12,8 @@ function mapVoteText(voteText: string): VoteChoice {
     case 'Yea': return 'yea';
     case 'Nay': return 'nay';
     case 'Absent': return 'absent';
+    case 'Present': return 'present';
+    case 'NV': return 'not_voting';
     default: return 'not_voting';
   }
 }

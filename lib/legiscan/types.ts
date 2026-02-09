@@ -135,7 +135,7 @@ export interface LegiScanRollCall {
 export interface LegiScanVoteRecord {
   people_id: number;
   vote_id: number;
-  vote_text: 'Yea' | 'Nay' | 'NV' | 'Absent';
+  vote_text: 'Yea' | 'Nay' | 'NV' | 'Absent' | 'Present';
 }
 
 export interface LegiScanPerson {

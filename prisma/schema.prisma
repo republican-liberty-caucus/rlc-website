@@ -134,6 +134,13 @@ enum VoteChoice {
   nay
   not_voting
   absent
+  present
+  not_applicable
+}
+
+enum SponsorshipRole {
+  sponsor
+  cosponsor
 }
 
 enum LegislativeChamber {
@@ -611,6 +618,7 @@ model Legislator {
 
   votes                    ScorecardVote[]
   campaignParticipations   CampaignParticipation[]
+  sessionScores            ScorecardLegislatorScore[]
 
   @@map("rlc_legislators")
 }
@@ -626,12 +634,16 @@ model ScorecardSession {
   charter       Charter?                @relation(fields: [charterId], references: [id])
   sessionYear   Int                     @map("session_year")
   status        ScorecardSessionStatus  @default(draft)
+  chamber       LegislativeChamber?     @map("chamber")
+  partyFilter   String?                 @map("party_filter")
+  absencePenaltyThreshold Int           @default(3) @map("absence_penalty_threshold")
   createdBy     String?                 @map("created_by")
   creator          Contact?                 @relation("ScorecardCreator", fields: [createdBy], references: [id])
   createdAt     DateTime                @default(now()) @map("created_at")
   updatedAt     DateTime                @updatedAt @map("updated_at")
 
-  bills         ScorecardBill[]
+  bills              ScorecardBill[]
+  legislatorScores   ScorecardLegislatorScore[]
 
   @@map("rlc_scorecard_sessions")
 }
@@ -653,6 +665,10 @@ model ScorecardBill {
   voteDate             DateTime?           @map("vote_date") @db.Date
   billStatus           BillTrackingStatus  @default(tracking) @map("bill_status")
   legiscanRollCallId   Int?                @map("legiscan_roll_call_id")
+  sortOrder            Int                 @default(0) @map("sort_order")
+  isBonus              Boolean             @default(false) @map("is_bonus")
+  bonusPointValue      Decimal             @default(0) @map("bonus_point_value") @db.Decimal(3, 1)
+  voteResultSummary    String?             @map("vote_result_summary") @db.Text
   createdAt            DateTime            @default(now()) @map("created_at")
   updatedAt            DateTime            @updatedAt @map("updated_at")
 
@@ -671,11 +687,33 @@ model ScorecardVote {
   legislator         Legislator    @relation(fields: [legislatorId], references: [id], onDelete: Cascade)
   vote               VoteChoice
   alignedWithLiberty Boolean       @map("aligned_with_liberty")
+  sponsorshipRole    SponsorshipRole? @map("sponsorship_role")
   createdAt          DateTime      @default(now()) @map("created_at")
 
   @@unique([billId, legislatorId])
   @@index([billId])
   @@map("rlc_scorecard_votes")
+}
+
+/// Per-session computed scores for each legislator
+model ScorecardLegislatorScore {
+  id               String           @id @default(uuid())
+  sessionId        String           @map("session_id")
+  session          ScorecardSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  legislatorId     String           @map("legislator_id")
+  legislator       Legislator       @relation(fields: [legislatorId], references: [id], onDelete: Cascade)
+  votesAligned     Int              @default(0) @map("votes_aligned")
+  totalBills       Int              @default(0) @map("total_bills")
+  absences         Int              @default(0) @map("absences")
+  bonusPoints      Decimal          @default(0) @map("bonus_points") @db.Decimal(5, 2)
+  libertyScore     Decimal          @map("liberty_score") @db.Decimal(5, 2)
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  @@unique([sessionId, legislatorId])
+  @@index([sessionId])
+  @@index([legislatorId])
+  @@map("rlc_scorecard_legislator_scores")
 }
 
 /// Action Center campaigns for member advocacy
