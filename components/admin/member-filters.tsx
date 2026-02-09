@@ -36,8 +36,8 @@ export function MemberFilters() {
   );
 
   return (
-    <div className="mb-6 flex flex-wrap gap-4">
-      <div className="relative flex-1">
+    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
+      <div className="relative w-full sm:flex-1">
         <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
         <input
           type="text"
@@ -51,7 +51,7 @@ export function MemberFilters() {
       <select
         defaultValue={searchParams.get('status') || ''}
         onChange={(e) => updateParam('status', e.target.value)}
-        className="rounded-md border bg-background px-3 py-2"
+        className="w-full rounded-md border bg-background px-3 py-2 sm:w-auto"
       >
         <option value="">All Statuses</option>
         <option value="new_member">New</option>
@@ -65,7 +65,7 @@ export function MemberFilters() {
       <select
         defaultValue={searchParams.get('tier') || ''}
         onChange={(e) => updateParam('tier', e.target.value)}
-        className="rounded-md border bg-background px-3 py-2"
+        className="w-full rounded-md border bg-background px-3 py-2 sm:w-auto"
       >
         <option value="">All Tiers</option>
         <option value="student_military">Student/Military</option>
@@ -79,30 +79,32 @@ export function MemberFilters() {
       <select
         defaultValue={searchParams.get('source') || ''}
         onChange={(e) => updateParam('source', e.target.value)}
-        className="rounded-md border bg-background px-3 py-2"
+        className="w-full rounded-md border bg-background px-3 py-2 sm:w-auto"
       >
         <option value="">All Sources</option>
         <option value="highlevel_only">HighLevel Only</option>
         <option value="civicrm_only">CiviCRM Only</option>
         <option value="both">Both Sources</option>
       </select>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-col items-start gap-2 sm:flex-row sm:items-center">
         <label className="text-sm text-muted-foreground whitespace-nowrap">Joined:</label>
-        <input
-          type="date"
-          defaultValue={searchParams.get('joined_after') || ''}
-          onChange={(e) => updateParam('joined_after', e.target.value)}
-          className="rounded-md border bg-background px-3 py-2 text-sm"
-          title="Joined after"
-        />
-        <span className="text-sm text-muted-foreground">to</span>
-        <input
-          type="date"
-          defaultValue={searchParams.get('joined_before') || ''}
-          onChange={(e) => updateParam('joined_before', e.target.value)}
-          className="rounded-md border bg-background px-3 py-2 text-sm"
-          title="Joined before"
-        />
+        <div className="flex w-full items-center gap-2 sm:w-auto">
+          <input
+            type="date"
+            defaultValue={searchParams.get('joined_after') || ''}
+            onChange={(e) => updateParam('joined_after', e.target.value)}
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm sm:w-auto"
+            title="Joined after"
+          />
+          <span className="text-sm text-muted-foreground">to</span>
+          <input
+            type="date"
+            defaultValue={searchParams.get('joined_before') || ''}
+            onChange={(e) => updateParam('joined_before', e.target.value)}
+            className="w-full rounded-md border bg-background px-3 py-2 text-sm sm:w-auto"
+            title="Joined before"
+          />
+        </div>
       </div>
       {isPending && (
         <div className="flex items-center text-sm text-muted-foreground">

@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { AdminNav } from '@/components/navigation/admin-nav';
 import { getAdminContext } from '@/lib/admin/permissions';
+import { AdminShell } from '@/components/admin/admin-shell';
 
 export default async function AdminLayout({
   children,
@@ -20,12 +20,5 @@ export default async function AdminLayout({
     redirect('/dashboard?error=unauthorized');
   }
 
-  return (
-    <div className="flex min-h-screen">
-      <AdminNav />
-      <main className="flex-1 bg-muted/30">
-        <div className="p-8">{children}</div>
-      </main>
-    </div>
-  );
+  return <AdminShell>{children}</AdminShell>;
 }
