@@ -1,3 +1,4 @@
+import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Quote } from 'lucide-react';
@@ -8,14 +9,14 @@ const testimonials = [
       "The RLC was instrumental in my decision to run for public office and helping to get me elected. I don't know if I would be where I am today without their support over the years.",
     name: 'Rand Paul',
     title: 'U.S. Senator, Kentucky',
-    initials: 'RP',
+    image: '/images/testimonials/rand-paul.jpg',
   },
   {
     quote:
       "If you are serious about it and want to get elected and you want to move the needle, you need to run as a Republican, and that's why the Republican Liberty Caucus is in the sweet spot right now.",
     name: 'Thomas Massie',
     title: 'U.S. Representative, Kentucky',
-    initials: 'TM',
+    image: '/images/testimonials/thomas-massie.png',
   },
 ];
 
@@ -38,8 +39,13 @@ export function Testimonials() {
                 &ldquo;{t.quote}&rdquo;
               </blockquote>
               <div className="flex items-center gap-3 border-t pt-4">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rlc-blue text-sm font-bold text-white">
-                  {t.initials}
+                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
+                  <Image
+                    src={t.image}
+                    alt={t.name}
+                    fill
+                    className="object-cover"
+                  />
                 </div>
                 <div>
                   <p className="font-semibold leading-tight">{t.name}</p>
