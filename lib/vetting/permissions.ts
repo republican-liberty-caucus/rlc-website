@@ -53,6 +53,11 @@ export function canViewPipeline(ctx: VettingContext): boolean {
   return ctx.isCommitteeMember || ctx.isNational;
 }
 
+/** Committee chair and national can create a vetting from a candidate response */
+export function canCreateVetting(ctx: VettingContext): boolean {
+  return ctx.isChair || ctx.isNational;
+}
+
 /** Only the committee chair can assign sections to members */
 export function canAssignSections(ctx: VettingContext): boolean {
   return ctx.isChair || ctx.isNational;
