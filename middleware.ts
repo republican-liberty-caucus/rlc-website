@@ -22,6 +22,7 @@ const isPublicRoute = createRouteMatcher([
   '/action-center(.*)',
   '/endorsements(.*)',
   '/candidate-surveys(.*)',
+  '/data(.*)',
 ]);
 
 // Define admin routes that require specific roles
