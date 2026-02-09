@@ -140,9 +140,35 @@ function wpautop(text: string): string {
   return output;
 }
 
+/**
+ * Rewrite old WordPress image URLs to Supabase Storage equivalents.
+ * Maps: rlc.org/wp-content/uploads/YYYY/MM/file → supabase storage URL
+ */
+const WP_DOMAINS = ['rlc.org', 'www.rlc.org', 'new.rlc.org', 'brevardrepublicans.com', 'www.brevardrepublicans.com', 'rlccef.com', 'www.rlccef.com', 'vps.virtualinfosys.us'];
+const SUPABASE_STORAGE_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/wordpress-media`;
+
+export function rewriteWPImageUrl(url: string): string {
+  if (!url) return url;
+  try {
+    const parsed = new URL(url.trim().replace(/^http:/, 'https:'));
+    if (!WP_DOMAINS.includes(parsed.hostname)) return url;
+    const match = parsed.pathname.match(/\/wp-content\/uploads\/(\d{4})\/(\d{2})\/(.+)$/);
+    if (!match) return url;
+    return `${SUPABASE_STORAGE_BASE}/${match[1]}/${match[2]}/${match[3]}`;
+  } catch {
+    return url;
+  }
+}
+
 /** Sanitize WordPress HTML for safe rendering */
 export function sanitizeWPContent(html: string): string {
-  return sanitizeHtml(wpautop(promoteHeadings(html)), SANITIZE_OPTIONS);
+  let output = sanitizeHtml(wpautop(promoteHeadings(html)), SANITIZE_OPTIONS);
+  // Rewrite any remaining old WP image URLs in the sanitized HTML
+  for (const domain of WP_DOMAINS) {
+    const pattern = new RegExp(`https?://${domain.replace('.', '\\.')}/wp-content/uploads/(\\d{4})/(\\d{2})/([^"'\\s<>]+)`, 'gi');
+    output = output.replace(pattern, `${SUPABASE_STORAGE_BASE}/$1/$2/$3`);
+  }
+  return output;
 }
 
 interface WPPage {

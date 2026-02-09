@@ -11,6 +11,7 @@ import { EventPreview } from '@/components/home/event-preview';
 import { createServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import { formatDate } from '@/lib/utils';
+import { rewriteWPImageUrl } from '@/lib/wordpress/content';
 import { Users, Heart, MapPin } from 'lucide-react';
 
 interface HomePost {
@@ -272,7 +273,7 @@ export default async function HomePage() {
                   {post.featured_image_url ? (
                     <div className="relative aspect-video overflow-hidden bg-muted">
                       <Image
-                        src={post.featured_image_url}
+                        src={rewriteWPImageUrl(post.featured_image_url)}
                         alt={post.title}
                         fill
                         unoptimized
