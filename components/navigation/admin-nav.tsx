@@ -18,6 +18,9 @@ import {
   Target,
   Megaphone,
   Split,
+  Shield,
+  UserCheck,
+  CalendarClock,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -58,6 +61,14 @@ const navSections: NavSection[] = [
       { href: '/admin/scorecards', label: 'Scorecards', icon: Target },
       { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
       { href: '/admin/surveys', label: 'Surveys', icon: ClipboardList },
+    ],
+  },
+  {
+    label: 'Vetting',
+    items: [
+      { href: '/admin/vetting', label: 'Pipeline', icon: Shield },
+      { href: '/admin/vetting/committee', label: 'Committee', icon: UserCheck },
+      { href: '/admin/vetting/deadlines', label: 'Deadlines', icon: CalendarClock },
     ],
   },
   {

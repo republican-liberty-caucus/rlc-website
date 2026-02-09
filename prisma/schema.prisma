@@ -184,6 +184,63 @@ enum SplitSourceType {
   event_registration
 }
 
+// Candidate Vetting enums
+
+enum VettingStage {
+  survey_submitted
+  auto_audit
+  assigned
+  research
+  interview
+  committee_review
+  board_vote
+}
+
+enum VettingReportSectionType {
+  digital_presence_audit
+  executive_summary
+  election_schedule
+  voting_rules
+  candidate_background
+  incumbent_record
+  opponent_research
+  electoral_results
+  district_data
+}
+
+enum AuditStatus {
+  audit_pending
+  running
+  audit_completed
+  audit_failed
+}
+
+enum VettingRecommendation {
+  endorse
+  do_not_endorse
+  no_position
+}
+
+enum VettingSectionStatus {
+  section_not_started
+  section_assigned
+  section_in_progress
+  section_completed
+  needs_revision
+}
+
+enum BoardVoteChoice {
+  vote_endorse
+  vote_do_not_endorse
+  vote_no_position
+  vote_abstain
+}
+
+enum CommitteeRole {
+  chair
+  committee_member
+}
+
 // ===========================================
 // Core Tables
 // ===========================================
@@ -302,6 +359,12 @@ model Contact {
 
   // Dues sharing relations
   splitConfigsUpdated    CharterSplitConfig[] @relation("SplitConfigUpdater")
+
+  // Candidate vetting relations
+  committeeMembers          CandidateVettingCommitteeMember[]
+  vettingSectionAssignments CandidateVettingSectionAssignment[]
+  boardVotes                CandidateVettingBoardVote[]
+  digitalAuditsTriggered    CandidateDigitalAudit[]           @relation("AuditTriggeredBy")
 
   @@map("rlc_members")
 }
@@ -580,6 +643,7 @@ model CandidateResponse {
   updatedAt         DateTime                @updatedAt @map("updated_at")
 
   answers           SurveyAnswer[]
+  vetting           CandidateVetting?
 
   @@map("rlc_candidate_responses")
 }
@@ -836,4 +900,275 @@ model SplitLedgerEntry {
   @@unique([contributionId, recipientCharterId])
   @@index([recipientCharterId, status, createdAt])
   @@map("rlc_split_ledger_entries")
+}
+
+// ===========================================
+// Candidate Vetting & Endorsement System
+// ===========================================
+
+/// Vetting committee definition
+model CandidateVettingCommittee {
+  id        String   @id @default(uuid())
+  name      String
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  members  CandidateVettingCommitteeMember[]
+  vettings CandidateVetting[]
+
+  @@map("rlc_candidate_vetting_committees")
+}
+
+/// Committee membership (who's on the committee, with role)
+model CandidateVettingCommitteeMember {
+  id          String        @id @default(uuid())
+  committeeId String        @map("committee_id")
+  committee   CandidateVettingCommittee @relation(fields: [committeeId], references: [id], onDelete: Cascade)
+  contactId   String        @map("contact_id")
+  contact     Contact       @relation(fields: [contactId], references: [id])
+  role        CommitteeRole @default(committee_member)
+  isActive    Boolean       @default(true) @map("is_active")
+  joinedAt    DateTime      @default(now()) @map("joined_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  sectionAssignments CandidateVettingSectionAssignment[]
+
+  @@unique([committeeId, contactId])
+  @@map("rlc_candidate_vetting_committee_members")
+}
+
+/// Master vetting record per candidate being vetted
+model CandidateVetting {
+  id                  String               @id @default(uuid())
+  candidateResponseId String               @unique @map("candidate_response_id")
+  candidateResponse   CandidateResponse    @relation(fields: [candidateResponseId], references: [id])
+  committeeId         String?              @map("committee_id")
+  committee           CandidateVettingCommittee? @relation(fields: [committeeId], references: [id])
+  stage               VettingStage         @default(survey_submitted)
+
+  // Election info (denormalized for quick access)
+  candidateName       String               @map("candidate_name")
+  candidateOffice     String?              @map("candidate_office")
+  candidateDistrict   String?              @map("candidate_district")
+  candidateState      String?              @map("candidate_state")
+  candidateParty      String?              @map("candidate_party")
+
+  // Deadline reference
+  electionDeadlineId  String?              @map("election_deadline_id")
+  electionDeadline    CandidateElectionDeadline? @relation(fields: [electionDeadlineId], references: [id])
+
+  // District data reference
+  districtDataId      String?              @map("district_data_id")
+  districtData        CandidateDistrictData? @relation(fields: [districtDataId], references: [id])
+
+  // Interview
+  interviewDate       DateTime?            @map("interview_date")
+  interviewNotes      String?              @map("interview_notes") @db.Text
+  interviewers        String[]             @default([])
+
+  // Recommendation (committee chair)
+  recommendation      VettingRecommendation? @map("recommendation")
+  recommendationNotes String?              @map("recommendation_notes") @db.Text
+  recommendedAt       DateTime?            @map("recommended_at")
+
+  // Final result
+  endorsementResult   VettingRecommendation? @map("endorsement_result")
+  endorsedAt          DateTime?            @map("endorsed_at")
+
+  metadata            Json                 @default("{}")
+  createdAt           DateTime             @default(now()) @map("created_at")
+  updatedAt           DateTime             @updatedAt @map("updated_at")
+
+  // Relations
+  reportSections      CandidateVettingReportSection[]
+  opponents           CandidateVettingOpponent[]
+  boardVotes          CandidateVettingBoardVote[]
+  digitalAudits       CandidateDigitalAudit[]
+
+  @@index([stage])
+  @@index([candidateState])
+  @@map("rlc_candidate_vettings")
+}
+
+/// Report section data (one row per section per vetting)
+model CandidateVettingReportSection {
+  id          String                    @id @default(uuid())
+  vettingId   String                    @map("vetting_id")
+  vetting     CandidateVetting          @relation(fields: [vettingId], references: [id], onDelete: Cascade)
+  section     VettingReportSectionType
+  status      VettingSectionStatus      @default(section_not_started)
+  data        Json                      @default("{}")
+  aiDraftData Json?                     @map("ai_draft_data")
+  notes       String?                   @db.Text
+  createdAt   DateTime                  @default(now()) @map("created_at")
+  updatedAt   DateTime                  @updatedAt @map("updated_at")
+
+  assignments CandidateVettingSectionAssignment[]
+
+  @@unique([vettingId, section])
+  @@map("rlc_candidate_vetting_report_sections")
+}
+
+/// Section assignment (which member researches which section)
+model CandidateVettingSectionAssignment {
+  id               String                        @id @default(uuid())
+  sectionId        String                        @map("section_id")
+  section          CandidateVettingReportSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  committeeMemberId String                       @map("committee_member_id")
+  committeeMember  CandidateVettingCommitteeMember @relation(fields: [committeeMemberId], references: [id])
+  assignedById     String?                       @map("assigned_by_id")
+  assignedBy       Contact?                      @relation(fields: [assignedById], references: [id])
+  assignedAt       DateTime                      @default(now()) @map("assigned_at")
+
+  @@unique([sectionId, committeeMemberId])
+  @@map("rlc_candidate_vetting_section_assignments")
+}
+
+/// Opponent records for a vetting
+model CandidateVettingOpponent {
+  id              String           @id @default(uuid())
+  vettingId       String           @map("vetting_id")
+  vetting         CandidateVetting @relation(fields: [vettingId], references: [id], onDelete: Cascade)
+  name            String
+  party           String?
+  isIncumbent     Boolean          @default(false) @map("is_incumbent")
+  background      String?          @db.Text
+  credibility     String?          @db.Text
+  fundraising     Json?
+  endorsements    String[]         @default([])
+  socialLinks     Json?            @map("social_links")
+  photoUrl        String?          @map("photo_url")
+  metadata        Json             @default("{}")
+  createdAt       DateTime         @default(now()) @map("created_at")
+  updatedAt       DateTime         @updatedAt @map("updated_at")
+
+  @@map("rlc_candidate_vetting_opponents")
+}
+
+/// Board vote on a vetting (one per board member)
+model CandidateVettingBoardVote {
+  id        String           @id @default(uuid())
+  vettingId String           @map("vetting_id")
+  vetting   CandidateVetting @relation(fields: [vettingId], references: [id], onDelete: Cascade)
+  voterId   String           @map("voter_id")
+  voter     Contact          @relation(fields: [voterId], references: [id])
+  vote      BoardVoteChoice
+  notes     String?          @db.Text
+  votedAt   DateTime         @default(now()) @map("voted_at")
+
+  @@unique([vettingId, voterId])
+  @@map("rlc_candidate_vetting_board_votes")
+}
+
+/// Election deadlines by state/cycle/office type (shared reference data)
+model CandidateElectionDeadline {
+  id                     String    @id @default(uuid())
+  stateCode              String    @map("state_code") @db.Char(2)
+  cycleYear              Int       @map("cycle_year")
+  officeType             String    @map("office_type")
+  primaryDate            DateTime? @map("primary_date") @db.Date
+  primaryRunoffDate      DateTime? @map("primary_runoff_date") @db.Date
+  generalDate            DateTime? @map("general_date") @db.Date
+  generalRunoffDate      DateTime? @map("general_runoff_date") @db.Date
+  filingDeadline         DateTime? @map("filing_deadline") @db.Date
+  notes                  String?   @db.Text
+  createdAt              DateTime  @default(now()) @map("created_at")
+  updatedAt              DateTime  @updatedAt @map("updated_at")
+
+  vettings CandidateVetting[]
+
+  @@unique([stateCode, cycleYear, officeType])
+  @@map("rlc_candidate_election_deadlines")
+}
+
+/// District demographics and electoral data (shared across candidates in same district)
+model CandidateDistrictData {
+  id                 String    @id @default(uuid())
+  stateCode          String    @map("state_code") @db.Char(2)
+  districtId         String    @map("district_id")
+  officeType         String    @map("office_type")
+  cookPvi            String?   @map("cook_pvi")
+  population         Int?
+  partyRegistration  Json?     @map("party_registration")
+  municipalities     String[]  @default([])
+  counties           String[]  @default([])
+  overlappingDistricts String[] @default([]) @map("overlapping_districts")
+  electoralHistory   Json?     @map("electoral_history")
+  mapUrl             String?   @map("map_url")
+  metadata           Json      @default("{}")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  vettings CandidateVetting[]
+
+  @@unique([stateCode, districtId, officeType])
+  @@map("rlc_candidate_district_data")
+}
+
+/// Digital presence audit results per vetting
+model CandidateDigitalAudit {
+  id                     String      @id @default(uuid())
+  vettingId              String      @map("vetting_id")
+  vetting                CandidateVetting @relation(fields: [vettingId], references: [id], onDelete: Cascade)
+  status                 AuditStatus @default(audit_pending)
+  startedAt              DateTime?   @map("started_at")
+  completedAt            DateTime?   @map("completed_at")
+  triggeredById          String?     @map("triggered_by_id")
+  triggeredBy            Contact?    @relation("AuditTriggeredBy", fields: [triggeredById], references: [id])
+
+  // Candidate audit results
+  candidateOverallScore  Int?        @map("candidate_overall_score")
+  candidateGrade         String?     @map("candidate_grade")
+  candidateScoreBreakdown Json?      @map("candidate_score_breakdown")
+  candidateRisks         Json?       @map("candidate_risks")
+
+  // Opponent audit summaries
+  opponentAudits         Json?       @map("opponent_audits")
+
+  // Raw data
+  discoveryLog           Json?       @map("discovery_log")
+  screenshotsManifest    Json?       @map("screenshots_manifest")
+  errorMessage           String?     @map("error_message") @db.Text
+  metadata               Json        @default("{}")
+  createdAt              DateTime    @default(now()) @map("created_at")
+  updatedAt              DateTime    @updatedAt @map("updated_at")
+
+  platforms CandidateAuditPlatform[]
+
+  @@index([vettingId])
+  @@map("rlc_candidate_digital_audits")
+}
+
+/// Normalized per-platform records from the digital audit
+model CandidateAuditPlatform {
+  id                   String             @id @default(uuid())
+  auditId              String             @map("audit_id")
+  audit                CandidateDigitalAudit @relation(fields: [auditId], references: [id], onDelete: Cascade)
+  entityType           String             @map("entity_type")
+  entityName           String             @map("entity_name")
+  platformName         String             @map("platform_name")
+  platformUrl          String?            @map("platform_url")
+  confidenceScore      Decimal?           @map("confidence_score") @db.Decimal(3, 2)
+  discoveryMethod      String?            @map("discovery_method")
+  activityStatus       String?            @map("activity_status")
+  lastActivityDate     DateTime?          @map("last_activity_date")
+  followers            Int?
+  engagementRate       Decimal?           @map("engagement_rate") @db.Decimal(5, 2)
+  screenshotDesktopUrl String?            @map("screenshot_desktop_url")
+  screenshotMobileUrl  String?            @map("screenshot_mobile_url")
+  scorePresence        Int?               @map("score_presence")
+  scoreConsistency     Int?               @map("score_consistency")
+  scoreQuality         Int?               @map("score_quality")
+  scoreAccessibility   Int?               @map("score_accessibility")
+  totalScore           Int?               @map("total_score")
+  grade                String?
+  contactMethods       Json?              @map("contact_methods")
+  metadata             Json               @default("{}")
+  createdAt            DateTime           @default(now()) @map("created_at")
+  updatedAt            DateTime           @updatedAt @map("updated_at")
+
+  @@index([auditId, entityType])
+  @@map("rlc_candidate_audit_platforms")
 }
