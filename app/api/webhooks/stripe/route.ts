@@ -560,11 +560,11 @@ async function handleAccountUpdated(
   const chargesEnabled = account.charges_enabled ?? false;
   const payoutsEnabled = account.payouts_enabled ?? false;
 
-  // Determine new status
+  // Determine new status (never regress from 'active')
   let newStatus: string = row.status;
   if (chargesEnabled && payoutsEnabled) {
     newStatus = 'active';
-  } else if (account.details_submitted) {
+  } else if (row.status !== 'active' && account.details_submitted) {
     newStatus = 'onboarding'; // Submitted but not yet verified
   }
 

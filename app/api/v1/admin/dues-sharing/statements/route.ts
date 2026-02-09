@@ -38,6 +38,9 @@ export async function GET(request: Request) {
 
   // Month filter
   if (month) {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
+      return NextResponse.json({ error: 'Invalid month format. Use YYYY-MM (e.g. 2026-02)' }, { status: 400 });
+    }
     const [year, m] = month.split('-').map(Number);
     const startDate = new Date(year, m - 1, 1).toISOString();
     const endDate = new Date(year, m, 1).toISOString();
