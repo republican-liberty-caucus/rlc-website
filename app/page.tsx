@@ -1,23 +1,65 @@
 import Link from 'next/link';
+import Image from 'next/image';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { HeroSection } from '@/components/home/hero-section';
-import { UrgencyBar } from '@/components/home/urgency-bar';
-import { ActivityFeed } from '@/components/home/activity-feed';
 import { ScorecardSpotlight } from '@/components/home/scorecard-spotlight';
-import { CampaignGrid } from '@/components/home/campaign-grid';
+import { Testimonials } from '@/components/home/testimonials';
 import { StatsBar } from '@/components/home/stats-bar';
 import { EventPreview } from '@/components/home/event-preview';
 import { createServerClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
+import { formatDate } from '@/lib/utils';
+import { Users, Heart, MapPin } from 'lucide-react';
 
-async function getHomePageData() {
+interface HomePost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string | null;
+  published_at: string | null;
+  featured_image_url: string | null;
+  categories: string[] | null;
+}
+
+interface HomeEvent {
+  id: string;
+  title: string;
+  slug: string;
+  start_date: string;
+  is_virtual: boolean;
+  city: string | null;
+  state: string | null;
+}
+
+interface LegislatorSummary {
+  id: string;
+  name: string;
+  party: string;
+  state_code: string;
+  current_score: number | null;
+}
+
+interface HomePageData {
+  memberCount: number;
+  stateCount: number;
+  chapterCount: number;
+  activeCampaignCount: number;
+  events: HomeEvent[];
+  posts: HomePost[];
+  champions: LegislatorSummary[];
+  worstOffenders: LegislatorSummary[];
+  sessionName: string;
+  sessionSlug: string;
+}
+
+async function getHomePageData(): Promise<HomePageData> {
   const supabase = createServerClient();
 
   const [
     membersResult,
     chaptersResult,
-    campaignsResult,
     campaignCountResult,
     eventsResult,
     postsResult,
@@ -35,15 +77,7 @@ async function getHomePageData() {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active'),
 
-    // Active campaigns with participation counts
-    supabase
-      .from('rlc_action_campaigns')
-      .select('id, title, slug, description, status')
-      .eq('status', 'active')
-      .order('created_at', { ascending: false })
-      .limit(3),
-
-    // Total active campaign count (for urgency bar)
+    // Total active campaign count (for stats bar)
     supabase
       .from('rlc_action_campaigns')
       .select('id', { count: 'exact', head: true })
@@ -58,15 +92,15 @@ async function getHomePageData() {
       .order('start_date', { ascending: true })
       .limit(3),
 
-    // Latest 3 blog posts (exclude WordPress "Pages" category)
+    // Latest 4 blog posts with featured images
     supabase
       .from('rlc_posts')
-      .select('id, title, slug, excerpt, published_at')
+      .select('id, title, slug, excerpt, published_at, featured_image_url, categories')
       .eq('status', 'published')
       .not('published_at', 'is', null)
       .not('categories', 'cs', '{"Pages"}')
       .order('published_at', { ascending: false })
-      .limit(3),
+      .limit(4),
 
     // Latest published scorecard session
     supabase
@@ -79,46 +113,23 @@ async function getHomePageData() {
   ]);
 
   // Log any Supabase query errors (non-fatal — we fall back to empty data)
-  if (membersResult.error) console.error('[homepage] members query:', membersResult.error.message);
-  if (chaptersResult.error) console.error('[homepage] chapters query:', chaptersResult.error.message);
-  if (campaignsResult.error) console.error('[homepage] campaigns query:', campaignsResult.error.message);
-  if (campaignCountResult.error) console.error('[homepage] campaign count query:', campaignCountResult.error.message);
-  if (eventsResult.error) console.error('[homepage] events query:', eventsResult.error.message);
-  if (postsResult.error) console.error('[homepage] posts query:', postsResult.error.message);
-  // scorecardResult.error is expected when no published sessions exist (PGRST116)
+  if (membersResult.error) logger.error('[homepage] members query failed:', membersResult.error);
+  if (chaptersResult.error) logger.error('[homepage] chapters query failed:', chaptersResult.error);
+  if (campaignCountResult.error) logger.error('[homepage] campaign count query failed:', campaignCountResult.error);
+  if (eventsResult.error) logger.error('[homepage] events query failed:', eventsResult.error);
+  if (postsResult.error) logger.error('[homepage] posts query failed:', postsResult.error);
+  // PGRST116 is expected when no published sessions exist; log other errors
+  if (scorecardResult.error && scorecardResult.error.code !== 'PGRST116') {
+    logger.error('[homepage] scorecard session query failed:', scorecardResult.error);
+  }
 
   // Get distinct states from members
   const memberRows = (membersResult.data || []) as Array<{ state: string | null }>;
   const distinctStates = new Set(memberRows.map((m) => m.state).filter(Boolean));
 
-  // Get participation counts for campaigns
-  const campaigns = (campaignsResult.data || []) as Array<{
-    id: string;
-    title: string;
-    slug: string;
-    description: string | null;
-    status: string;
-  }>;
-
-  const campaignsWithCounts = await Promise.all(
-    campaigns.map(async (campaign) => {
-      const { count } = await supabase
-        .from('rlc_campaign_participations')
-        .select('id', { count: 'exact', head: true })
-        .eq('campaign_id', campaign.id);
-      return { ...campaign, participation_count: count || 0 };
-    })
-  );
-
   // Get top/bottom legislators for scorecard spotlight
-  let champions: Array<{
-    id: string;
-    name: string;
-    party: string;
-    state_code: string;
-    current_score: number | null;
-  }> = [];
-  let worstOffenders: typeof champions = [];
+  let champions: LegislatorSummary[] = [];
+  let worstOffenders: LegislatorSummary[] = [];
   let sessionName = '';
   let sessionSlug = '';
 
@@ -142,8 +153,11 @@ async function getHomePageData() {
         .limit(3),
     ]);
 
-    champions = (topResult.data || []) as typeof champions;
-    worstOffenders = (bottomResult.data || []) as typeof worstOffenders;
+    if (topResult.error) logger.error('[homepage] top legislators query failed:', topResult.error);
+    if (bottomResult.error) logger.error('[homepage] bottom legislators query failed:', bottomResult.error);
+
+    champions = (topResult.data || []) as LegislatorSummary[];
+    worstOffenders = (bottomResult.data || []) as LegislatorSummary[];
   }
 
   return {
@@ -151,23 +165,8 @@ async function getHomePageData() {
     stateCount: distinctStates.size,
     chapterCount: chaptersResult.count || 0,
     activeCampaignCount: campaignCountResult.count || 0,
-    campaigns: campaignsWithCounts,
-    events: (eventsResult.data || []) as Array<{
-      id: string;
-      title: string;
-      slug: string;
-      start_date: string;
-      is_virtual: boolean;
-      city: string | null;
-      state: string | null;
-    }>,
-    posts: (postsResult.data || []) as Array<{
-      id: string;
-      title: string;
-      slug: string;
-      excerpt: string | null;
-      published_at: string | null;
-    }>,
+    events: (eventsResult.data || []) as HomeEvent[],
+    posts: (postsResult.data || []) as HomePost[],
     champions,
     worstOffenders,
     sessionName,
@@ -175,18 +174,41 @@ async function getHomePageData() {
   };
 }
 
+const ctaCards = [
+  {
+    icon: Users,
+    heading: 'Join',
+    description:
+      'Learn more about how you can play an active role in advancing the cause of liberty inside the GOP.',
+    href: '/join',
+  },
+  {
+    icon: Heart,
+    heading: 'Donate',
+    description:
+      'The Republican Liberty Caucus depends on the generosity of donors like you to execute our mission.',
+    href: '/donate',
+  },
+  {
+    icon: MapPin,
+    heading: 'Get Involved',
+    description:
+      'With charters in almost every state there\'s bound to be an event near you. Find one and get involved today.',
+    href: '/chapters',
+  },
+];
+
 export default async function HomePage() {
-  let data;
+  let data: HomePageData;
   try {
     data = await getHomePageData();
   } catch (err) {
-    console.error('[homepage] Failed to load homepage data:', err);
+    logger.error('[homepage] Failed to load homepage data:', err);
     data = {
       memberCount: 0,
       stateCount: 0,
       chapterCount: 0,
       activeCampaignCount: 0,
-      campaigns: [],
       events: [],
       posts: [],
       champions: [],
@@ -206,9 +228,92 @@ export default async function HomePage() {
         stateCount={data.stateCount}
       />
 
-      <UrgencyBar activeCampaignCount={data.activeCampaignCount} />
+      {/* Three CTA Cards */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <div className="grid gap-8 md:grid-cols-3">
+            {ctaCards.map((card) => (
+              <Link
+                key={card.heading}
+                href={card.href}
+                className="group rounded-lg border bg-card p-8 text-center transition-all hover:border-rlc-red hover:shadow-lg"
+              >
+                <card.icon className="mx-auto mb-4 h-10 w-10 text-rlc-red" />
+                <h3 className="mb-3 font-heading text-xl font-bold group-hover:text-rlc-red">
+                  {card.heading}
+                </h3>
+                <p className="text-sm text-muted-foreground">{card.description}</p>
+              </Link>
+            ))}
+          </div>
+        </div>
+      </section>
 
-      <ActivityFeed />
+      {/* Latest News */}
+      {data.posts.length > 0 && (
+        <section className="bg-muted/30 py-16">
+          <div className="container mx-auto px-4">
+            <div className="mb-8 flex items-center justify-between">
+              <h2 className="font-heading text-3xl font-bold">Latest News</h2>
+              <Button asChild variant="outline">
+                <Link href="/blog">View All Posts</Link>
+              </Button>
+            </div>
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+              {data.posts.map((post) => (
+                <Link
+                  key={post.id}
+                  href={`/blog/${post.slug}`}
+                  className="group overflow-hidden rounded-lg border bg-card transition-all hover:border-rlc-red hover:shadow-md"
+                >
+                  {post.featured_image_url ? (
+                    <div className="relative aspect-video overflow-hidden bg-muted">
+                      <Image
+                        src={post.featured_image_url}
+                        alt={post.title}
+                        fill
+                        unoptimized
+                        className="object-cover transition-transform group-hover:scale-105"
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex aspect-video items-center justify-center bg-muted">
+                      <span className="text-3xl font-bold text-muted-foreground/30">RLC</span>
+                    </div>
+                  )}
+                  <div className="p-4">
+                    {post.categories && post.categories.length > 0 && (
+                      <div className="mb-2 flex flex-wrap gap-1">
+                        {post.categories.slice(0, 2).map((cat) => (
+                          <span
+                            key={cat}
+                            className="rounded-full bg-rlc-red/10 px-2 py-0.5 text-xs font-medium text-rlc-red capitalize"
+                          >
+                            {cat}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    <h3 className="mb-1 font-heading text-sm font-semibold leading-snug group-hover:text-rlc-red line-clamp-2">
+                      {post.title}
+                    </h3>
+                    {post.published_at && (
+                      <p className="text-xs text-muted-foreground">
+                        {formatDate(post.published_at)}
+                      </p>
+                    )}
+                    {post.excerpt && (
+                      <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+                        {post.excerpt}
+                      </p>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       <ScorecardSpotlight
         champions={data.champions}
@@ -217,39 +322,9 @@ export default async function HomePage() {
         sessionSlug={data.sessionSlug}
       />
 
-      <CampaignGrid campaigns={data.campaigns} />
+      <Testimonials />
 
       <EventPreview events={data.events} />
-
-      {/* Latest Blog Posts */}
-      {data.posts.length > 0 && (
-        <section className="py-16">
-          <div className="container mx-auto px-4">
-            <div className="mb-8 flex items-center justify-between">
-              <h2 className="font-heading text-3xl font-bold">Latest News</h2>
-              <Button asChild variant="outline">
-                <Link href="/blog">View All Posts</Link>
-              </Button>
-            </div>
-            <div className="grid gap-6 md:grid-cols-3">
-              {data.posts.map((post) => (
-                <Link
-                  key={post.id}
-                  href={`/blog/${post.slug}`}
-                  className="group rounded-lg border bg-card p-6 transition-all hover:border-rlc-red hover:shadow-md"
-                >
-                  <h3 className="mb-2 font-heading text-lg font-semibold group-hover:text-rlc-red">
-                    {post.title}
-                  </h3>
-                  {post.excerpt && (
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{post.excerpt}</p>
-                  )}
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
 
       <StatsBar
         stats={[
