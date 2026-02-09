@@ -6,7 +6,7 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/utils';
-import { sanitizeWPContent } from '@/lib/wordpress/content';
+import { sanitizeWPContent, rewriteWPImageUrl } from '@/lib/wordpress/content';
 
 interface BlogPostProps {
   params: Promise<{ slug: string }>;
@@ -109,7 +109,7 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
             {post.featured_image_url && (
               <div className="relative mt-8 aspect-video overflow-hidden rounded-lg">
                 <Image
-                  src={post.featured_image_url}
+                  src={rewriteWPImageUrl(post.featured_image_url)}
                   alt={post.title}
                   fill
                   unoptimized
@@ -121,7 +121,7 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
             {/* Content is sanitized server-side via sanitizeWPContent() to prevent XSS (issue #52) */}
             {post.content && (
               <div
-                className="prose prose-lg mt-8 max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-rlc-red prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg"
+                className="prose prose-lg mt-8 max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-rlc-red prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg prose-img:w-full prose-img:h-auto"
                 dangerouslySetInnerHTML={{ __html: sanitizeWPContent(post.content) }}
               />
             )}

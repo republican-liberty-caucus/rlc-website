@@ -5,6 +5,7 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/utils';
+import { rewriteWPImageUrl } from '@/lib/wordpress/content';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FileText } from 'lucide-react';
 
@@ -91,7 +92,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
                     {post.featured_image_url && (
                       <div className="relative aspect-video overflow-hidden bg-muted">
                         <Image
-                          src={post.featured_image_url}
+                          src={rewriteWPImageUrl(post.featured_image_url)}
                           alt={post.title}
                           fill
                           unoptimized
