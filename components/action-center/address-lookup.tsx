@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState, useEffect, useCallback } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Search } from 'lucide-react';
 import { RepCard } from '@/components/action-center/rep-card';
@@ -23,6 +23,7 @@ interface Props {
 
 export function AddressLookup({ showResults = false }: Props) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [address, setAddress] = useState('');
   const [officials, setOfficials] = useState<Official[]>([]);
   const [normalizedAddress, setNormalizedAddress] = useState<string | null>(null);
@@ -30,22 +31,14 @@ export function AddressLookup({ showResults = false }: Props) {
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
-    if (!address.trim()) return;
-
-    if (!showResults) {
-      router.push(`/action-center/contact?address=${encodeURIComponent(address)}`);
-      return;
-    }
-
+  const doSearch = useCallback(async (query: string) => {
     setLoading(true);
     setError('');
     setOfficials([]);
     setSearched(true);
 
     try {
-      const res = await fetch(`/api/v1/civic/representatives?address=${encodeURIComponent(address)}`);
+      const res = await fetch(`/api/v1/civic/representatives?address=${encodeURIComponent(query)}`);
       const data = await res.json();
 
       if (!res.ok) {
@@ -60,6 +53,27 @@ export function AddressLookup({ showResults = false }: Props) {
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  // Auto-search when address query param is present
+  useEffect(() => {
+    const addressParam = searchParams.get('address');
+    if (showResults && addressParam) {
+      setAddress(addressParam);
+      doSearch(addressParam);
+    }
+  }, [searchParams, showResults, doSearch]);
+
+  async function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    if (!address.trim()) return;
+
+    if (!showResults) {
+      router.push(`/action-center/contact?address=${encodeURIComponent(address)}`);
+      return;
+    }
+
+    doSearch(address);
   }
 
   return (
