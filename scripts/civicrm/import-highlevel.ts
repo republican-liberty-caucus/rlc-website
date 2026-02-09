@@ -85,6 +85,8 @@ interface HighLevelContact {
   country?: string;
   tags?: string[];
   customField?: Record<string, string>;
+  dateAdded?: string; // When contact was created in HighLevel (original signup date)
+  dateUpdated?: string;
 }
 
 interface ImportResult {
@@ -279,12 +281,52 @@ function extractMembershipData(contact: HighLevelContact): {
     }
   }
 
-  // Get dates from custom fields
+  // Get dates from custom fields, or use HighLevel's dateAdded as fallback for join date
   const startDate = customFields.membership_start_date;
   const expiryDate = customFields.membership_end_date;
-  const joinDate = customFields.membership_join_date || customFields.membership_join_date_initial;
+  const joinDate = customFields.membership_join_date
+    || customFields.membership_join_date_initial
+    || contact.dateAdded; // Use original signup date from HighLevel
 
   return { tier, status, startDate, expiryDate, joinDate };
+}
+
+/**
+ * Fetch opportunities (payments) for a contact to get actual join date
+ */
+async function fetchContactOpportunity(contactId: string): Promise<string | null> {
+  try {
+    const response = await fetch(
+      `${HIGHLEVEL_BASE_URL}/opportunities/search?location_id=${HIGHLEVEL_LOCATION_ID}&contact_id=${contactId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${HIGHLEVEL_API_KEY}`,
+          Version: HIGHLEVEL_API_VERSION,
+        },
+      }
+    );
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const opportunities = data.opportunities || [];
+
+    // Find the first "won" opportunity (successful payment)
+    const wonOpp = opportunities.find((opp: any) => opp.status === 'won');
+    if (wonOpp?.createdAt) {
+      return wonOpp.createdAt; // Actual payment date
+    }
+
+    // Fallback to first opportunity if no "won" status
+    if (opportunities[0]?.createdAt) {
+      return opportunities[0].createdAt;
+    }
+
+    return null;
+  } catch (error) {
+    console.error(`  ⚠️  Failed to fetch opportunity for ${contactId}:`, error);
+    return null;
+  }
 }
 
 /**
@@ -302,7 +344,17 @@ async function importMember(
   hlContact: HighLevelContact,
   dryRun: boolean
 ): Promise<ImportResult> {
-  const { tier, status, startDate, expiryDate, joinDate } = extractMembershipData(hlContact);
+  let { tier, status, startDate, expiryDate, joinDate } = extractMembershipData(hlContact);
+
+  // Fetch actual payment date from opportunities if no join date in custom fields
+  if (!joinDate && !dryRun) {
+    const paymentDate = await fetchContactOpportunity(hlContact.id);
+    if (paymentDate) {
+      joinDate = paymentDate;
+    }
+    // Rate limiting for opportunity API calls
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
 
   // Check for existing contact by email
   const { data: existingContact, error: selectError } = await supabase
@@ -321,6 +373,8 @@ async function importMember(
 
   // Prepare contact data (without ID - will be added for inserts only)
   const now = new Date().toISOString();
+  const joinDateISO = joinDate ? new Date(joinDate).toISOString() : null;
+
   const contactData = {
     email: hlContact.email,
     first_name: hlContact.firstName,
@@ -335,7 +389,7 @@ async function importMember(
     membership_status: status,
     membership_start_date: startDate ? new Date(startDate).toISOString() : null,
     membership_expiry_date: expiryDate ? new Date(expiryDate).toISOString() : null,
-    membership_join_date: joinDate ? new Date(joinDate).toISOString() : null,
+    membership_join_date: joinDateISO,
     highlevel_contact_id: hlContact.id,
     updated_at: now, // Required by schema (not auto-managed when using Supabase client)
   };
@@ -395,9 +449,12 @@ async function importMember(
       return { success: true, action: 'created' };
     }
 
+    // Use join date (or HighLevel dateAdded) as created_at to reflect actual signup date
+    const createdAt = joinDateISO || hlContact.dateAdded || now;
+
     const { data: newContact, error: insertError } = await supabase
       .from('rlc_members')
-      .insert({ ...contactData, id: randomUUID(), created_at: now } as never)
+      .insert({ ...contactData, id: randomUUID(), created_at: createdAt } as never)
       .select('id')
       .single();
 
