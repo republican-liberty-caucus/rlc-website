@@ -69,9 +69,11 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
       if (res.ok) {
         router.refresh();
       } else {
-        const err = await res.json();
-        alert(err.reason || err.error || 'Failed to advance stage');
+        const err = await res.json().catch(() => null);
+        alert(err?.reason || err?.error || 'Failed to advance stage');
       }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setAdvancing(false);
     }
@@ -82,7 +84,12 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
     try {
       const body: Record<string, unknown> = {};
       if (interviewDate) {
-        body.interviewDate = new Date(interviewDate).toISOString();
+        const d = new Date(interviewDate);
+        if (isNaN(d.getTime())) {
+          alert('Invalid interview date');
+          return;
+        }
+        body.interviewDate = d.toISOString();
       }
       if (interviewNotes) body.interviewNotes = interviewNotes;
       if (interviewers.trim()) {
@@ -99,9 +106,11 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
       if (res.ok) {
         router.refresh();
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to save interview data');
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to save interview data');
       }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setSavingInterview(false);
     }
@@ -125,9 +134,11 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
       if (res.ok) {
         router.refresh();
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to save recommendation');
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to save recommendation');
       }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setSavingRec(false);
     }

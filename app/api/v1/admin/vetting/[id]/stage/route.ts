@@ -86,14 +86,22 @@ export async function PATCH(
       );
     }
 
+    // Optimistic concurrency: only update if stage hasn't changed since we checked
     const { data: updated, error: updateError } = await supabase
       .from('rlc_candidate_vettings')
       .update({ stage: targetStage } as never)
       .eq('id', id)
+      .eq('stage', vetting.stage)
       .select()
       .single();
 
     if (updateError) {
+      if (updateError.code === 'PGRST116') {
+        return NextResponse.json(
+          { error: 'Stage was modified by another user. Please refresh and try again.' },
+          { status: 409 }
+        );
+      }
       logger.error('Error advancing stage:', { id, targetStage, error: updateError });
       return NextResponse.json({ error: 'Failed to advance stage' }, { status: 500 });
     }

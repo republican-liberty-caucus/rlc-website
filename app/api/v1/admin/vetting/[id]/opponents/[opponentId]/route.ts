@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { getVettingContext } from '@/lib/vetting/permissions';
+import { getVettingContext, canManageOpponents, canDeleteOpponent } from '@/lib/vetting/permissions';
 import { opponentUpdateSchema } from '@/lib/validations/vetting';
 import { logger } from '@/lib/logger';
 
@@ -15,7 +15,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     const ctx = await getVettingContext(userId);
-    if (!ctx || !(ctx.isCommitteeMember || ctx.isNational)) {
+    if (!ctx || !canManageOpponents(ctx)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -74,6 +74,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       .from('rlc_candidate_vetting_opponents')
       .update(updates as never)
       .eq('id', opponentId)
+      .eq('vetting_id', id)
       .select()
       .single();
 
@@ -97,7 +98,7 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     }
 
     const ctx = await getVettingContext(userId);
-    if (!ctx || !(ctx.isChair || ctx.isNational)) {
+    if (!ctx || !canDeleteOpponent(ctx)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
@@ -123,7 +124,8 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     const { error: deleteError } = await supabase
       .from('rlc_candidate_vetting_opponents')
       .delete()
-      .eq('id', opponentId);
+      .eq('id', opponentId)
+      .eq('vetting_id', id);
 
     if (deleteError) {
       logger.error('Error deleting opponent:', { opponentId, error: deleteError });

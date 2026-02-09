@@ -150,6 +150,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       .from('rlc_candidate_vetting_report_sections')
       .update(updates as never)
       .eq('id', sectionId)
+      .eq('vetting_id', id)
       .select()
       .single();
 

@@ -85,6 +85,16 @@ export function canCastBoardVote(ctx: VettingContext): boolean {
   return getRoleWeight(ctx.highestRole) >= getRoleWeight('national_board');
 }
 
+/** Committee members and national can add/edit opponents */
+export function canManageOpponents(ctx: VettingContext): boolean {
+  return ctx.isCommitteeMember || ctx.isNational;
+}
+
+/** Only the committee chair or national can delete opponents */
+export function canDeleteOpponent(ctx: VettingContext): boolean {
+  return ctx.isChair || ctx.isNational;
+}
+
 /** Only national board and super admin can manage committee membership */
 export function canManageCommittee(ctx: VettingContext): boolean {
   return ctx.isNational;

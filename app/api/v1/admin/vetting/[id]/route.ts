@@ -117,6 +117,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         .single();
 
       if (error) {
+        if (error.code === 'PGRST116') {
+          return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        }
         logger.error('Error updating recommendation:', { id, error });
         return NextResponse.json({ error: 'Failed to update recommendation' }, { status: 500 });
       }
@@ -161,6 +164,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         .single();
 
       if (error) {
+        if (error.code === 'PGRST116') {
+          return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        }
         logger.error('Error updating interview:', { id, error });
         return NextResponse.json({ error: 'Failed to update interview' }, { status: 500 });
       }
@@ -207,6 +213,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       .single();
 
     if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+      }
       logger.error('Error updating vetting:', { id, error });
       return NextResponse.json({ error: 'Failed to update vetting' }, { status: 500 });
     }

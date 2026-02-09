@@ -96,11 +96,15 @@ export default async function VettingDetailPage({
   // Fetch committee members for assignment dropdowns
   let committeeMembers: CommitteeMemberOption[] = [];
   if (vetting.committee?.id) {
-    const { data: members } = await supabase
+    const { data: members, error: membersError } = await supabase
       .from('rlc_candidate_vetting_committee_members')
       .select('id, contact_id, role, is_active, contact:rlc_members(id, first_name, last_name, email)')
       .eq('committee_id', vetting.committee.id)
       .eq('is_active', true);
+
+    if (membersError) {
+      console.error('Failed to fetch committee members:', membersError);
+    }
 
     committeeMembers = (members ?? []) as unknown as CommitteeMemberOption[];
   }

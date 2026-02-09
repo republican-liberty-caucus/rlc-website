@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { getVettingContext, canViewPipeline } from '@/lib/vetting/permissions';
+import { getVettingContext, canViewPipeline, canManageOpponents } from '@/lib/vetting/permissions';
 import { opponentCreateSchema } from '@/lib/validations/vetting';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
@@ -49,7 +49,7 @@ export async function POST(request: Request, { params }: RouteParams) {
     }
 
     const ctx = await getVettingContext(userId);
-    if (!ctx || !(ctx.isCommitteeMember || ctx.isNational)) {
+    if (!ctx || !canManageOpponents(ctx)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

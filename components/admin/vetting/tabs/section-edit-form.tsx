@@ -81,9 +81,11 @@ export function SectionEditForm({
         router.refresh();
         onClose();
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to save section');
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to save section');
       }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -106,9 +108,11 @@ export function SectionEditForm({
         router.refresh();
         setSelectedMemberId('');
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to assign member');
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to assign member');
       }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setAssigning(false);
     }
@@ -130,9 +134,11 @@ export function SectionEditForm({
       if (res.ok) {
         router.refresh();
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to remove assignment');
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to remove assignment');
       }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setAssigning(false);
     }

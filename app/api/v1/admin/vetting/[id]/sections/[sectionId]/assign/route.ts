@@ -115,10 +115,18 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     // Auto-advance section status from not_started to assigned
     if (section.status === 'section_not_started') {
-      await supabase
+      const { error: advanceError } = await supabase
         .from('rlc_candidate_vetting_report_sections')
         .update({ status: 'section_assigned' } as never)
         .eq('id', sectionId);
+
+      if (advanceError) {
+        logger.error('Failed to auto-advance section status after assignment:', {
+          sectionId,
+          committeeMemberId,
+          error: advanceError,
+        });
+      }
     }
 
     return NextResponse.json({ assignment }, { status: 201 });
@@ -173,15 +181,20 @@ export async function DELETE(request: Request, { params }: RouteParams) {
       return NextResponse.json({ error: 'Section not found' }, { status: 404 });
     }
 
-    const { error: deleteError } = await supabase
+    const { data: deleted, error: deleteError } = await supabase
       .from('rlc_candidate_vetting_section_assignments')
       .delete()
       .eq('section_id', sectionId)
-      .eq('committee_member_id', committeeMemberId);
+      .eq('committee_member_id', committeeMemberId)
+      .select('id');
 
     if (deleteError) {
       logger.error('Error removing section assignment:', { sectionId, committeeMemberId, error: deleteError });
       return NextResponse.json({ error: 'Failed to remove assignment' }, { status: 500 });
+    }
+
+    if (!deleted || deleted.length === 0) {
+      return NextResponse.json({ error: 'Assignment not found' }, { status: 404 });
     }
 
     return NextResponse.json({ success: true });

@@ -87,9 +87,11 @@ export function VettingOpponentsTab({ vettingId, opponents, permissions }: Vetti
         setForm(emptyForm);
         setShowAdd(false);
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to create opponent');
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to create opponent');
       }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -108,9 +110,11 @@ export function VettingOpponentsTab({ vettingId, opponents, permissions }: Vetti
         setEditingId(null);
         setForm(emptyForm);
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to update opponent');
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to update opponent');
       }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -125,11 +129,11 @@ export function VettingOpponentsTab({ vettingId, opponents, permissions }: Vetti
       if (res.ok) {
         router.refresh();
       } else {
-        const err = await res.json();
-        alert(err.error || 'Failed to delete opponent');
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to delete opponent');
       }
     } catch {
-      alert('Failed to delete opponent');
+      alert('A network error occurred. Please check your connection and try again.');
     }
   }
 
