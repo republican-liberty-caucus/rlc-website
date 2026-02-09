@@ -11,10 +11,10 @@ import { StatusBadge } from '@/components/ui/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Shield, CreditCard as CreditCardIcon, Users, Calendar } from 'lucide-react';
 import { logger } from '@/lib/logger';
-import type { Member, Chapter, Contribution, OfficerTitle } from '@/types';
+import type { Contact, Chapter, Contribution, OfficerTitle } from '@/types';
 import type { AdminRole } from '@/lib/admin/permissions';
 
-interface MemberRoleRow extends AdminRole {
+interface ContactRoleRow extends AdminRole {
   chapter: { name: string } | null;
   granter: { first_name: string; last_name: string } | null;
 }
@@ -55,7 +55,7 @@ export default async function AdminMemberDetailPage({
     .single();
 
   if (memberError || !memberData) notFound();
-  const member = memberData as Member;
+  const member = memberData as Contact;
 
   // Check chapter visibility
   if (!canViewMember(ctx, member.primary_chapter_id)) {
@@ -124,7 +124,7 @@ export default async function AdminMemberDetailPage({
     expiry_date: string | null;
     is_auto_renew: boolean;
   }[];
-  const memberRoles = (rolesRes.data || []) as MemberRoleRow[];
+  const memberRoles = (rolesRes.data || []) as ContactRoleRow[];
   const householdMembers = (householdRes.data || []) as {
     id: string;
     first_name: string;

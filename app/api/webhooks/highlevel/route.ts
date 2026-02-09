@@ -23,7 +23,7 @@ interface HighLevelWebhookPayload {
   };
 }
 
-interface MemberIdRow {
+interface ContactIdRow {
   id: string;
 }
 
@@ -147,7 +147,7 @@ async function handleContactUpdate(
       logger.error(`Failed to find member by email ${contact.email}:`, selectError);
     }
 
-    const member = data as MemberIdRow | null;
+    const member = data as ContactIdRow | null;
 
     if (member) {
       // Link existing member to HighLevel contact
@@ -196,7 +196,7 @@ async function handleOpportunityCreated(
     logger.error(`Failed to find member for HighLevel contact ${opportunity.contactId}:`, selectError);
   }
 
-  const member = data as MemberIdRow | null;
+  const member = data as ContactIdRow | null;
 
   if (!member) {
     logger.info(`No member found for HighLevel contact ${opportunity.contactId}`);

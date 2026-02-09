@@ -1,7 +1,7 @@
 import { cache } from 'react';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { VALID_MEMBERSHIP_STATUSES, VALID_MEMBERSHIP_TIERS } from '@/lib/validations/admin';
-import type { Member, UserRole, Chapter } from '@/types';
+import type { Contact, UserRole, Chapter } from '@/types';
 
 // Role hierarchy: higher index = more privilege
 const ROLE_HIERARCHY: UserRole[] = [
@@ -33,7 +33,7 @@ export interface AdminRole {
 }
 
 export interface AdminContext {
-  member: Member;
+  member: Contact;
   roles: AdminRole[];
   highestRole: UserRole;
   /** null = national admin, sees everything; string[] = scoped chapter IDs */

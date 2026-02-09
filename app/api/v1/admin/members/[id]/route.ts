@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext, canViewMember, getRoleWeight } from '@/lib/admin/permissions';
 import { adminMemberUpdateSchema } from '@/lib/validations/admin';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
-import type { Member } from '@/types';
+import type { Contact } from '@/types';
 import type { Database } from '@/lib/supabase/client';
 import { logger } from '@/lib/logger';
 
@@ -41,7 +41,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Member not found' }, { status: 404 });
   }
 
-  const member = existing as Member;
+  const member = existing as Contact;
 
   if (!canViewMember(ctx, member.primary_chapter_id)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
@@ -117,7 +117,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Failed to update member' }, { status: 500 });
   }
 
-  const updatedMember = data as Member;
+  const updatedMember = data as Contact;
 
   // Sync to HighLevel (non-fatal — report warning if it fails)
   let warnings: string[] | undefined;

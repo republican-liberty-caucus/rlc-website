@@ -24,7 +24,7 @@ interface SearchParams {
   tier?: string;
 }
 
-interface MemberRow {
+interface ContactRow {
   id: string;
   email: string;
   first_name: string;
@@ -66,7 +66,7 @@ async function getMembers(
   if (error) {
     throw new Error(`Failed to fetch members: ${error.message}`);
   }
-  const members = (data || []) as MemberRow[];
+  const members = (data || []) as ContactRow[];
 
   return {
     members,

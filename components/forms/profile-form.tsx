@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 
-interface Member {
+interface Contact {
   id: string;
   email: string;
   first_name: string;
@@ -21,7 +21,7 @@ interface Member {
 }
 
 interface ProfileFormProps {
-  member: Member | null;
+  member: Contact | null;
 }
 
 export function ProfileForm({ member }: ProfileFormProps) {

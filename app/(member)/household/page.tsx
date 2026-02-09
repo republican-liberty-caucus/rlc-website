@@ -62,11 +62,11 @@ export default async function HouseholdPage() {
   if (isDependent) {
     // Fetch the primary member info
     const supabase = createServerClient();
-    const { data: primaryData, error: primaryError } = member.primary_member_id
+    const { data: primaryData, error: primaryError } = member.primary_contact_id
       ? await supabase
           .from('rlc_members')
           .select('first_name, last_name, email')
-          .eq('id', member.primary_member_id)
+          .eq('id', member.primary_contact_id)
           .single()
       : { data: null, error: null };
     if (primaryError) {

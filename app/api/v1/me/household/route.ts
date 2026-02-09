@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { getTierConfig } from '@/lib/stripe/client';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
-import type { MembershipTier, Member } from '@/types';
+import type { MembershipTier,  Contact } from '@/types';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
@@ -237,7 +237,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Failed to add household member' }, { status: 500 });
     }
 
-    const created = newMember as Member;
+    const created = newMember as Contact;
 
     // Sync to HighLevel (non-fatal)
     try {

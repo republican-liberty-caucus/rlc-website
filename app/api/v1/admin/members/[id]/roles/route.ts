@@ -6,7 +6,7 @@ import { roleAssignmentSchema } from '@/lib/validations/admin';
 import type { AdminRole } from '@/lib/admin/permissions';
 import { logger } from '@/lib/logger';
 
-interface MemberRef {
+interface ContactRef {
   id: string;
   clerk_user_id: string | null;
 }
@@ -14,7 +14,7 @@ interface MemberRef {
 async function fetchMemberRef(
   supabase: ReturnType<typeof createServerClient>,
   memberId: string
-): Promise<MemberRef | null> {
+): Promise<ContactRef | null> {
   const { data, error } = await supabase
     .from('rlc_members')
     .select('id, clerk_user_id')
@@ -22,7 +22,7 @@ async function fetchMemberRef(
     .single();
 
   if (error || !data) return null;
-  return data as MemberRef;
+  return data as ContactRef;
 }
 
 /** Recalculate the member's highest role and sync to Clerk publicMetadata (non-fatal). Returns warning if sync fails. */

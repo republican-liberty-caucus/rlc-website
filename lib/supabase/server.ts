@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from './client';
-import type { Member } from '@/types';
+import type { Contact } from '@/types';
 import { logger } from '@/lib/logger';
 
 // Server-side Supabase client (uses service role key for admin operations)
@@ -20,7 +20,7 @@ export function createServerClient() {
 }
 
 // Helper to get a member by Clerk user ID
-export async function getMemberByClerkId(clerkUserId: string): Promise<Member | null> {
+export async function getMemberByClerkId(clerkUserId: string): Promise<Contact | null> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('rlc_members')
@@ -37,7 +37,7 @@ export async function getMemberByClerkId(clerkUserId: string): Promise<Member | 
     throw new Error(`Failed to fetch member: ${error.message}`);
   }
 
-  return data as Member;
+  return data as Contact;
 }
 
 // Helper to create or update a member from Clerk webhook.
@@ -49,7 +49,7 @@ export async function upsertMemberFromClerk(clerkUser: {
   first_name: string | null;
   last_name: string | null;
   phone_numbers?: Array<{ phone_number: string }>;
-}): Promise<Member> {
+}): Promise<Contact> {
   const supabase = createServerClient();
 
   const primaryEmail = clerkUser.email_addresses[0]?.email_address;
@@ -73,7 +73,7 @@ export async function upsertMemberFromClerk(clerkUser: {
 
   // If found by email but missing clerk_user_id, link the Clerk account
   if (existingByEmail) {
-    const member = existingByEmail as Member;
+    const member = existingByEmail as Contact;
     const updatePayload: Record<string, unknown> = {
       clerk_user_id: clerkUser.id,
       first_name: clerkUser.first_name || member.first_name,
@@ -96,7 +96,7 @@ export async function upsertMemberFromClerk(clerkUser: {
     }
 
     logger.info(`Linked Clerk user ${clerkUser.id} to existing member ${member.id} (${primaryEmail})`);
-    return data as Member;
+    return data as Contact;
   }
 
   // No existing member — create new via upsert on clerk_user_id
@@ -121,7 +121,7 @@ export async function upsertMemberFromClerk(clerkUser: {
     throw error;
   }
 
-  return data as Member;
+  return data as Contact;
 }
 
 // Helper to get total completed contributions for a member

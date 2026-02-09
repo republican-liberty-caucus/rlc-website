@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 import { ADMIN_INPUT_CLASS, ADMIN_LABEL_CLASS } from '@/components/admin/form-styles';
-import type { Member, Chapter, MembershipTier, MembershipStatus } from '@/types';
+import type { Contact, Chapter, MembershipTier, MembershipStatus } from '@/types';
 
 interface MemberDetailFormProps {
-  member: Member;
+  member: Contact;
   chapters: Pick<Chapter, 'id' | 'name'>[];
   isNational: boolean;
 }

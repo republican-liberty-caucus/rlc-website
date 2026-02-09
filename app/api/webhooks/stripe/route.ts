@@ -5,7 +5,7 @@ import { getStripe, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import { triggerWelcomeSequence } from '@/lib/highlevel/notifications';
 import { processDuesSplit } from '@/lib/dues-sharing/split-engine';
-import type { Member, MembershipTier, MembershipStatus } from '@/types';
+import type { Contact, MembershipTier, MembershipStatus } from '@/types';
 import { logger } from '@/lib/logger';
 
 const VALID_TIERS = new Set(MEMBERSHIP_TIERS.map((t) => t.tier));
@@ -30,7 +30,7 @@ async function findMemberByCustomerId(
   supabase: ReturnType<typeof createServerClient>,
   customerId: string,
   context: string
-): Promise<Member | null> {
+): Promise<Contact | null> {
   const { data, error } = await supabase
     .from('rlc_members')
     .select('*')
@@ -48,7 +48,7 @@ async function findMemberByCustomerId(
     throw new Error(`Database error in ${context}: ${error.message}`);
   }
 
-  return data as Member;
+  return data as Contact;
 }
 
 export async function POST(req: Request) {
@@ -190,7 +190,7 @@ async function handleCheckoutComplete(
   const membershipTier = tier;
 
   // Find the member by ID (if provided) or email
-  let member: Member | null = null;
+  let member: Contact | null = null;
 
   if (memberId) {
     const { data, error } = await supabase
@@ -201,7 +201,7 @@ async function handleCheckoutComplete(
     if (error && error.code !== 'PGRST116') {
       throw new Error(`Database error looking up member_id="${memberId}": ${error.message}`);
     }
-    member = data as Member | null;
+    member = data as Contact | null;
   }
 
   if (!member) {
@@ -213,7 +213,7 @@ async function handleCheckoutComplete(
     if (error && error.code !== 'PGRST116') {
       throw new Error(`Database error looking up email="${memberEmail}": ${error.message}`);
     }
-    member = data as Member | null;
+    member = data as Contact | null;
   }
 
   if (!member) {
