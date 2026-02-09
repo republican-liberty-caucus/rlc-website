@@ -35,7 +35,7 @@ function opponentToForm(o: OpponentData): OpponentFormData {
     isIncumbent: o.is_incumbent,
     background: o.background ?? '',
     credibility: o.credibility ?? '',
-    endorsements: o.endorsements.join(', '),
+    endorsements: (o.endorsements ?? []).join(', '),
     photoUrl: o.photo_url ?? '',
   };
 }

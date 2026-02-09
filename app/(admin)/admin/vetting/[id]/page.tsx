@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 import {
   getVettingContext,
   canViewPipeline,
@@ -103,7 +104,7 @@ export default async function VettingDetailPage({
       .eq('is_active', true);
 
     if (membersError) {
-      console.error('Failed to fetch committee members:', membersError);
+      logger.error('Failed to fetch committee members:', { committeeId: vetting.committee.id, error: membersError });
     }
 
     committeeMembers = (members ?? []) as unknown as CommitteeMemberOption[];

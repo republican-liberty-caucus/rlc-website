@@ -91,7 +91,7 @@ export const vettingUpdateSchema = z.object({
   committeeId: z.string().uuid().nullable().optional(),
   electionDeadlineId: z.string().uuid().nullable().optional(),
   districtDataId: z.string().uuid().nullable().optional(),
-  candidateState: z.string().max(2).nullable().optional(),
+  candidateState: z.string().regex(/^[A-Z]{2}$/, 'Must be a valid 2-letter state code').nullable().optional(),
 });
 
 export const vettingStageAdvanceSchema = z.object({
@@ -127,9 +127,9 @@ export const opponentCreateSchema = z.object({
   background: z.string().max(5000).nullable().optional(),
   credibility: z.string().max(5000).nullable().optional(),
   fundraising: z.record(z.unknown()).nullable().optional(),
-  endorsements: z.array(z.string()).default([]),
+  endorsements: z.array(z.string().max(200)).max(100).default([]),
   socialLinks: z.record(z.unknown()).nullable().optional(),
-  photoUrl: z.string().url().nullable().optional(),
+  photoUrl: z.string().url().refine((u) => u.startsWith('https://'), 'Must be HTTPS').nullable().optional(),
 });
 
 export const opponentUpdateSchema = opponentCreateSchema.partial();
@@ -141,7 +141,7 @@ export const opponentUpdateSchema = opponentCreateSchema.partial();
 export const interviewUpdateSchema = z.object({
   interviewDate: z.string().datetime().nullable().optional(),
   interviewNotes: z.string().max(10000).nullable().optional(),
-  interviewers: z.array(z.string()).optional(),
+  interviewers: z.array(z.string().max(200)).max(50).optional(),
 });
 
 // ============================================
