@@ -25,7 +25,7 @@ export default function ContactRepPage() {
 
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-3xl">
+          <div className="mx-auto max-w-4xl">
             <Suspense fallback={<div className="h-12 animate-pulse rounded-md bg-muted" />}>
               <AddressLookup showResults />
             </Suspense>

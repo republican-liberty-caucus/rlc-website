@@ -1,3 +1,10 @@
+export type OfficialCategory =
+  | 'federal_legislature'
+  | 'federal_executive'
+  | 'state_legislature'
+  | 'state_executive'
+  | 'local';
+
 export interface CivicOfficial {
   name: string;
   party: string;
@@ -7,6 +14,7 @@ export interface CivicOfficial {
   urls: string[];
   channels: Array<{ type: string; id: string }>;
   office: string;
+  category: OfficialCategory;
 }
 
 export interface CivicRepresentatives {
@@ -33,7 +41,25 @@ interface CiceroOfficial {
     title?: string;
     name?: string;
     chamber?: { name?: string };
+    district?: { district_type?: string; subtype?: string };
   };
+}
+
+function categorize(districtType?: string): OfficialCategory {
+  switch (districtType) {
+    case 'NATIONAL_UPPER':
+    case 'NATIONAL_LOWER':
+      return 'federal_legislature';
+    case 'NATIONAL_EXEC':
+      return 'federal_executive';
+    case 'STATE_UPPER':
+    case 'STATE_LOWER':
+      return 'state_legislature';
+    case 'STATE_EXEC':
+      return 'state_executive';
+    default:
+      return 'local';
+  }
 }
 
 export async function getRepresentatives(address: string): Promise<CivicRepresentatives> {
@@ -78,10 +104,9 @@ export async function getRepresentatives(address: string): Promise<CivicRepresen
     const urls = (o.urls || []).filter(Boolean);
 
     const nameParts = [o.first_name, o.middle_initial, o.last_name].filter(Boolean);
-
     const officeTitle = o.office?.title || o.office?.name || '';
-    const chamber = o.office?.chamber?.name;
-    const office = chamber ? `${officeTitle} (${chamber})` : officeTitle;
+    const districtType = o.office?.district?.district_type;
+    const category = categorize(districtType);
 
     return {
       name: nameParts.join(' '),
@@ -91,12 +116,11 @@ export async function getRepresentatives(address: string): Promise<CivicRepresen
       photoUrl: o.photo_origin_url || null,
       urls,
       channels: [],
-      office,
+      office: officeTitle,
+      category,
     };
   });
 
-  // Cicero doesn't return a normalized address in the same way, but we can
-  // echo back the search location
   const normalizedAddress = address;
 
   return { officials, normalizedAddress };

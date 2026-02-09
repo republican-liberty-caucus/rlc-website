@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Search } from 'lucide-react';
+import { Search, Landmark, Building2, MapPin, Scale, Building } from 'lucide-react';
 import { RepCard } from '@/components/action-center/rep-card';
+import type { OfficialCategory } from '@/lib/civic/client';
 
 interface Official {
   name: string;
@@ -15,7 +16,24 @@ interface Official {
   urls: string[];
   channels: Array<{ type: string; id: string }>;
   office: string;
+  category: OfficialCategory;
 }
+
+const CATEGORY_CONFIG: Record<OfficialCategory, { label: string; icon: typeof Landmark }> = {
+  federal_legislature: { label: 'Federal Legislators', icon: Landmark },
+  federal_executive: { label: 'Federal Executive', icon: Building2 },
+  state_legislature: { label: 'State Legislators', icon: Scale },
+  state_executive: { label: 'State Executive', icon: Building },
+  local: { label: 'Local Officials', icon: MapPin },
+};
+
+const CATEGORY_ORDER: OfficialCategory[] = [
+  'federal_legislature',
+  'federal_executive',
+  'state_legislature',
+  'state_executive',
+  'local',
+];
 
 interface Props {
   showResults?: boolean;
@@ -30,6 +48,18 @@ export function AddressLookup({ showResults = false }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
+
+  const grouped = useMemo(() => {
+    const map = new Map<OfficialCategory, Official[]>();
+    for (const o of officials) {
+      const list = map.get(o.category) || [];
+      list.push(o);
+      map.set(o.category, list);
+    }
+    return CATEGORY_ORDER
+      .filter((cat) => map.has(cat))
+      .map((cat) => ({ category: cat, officials: map.get(cat)! }));
+  }, [officials]);
 
   const doSearch = useCallback(async (query: string) => {
     setLoading(true);
@@ -95,17 +125,31 @@ export function AddressLookup({ showResults = false }: Props) {
 
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
 
-      {showResults && searched && officials.length > 0 && (
+      {showResults && searched && grouped.length > 0 && (
         <div className="mt-8">
           {normalizedAddress && (
-            <p className="mb-4 text-sm text-muted-foreground">
+            <p className="mb-6 text-sm text-muted-foreground">
               Results for: <span className="font-medium text-foreground">{normalizedAddress}</span>
             </p>
           )}
-          <div className="grid gap-4 md:grid-cols-2">
-            {officials.map((official, idx) => (
-              <RepCard key={`${official.name}-${idx}`} official={official} />
-            ))}
+          <div className="space-y-10">
+            {grouped.map(({ category, officials: groupOfficials }) => {
+              const { label, icon: Icon } = CATEGORY_CONFIG[category];
+              return (
+                <section key={category}>
+                  <div className="mb-4 flex items-center gap-2 border-b pb-2">
+                    <Icon className="h-5 w-5 text-muted-foreground" />
+                    <h3 className="font-heading text-lg font-semibold">{label}</h3>
+                    <span className="text-sm text-muted-foreground">({groupOfficials.length})</span>
+                  </div>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    {groupOfficials.map((official, idx) => (
+                      <RepCard key={`${official.name}-${idx}`} official={official} />
+                    ))}
+                  </div>
+                </section>
+              );
+            })}
           </div>
         </div>
       )}
