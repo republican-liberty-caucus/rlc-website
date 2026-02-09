@@ -4,6 +4,7 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { createServerClient } from '@/lib/supabase/server';
+import { USStateMap, type ChapterMapData } from '@/components/maps/us-state-map';
 
 export const metadata: Metadata = {
   title: 'State Chapters',
@@ -14,21 +15,43 @@ interface ChapterRow {
   slug: string;
   name: string;
   state_code: string | null;
+  status: string;
+  contact_email: string | null;
+  leadership: Record<string, string> | null;
 }
 
 async function getChapters(): Promise<ChapterRow[]> {
   const supabase = createServerClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('rlc_chapters')
-    .select('slug, name, state_code')
-    .eq('status', 'active')
+    .select('slug, name, state_code, status, contact_email, leadership')
+    .in('status', ['active', 'forming'])
     .order('name');
+
+  if (error) {
+    console.error('Failed to fetch chapters:', error);
+    return [];
+  }
 
   return (data || []) as ChapterRow[];
 }
 
 export default async function ChaptersPage() {
   const chapters = await getChapters();
+
+  const activeChapters = chapters.filter((ch) => ch.status === 'active');
+
+  // Build map data: only state-level chapters with a state_code
+  const mapChapters: ChapterMapData[] = chapters
+    .filter((ch): ch is ChapterRow & { state_code: string } => ch.state_code !== null)
+    .map((ch) => ({
+      slug: ch.slug,
+      name: ch.name,
+      state_code: ch.state_code,
+      status: ch.status === 'active' ? 'active' : 'forming',
+      contact_email: ch.contact_email,
+      leadership: ch.leadership,
+    }));
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -44,6 +67,19 @@ export default async function ChaptersPage() {
         </div>
       </section>
 
+      {/* Interactive Map */}
+      <section className="border-b py-12">
+        <div className="container mx-auto px-4">
+          <h2 className="mb-2 text-center text-2xl font-bold">Find Your Chapter</h2>
+          <p className="mb-8 text-center text-muted-foreground">
+            Click your state to view your local chapter or learn how to start one
+          </p>
+          <div className="mx-auto max-w-4xl">
+            <USStateMap chapters={mapChapters} />
+          </div>
+        </div>
+      </section>
+
       {/* Chapters Grid */}
       <section className="py-16">
         <div className="container mx-auto px-4">
@@ -56,7 +92,7 @@ export default async function ChaptersPage() {
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-            {chapters.map((chapter) => (
+            {activeChapters.map((chapter) => (
               <Link
                 key={chapter.slug}
                 href={`/chapters/${chapter.slug}`}
