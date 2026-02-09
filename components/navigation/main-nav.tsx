@@ -12,6 +12,7 @@ import {
   Menu,
   Mic,
   ScrollText,
+  Shield,
   Users,
   Vote,
   Scale,
@@ -40,6 +41,7 @@ const primaryNavItems: NavItem[] = [
     label: 'About',
     children: [
       { href: '/about', label: 'About Us', description: 'Our mission and leadership', icon: Users },
+      { href: '/about/officers', label: 'Officers & Board', description: 'National leadership team', icon: Shield },
       { href: '/about/principles', label: 'Statement of Principles', description: 'Core platform and positions', icon: BookOpen },
       { href: '/about/history', label: 'History', description: 'Our story since 1991', icon: History },
       { href: '/about/bylaws', label: 'Bylaws & Rules', description: 'Governing documents', icon: ScrollText },
