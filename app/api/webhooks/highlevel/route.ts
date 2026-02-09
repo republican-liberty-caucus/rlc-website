@@ -47,6 +47,11 @@ function verifySignature(payload: string, signature: string, secret: string): bo
   }
 }
 
+/** Capitalize first letter of each word, handling hyphenated and multi-word names */
+function titleCase(str: string): string {
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 export async function POST(req: Request) {
   const headersList = await headers();
   const signature = headersList.get('x-highlevel-signature');
@@ -118,8 +123,8 @@ async function handleContactUpdate(
     // Update existing member
     const updatePayload = {
       highlevel_contact_id: contact.id,
-      ...(contact.firstName && { first_name: contact.firstName }),
-      ...(contact.lastName && { last_name: contact.lastName }),
+      ...(contact.firstName && { first_name: titleCase(contact.firstName) }),
+      ...(contact.lastName && { last_name: titleCase(contact.lastName) }),
       ...(contact.phone && { phone: contact.phone }),
     };
 

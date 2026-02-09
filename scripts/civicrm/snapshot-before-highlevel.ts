@@ -49,19 +49,39 @@ interface Snapshot {
 async function createSnapshot(): Promise<Snapshot> {
   console.log('Fetching all contacts from database...');
 
-  const { data: contacts, error } = await supabase
-    .from('rlc_members')
-    .select(
+  // Paginate to fetch all rows (Supabase default limit is 1000)
+  const PAGE_SIZE = 1000;
+  const contacts: ContactSnapshot[] = [];
+  let offset = 0;
+
+  while (true) {
+    const { data: page, error: pageError } = await supabase
+      .from('rlc_members')
+      .select(
+        `
+        id, email, first_name, last_name, phone,
+        address_line1, city, state, postal_code,
+        membership_tier, membership_status,
+        membership_start_date, membership_expiry_date, membership_join_date,
+        highlevel_contact_id, civicrm_contact_id,
+        created_at, updated_at
       `
-      id, email, first_name, last_name, phone,
-      address_line1, city, state, postal_code,
-      membership_tier, membership_status,
-      membership_start_date, membership_expiry_date, membership_join_date,
-      highlevel_contact_id, civicrm_contact_id,
-      created_at, updated_at
-    `
-    )
-    .order('created_at', { ascending: true });
+      )
+      .order('created_at', { ascending: true })
+      .range(offset, offset + PAGE_SIZE - 1);
+
+    if (pageError) {
+      throw new Error(`Failed to fetch contacts at offset ${offset}: ${pageError.message}`);
+    }
+
+    contacts.push(...(page as ContactSnapshot[]));
+    console.log(`  Fetched ${contacts.length} contacts...`);
+
+    if (!page || page.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
+
+  const error = null; // Keep downstream code happy
 
   if (error) {
     throw new Error(`Failed to fetch contacts: ${error.message}`);

@@ -69,10 +69,12 @@ interface MemberFilterParams {
   status?: string | null;
   tier?: string | null;
   source?: string | null;
+  joined_after?: string | null;
+  joined_before?: string | null;
 }
 
 /** Apply standard member list filters (charter scoping, search, status, tier, source) to a Supabase query builder. */
-export function applyMemberFilters<T extends { in: (col: string, vals: string[]) => T; or: (filter: string) => T; eq: (col: string, val: string) => T; is: (col: string, val: null) => T; not: (col: string, op: string, val: null) => T }>(
+export function applyMemberFilters<T extends { in: (col: string, vals: string[]) => T; or: (filter: string) => T; eq: (col: string, val: string) => T; is: (col: string, val: null) => T; not: (col: string, op: string, val: null) => T; gte: (col: string, val: string) => T; lte: (col: string, val: string) => T }>(
   query: T,
   visibleCharterIds: string[] | null,
   filters: MemberFilterParams
@@ -102,6 +104,12 @@ export function applyMemberFilters<T extends { in: (col: string, vals: string[])
     } else if (filters.source === 'civicrm_only') {
       query = query.not('civicrm_contact_id', 'is', null).is('highlevel_contact_id', null);
     }
+  }
+  if (filters.joined_after && /^\d{4}-\d{2}-\d{2}$/.test(filters.joined_after)) {
+    query = query.gte('membership_join_date', filters.joined_after);
+  }
+  if (filters.joined_before && /^\d{4}-\d{2}-\d{2}$/.test(filters.joined_before)) {
+    query = query.lte('membership_join_date', filters.joined_before);
   }
   return query;
 }

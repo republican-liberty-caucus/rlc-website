@@ -52,6 +52,9 @@ const MEMBER_TAG_PATTERNS = [
   /^rlc member$/i,
   /^member$/i,
   /^membership type - /i,
+  /^membership current$/i,
+  /^membership expired$/i,
+  /^membership new$/i,
   /^student\/military member$/i,
   /^individual member$/i,
   /^premium member$/i,
@@ -89,6 +92,12 @@ interface HighLevelContact {
   dateUpdated?: string;
 }
 
+/** Capitalize first letter of each word, handling hyphenated and multi-word names */
+function titleCase(str: string | null | undefined): string {
+  if (!str) return '';
+  return str.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 interface ImportResult {
   success: boolean;
   action: 'created' | 'updated' | 'linked' | 'skipped';
@@ -108,11 +117,16 @@ interface ImportStats {
 }
 
 /**
- * Fetch all contacts using cursor-based pagination
+ * Fetch all contacts using cursor-based pagination.
+ *
+ * HighLevel V2 requires BOTH `startAfter` (timestamp) and `startAfterId`
+ * (contact ID) query parameters to paginate correctly.
  */
 async function fetchAllContacts(): Promise<HighLevelContact[]> {
+  const MAX_CONTACTS = 10_000; // HighLevel hard pagination limit
   const allContacts: HighLevelContact[] = [];
   let startAfter: string | undefined;
+  let startAfterId: string | undefined;
   let pageCount = 0;
 
   console.log('\nFetching contacts from HighLevel...');
@@ -123,8 +137,9 @@ async function fetchAllContacts(): Promise<HighLevelContact[]> {
       limit: '100',
     });
 
-    if (startAfter) {
+    if (startAfter && startAfterId) {
       params.append('startAfter', startAfter);
+      params.append('startAfterId', startAfterId);
     }
 
     const response = await fetch(
@@ -147,16 +162,29 @@ async function fetchAllContacts(): Promise<HighLevelContact[]> {
     allContacts.push(...contacts);
 
     pageCount++;
-    console.log(`  Page ${pageCount}: fetched ${contacts.length} contacts (total: ${allContacts.length})`);
+    const meta = data.meta || {};
+    console.log(`  Page ${pageCount}: fetched ${contacts.length} contacts (total: ${allContacts.length} / ${meta.total || '?'})`);
 
-    // Check for next page cursor
-    startAfter = data.meta?.nextStartAfter;
-    if (!startAfter) {
+    // Both cursors are required for proper pagination
+    const newStartAfter = meta.startAfter ? String(meta.startAfter) : undefined;
+    const newStartAfterId = meta.startAfterId as string | undefined;
+
+    // Stop if: no cursors, empty page, cursors didn't advance, or hit HighLevel hard limit
+    if (
+      !newStartAfter ||
+      !newStartAfterId ||
+      contacts.length === 0 ||
+      allContacts.length >= MAX_CONTACTS ||
+      (newStartAfterId === startAfterId && newStartAfter === startAfter)
+    ) {
       break;
     }
 
+    startAfter = newStartAfter;
+    startAfterId = newStartAfterId;
+
     // Rate limiting — 100 req/10s = 100ms between requests
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 150));
   }
 
   console.log(`\nFetched ${allContacts.length} total contacts from HighLevel`);
@@ -377,8 +405,8 @@ async function importMember(
 
   const contactData = {
     email: hlContact.email,
-    first_name: hlContact.firstName,
-    last_name: hlContact.lastName,
+    first_name: titleCase(hlContact.firstName),
+    last_name: titleCase(hlContact.lastName),
     phone: hlContact.phone || null,
     address_line1: hlContact.address1 || null,
     city: hlContact.city || null,

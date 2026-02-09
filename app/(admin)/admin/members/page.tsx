@@ -23,6 +23,8 @@ interface SearchParams {
   status?: string;
   tier?: string;
   source?: string;
+  joined_after?: string;
+  joined_before?: string;
 }
 
 interface ContactRow {
@@ -58,7 +60,7 @@ async function getMembers(
       membership_expiry_date, membership_join_date, created_at,
       primary_charter:rlc_charters(name)
     `, { count: 'exact' })
-    .order('created_at', { ascending: false })
+    .order('membership_join_date', { ascending: false, nullsFirst: false })
     .range(offset, offset + limit - 1);
 
   query = applyMemberFilters(query, visibleCharterIds, searchParams);
@@ -84,6 +86,8 @@ function buildFilterParams(params: SearchParams, page?: number): URLSearchParams
   if (params.status) sp.set('status', params.status);
   if (params.tier) sp.set('tier', params.tier);
   if (params.source) sp.set('source', params.source);
+  if (params.joined_after) sp.set('joined_after', params.joined_after);
+  if (params.joined_before) sp.set('joined_before', params.joined_before);
   return sp;
 }
 

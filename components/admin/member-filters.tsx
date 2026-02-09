@@ -86,6 +86,24 @@ export function MemberFilters() {
         <option value="civicrm_only">CiviCRM Only</option>
         <option value="both">Both Sources</option>
       </select>
+      <div className="flex items-center gap-2">
+        <label className="text-sm text-muted-foreground whitespace-nowrap">Joined:</label>
+        <input
+          type="date"
+          defaultValue={searchParams.get('joined_after') || ''}
+          onChange={(e) => updateParam('joined_after', e.target.value)}
+          className="rounded-md border bg-background px-3 py-2 text-sm"
+          title="Joined after"
+        />
+        <span className="text-sm text-muted-foreground">to</span>
+        <input
+          type="date"
+          defaultValue={searchParams.get('joined_before') || ''}
+          onChange={(e) => updateParam('joined_before', e.target.value)}
+          className="rounded-md border bg-background px-3 py-2 text-sm"
+          title="Joined before"
+        />
+      </div>
       {isPending && (
         <div className="flex items-center text-sm text-muted-foreground">
           Loading...

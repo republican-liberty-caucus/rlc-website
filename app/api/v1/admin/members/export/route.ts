@@ -42,6 +42,9 @@ export async function GET(request: Request) {
   const search = searchParams.get('search');
   const status = searchParams.get('status');
   const tier = searchParams.get('tier');
+  const source = searchParams.get('source');
+  const joined_after = searchParams.get('joined_after');
+  const joined_before = searchParams.get('joined_before');
 
   const supabase = createServerClient();
 
@@ -56,7 +59,7 @@ export async function GET(request: Request) {
     .order('last_name')
     .limit(10000);
 
-  query = applyMemberFilters(query, ctx.visibleCharterIds, { search, status, tier });
+  query = applyMemberFilters(query, ctx.visibleCharterIds, { search, status, tier, source, joined_after, joined_before });
 
   const { data, error } = await query;
 
