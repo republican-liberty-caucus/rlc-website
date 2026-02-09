@@ -11,6 +11,7 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
 
 // Configuration
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
@@ -318,7 +319,8 @@ async function importMember(
     };
   }
 
-  // Prepare contact data
+  // Prepare contact data (without ID - will be added for inserts only)
+  const now = new Date().toISOString();
   const contactData = {
     email: hlContact.email,
     first_name: hlContact.firstName,
@@ -335,6 +337,7 @@ async function importMember(
     membership_expiry_date: expiryDate ? new Date(expiryDate).toISOString() : null,
     membership_join_date: joinDate ? new Date(joinDate).toISOString() : null,
     highlevel_contact_id: hlContact.id,
+    updated_at: now, // Required by schema (not auto-managed when using Supabase client)
   };
 
   if (existingContact) {
@@ -394,7 +397,7 @@ async function importMember(
 
     const { data: newContact, error: insertError } = await supabase
       .from('rlc_members')
-      .insert(contactData as never)
+      .insert({ ...contactData, id: randomUUID(), created_at: now } as never)
       .select('id')
       .single();
 
