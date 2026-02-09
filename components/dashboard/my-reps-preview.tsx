@@ -14,7 +14,15 @@ interface Rep {
   urls: string[];
   channels: Array<{ type: string; id: string }>;
   office: string;
+  category?: string;
 }
+
+// Only show elected representatives, not appointed executive officials
+const ELECTED_CATEGORIES = new Set([
+  'federal_legislature',
+  'state_legislature',
+  'local',
+]);
 
 interface MyRepsPreviewProps {
   memberAddress: string | null;
@@ -42,7 +50,10 @@ export function MyRepsPreview({ memberAddress, memberState }: MyRepsPreviewProps
       })
       .then((data) => {
         if (!cancelled && data.officials) {
-          setReps(data.officials.slice(0, 4));
+          const elected = data.officials.filter(
+            (o: Rep) => o.category && ELECTED_CATEGORIES.has(o.category)
+          );
+          setReps(elected);
         }
       })
       .catch((err) => {
