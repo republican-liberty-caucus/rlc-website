@@ -6,7 +6,7 @@ type StatusType =
   | 'membership'
   | 'campaign'
   | 'scorecard'
-  | 'chapter'
+  | 'charter'
   | 'event'
   | 'payment'
   | 'survey'
@@ -40,7 +40,7 @@ const statusColorMap: Record<StatusType, Record<string, string>> = {
     published: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
     archived: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
   },
-  chapter: {
+  charter: {
     active: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
     inactive: 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-500',
     forming: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',

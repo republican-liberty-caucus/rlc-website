@@ -20,13 +20,13 @@ interface ReportsPageProps {
   searchParams: Promise<{ start?: string; end?: string }>;
 }
 
-function scopeByChapter<T extends { in: (col: string, vals: string[]) => T }>(
+function scopeByCharter<T extends { in: (col: string, vals: string[]) => T }>(
   query: T,
-  visibleChapterIds: string[] | null,
-  column: string = 'primary_chapter_id'
+  visibleCharterIds: string[] | null,
+  column: string = 'primary_charter_id'
 ): T {
-  if (visibleChapterIds !== null && visibleChapterIds.length > 0) {
-    return query.in(column, visibleChapterIds);
+  if (visibleCharterIds !== null && visibleCharterIds.length > 0) {
+    return query.in(column, visibleCharterIds);
   }
   return query;
 }
@@ -53,59 +53,59 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
   const [
     membersByTierResult,
     membersByStatusResult,
-    membersByChapterResult,
+    membersByCharterResult,
     contributionsResult,
     newMembersResult,
     retentionResult,
   ] = await Promise.all([
     // Members by tier (current snapshot)
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members').select('membership_tier'),
-      ctx.visibleChapterIds
+      ctx.visibleCharterIds
     ),
     // Members by status (current snapshot)
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members').select('membership_status'),
-      ctx.visibleChapterIds
+      ctx.visibleCharterIds
     ),
-    // Members by chapter
+    // Members by charter
     ctx.isNational
       ? supabase.from('rlc_members')
-          .select('primary_chapter_id, chapter:rlc_chapters(name)')
-          .not('primary_chapter_id', 'is', null)
-      : (ctx.visibleChapterIds && ctx.visibleChapterIds.length > 0
+          .select('primary_charter_id, charter:rlc_charters(name)')
+          .not('primary_charter_id', 'is', null)
+      : (ctx.visibleCharterIds && ctx.visibleCharterIds.length > 0
         ? supabase.from('rlc_members')
-            .select('primary_chapter_id, chapter:rlc_chapters(name)')
-            .in('primary_chapter_id', ctx.visibleChapterIds)
+            .select('primary_charter_id, charter:rlc_charters(name)')
+            .in('primary_charter_id', ctx.visibleCharterIds)
         : supabase.from('rlc_members')
-            .select('primary_chapter_id, chapter:rlc_chapters(name)')
-            .not('primary_chapter_id', 'is', null)),
+            .select('primary_charter_id, charter:rlc_charters(name)')
+            .not('primary_charter_id', 'is', null)),
     // Contributions in date range
     (() => {
       let q = supabase.from('rlc_contributions')
-        .select('amount, contribution_type, created_at, chapter_id')
+        .select('amount, contribution_type, created_at, charter_id')
         .eq('payment_status', 'completed')
         .gte('created_at', startISO)
         .lte('created_at', endISO);
-      if (ctx.visibleChapterIds !== null && ctx.visibleChapterIds.length > 0) {
-        q = q.in('chapter_id', ctx.visibleChapterIds);
+      if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
+        q = q.in('charter_id', ctx.visibleCharterIds);
       }
       return q;
     })(),
     // New members in date range
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members')
         .select('*', { count: 'exact', head: true })
         .gte('created_at', startISO)
         .lte('created_at', endISO),
-      ctx.visibleChapterIds
+      ctx.visibleCharterIds
     ),
     // Retention: current vs expired/cancelled
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members')
         .select('membership_status')
         .in('membership_status', ['current', 'expired', 'cancelled', 'grace']),
-      ctx.visibleChapterIds
+      ctx.visibleCharterIds
     ),
   ]);
 
@@ -121,19 +121,19 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
     membersByStatus[row.membership_status] = (membersByStatus[row.membership_status] || 0) + 1;
   }
 
-  // Process members by chapter
-  const membersByChapter: Record<string, { name: string; count: number }> = {};
-  for (const row of (membersByChapterResult.data || []) as { primary_chapter_id: string; chapter: { name: string } | null }[]) {
-    const chId = row.primary_chapter_id;
-    if (!membersByChapter[chId]) {
-      membersByChapter[chId] = { name: row.chapter?.name || 'Unknown', count: 0 };
+  // Process members by charter
+  const membersByCharter: Record<string, { name: string; count: number }> = {};
+  for (const row of (membersByCharterResult.data || []) as { primary_charter_id: string; charter: { name: string } | null }[]) {
+    const chId = row.primary_charter_id;
+    if (!membersByCharter[chId]) {
+      membersByCharter[chId] = { name: row.charter?.name || 'Unknown', count: 0 };
     }
-    membersByChapter[chId].count++;
+    membersByCharter[chId].count++;
   }
 
   // Process contributions
   const contributions = (contributionsResult.data || []) as {
-    amount: number; contribution_type: string; created_at: string; chapter_id: string | null;
+    amount: number; contribution_type: string; created_at: string; charter_id: string | null;
   }[];
 
   const totalContributions = contributions.reduce((sum, c) => sum + Number(c.amount), 0);
@@ -170,7 +170,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
     <div>
       <PageHeader
         title="Reports"
-        description={`${startDate.toLocaleDateString()} \u2014 ${endDate.toLocaleDateString()}${ctx.isNational ? ' (National)' : ` (${ctx.visibleChapterIds?.length || 0} chapters)`}`}
+        description={`${startDate.toLocaleDateString()} \u2014 ${endDate.toLocaleDateString()}${ctx.isNational ? ' (National)' : ` (${ctx.visibleCharterIds?.length || 0} charters)`}`}
         className="mb-8"
       />
 
@@ -293,16 +293,16 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           </CardContent>
         </Card>
 
-        {/* Members by Chapter */}
+        {/* Members by Charter */}
         <Card>
           <CardContent className="p-6">
-            <h2 className="mb-4 font-heading text-lg font-semibold">Members by Chapter</h2>
+            <h2 className="mb-4 font-heading text-lg font-semibold">Members by Charter</h2>
             {(() => {
-              const sortedChapters = Object.values(membersByChapter).sort((a, b) => b.count - a.count);
-              const topCount = sortedChapters[0]?.count || 1;
-              return sortedChapters.length > 0 ? (
+              const sortedCharters = Object.values(membersByCharter).sort((a, b) => b.count - a.count);
+              const topCount = sortedCharters[0]?.count || 1;
+              return sortedCharters.length > 0 ? (
                 <div className="space-y-3">
-                  {sortedChapters.map((ch) => {
+                  {sortedCharters.map((ch) => {
                     const pct = (ch.count / topCount) * 100;
                     return (
                       <div key={ch.name}>
@@ -322,7 +322,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
                 </div>
               ) : (
                 <p className="py-4 text-center text-sm text-muted-foreground">
-                  No chapter data available
+                  No charter data available
                 </p>
               );
             })()}

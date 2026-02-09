@@ -23,7 +23,7 @@ interface PostRow {
   categories: string[];
   tags: string[];
   author: { first_name: string; last_name: string } | null;
-  chapter: { name: string; slug: string } | null;
+  charter: { name: string; slug: string } | null;
 }
 
 const PAGE_SIZE = 12;
@@ -39,7 +39,7 @@ async function getPosts(page: number): Promise<{ posts: PostRow[]; total: number
       `
       id, title, slug, excerpt, featured_image_url, published_at, categories, tags,
       author:rlc_members(first_name, last_name),
-      chapter:rlc_chapters(name, slug)
+      charter:rlc_charters(name, slug)
     `,
       { count: 'exact' }
     )

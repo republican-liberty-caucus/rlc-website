@@ -215,7 +215,7 @@ const PUBLIC_PAGES = [
   { name: 'About', path: '/about' },
   { name: 'Blog', path: '/blog' },
   { name: 'Events', path: '/events' },
-  { name: 'Chapters', path: '/chapters' },
+  { name: 'Charters', path: '/charters' },
   { name: 'Scorecards', path: '/scorecards' },
   { name: 'Action Center', path: '/action-center' },
   { name: 'Join', path: '/join' },

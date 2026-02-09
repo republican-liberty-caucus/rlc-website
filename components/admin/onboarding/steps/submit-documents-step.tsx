@@ -7,11 +7,11 @@ import { isStepEditable } from '@/lib/onboarding/engine';
 import type { OnboardingStepStatus } from '@/types';
 
 const CHARTER_QUESTIONS = [
-  'Why is your community interested in forming an RLC chapter?',
+  'Why is your community interested in forming an RLC charter?',
   'What liberty-focused issues are most important in your area?',
   'How do you plan to recruit and retain members?',
   'What outreach activities do you plan to conduct?',
-  'How will your chapter engage with local Republican Party organizations?',
+  'How will your charter engage with local Republican Party organizations?',
 ];
 
 const ACKNOWLEDGMENTS = [
@@ -20,7 +20,7 @@ const ACKNOWLEDGMENTS = [
   'We agree to hold at least one meeting per quarter.',
   'We agree to participate in RLC national communications and campaigns.',
   'We agree to submit annual reports to RLC National.',
-  'We accept the terms of the RLC Chapter Memorandum of Understanding.',
+  'We accept the terms of the RLC Charter Memorandum of Understanding.',
 ];
 
 interface SubmitDocumentsStepProps {
@@ -47,7 +47,7 @@ export function SubmitDocumentsStep({
   const questions = (data.questions || {}) as Record<string, string>;
   const acks = (data.acknowledgments || {}) as Record<string, boolean>;
 
-  const [chapterName, setChapterName] = useState((data.chapter_name as string) || '');
+  const [charterName, setCharterName] = useState((data.charter_name as string) || '');
   const [stateCode, setStateCode] = useState((data.state_code as string) || '');
   const [formationDate, setFormationDate] = useState((data.formation_date as string) || '');
   const [answers, setAnswers] = useState<Record<string, string>>({
@@ -70,7 +70,7 @@ export function SubmitDocumentsStep({
   const isEditable = isStepEditable(status);
 
   const stepData = {
-    chapter_name: chapterName,
+    charter_name: charterName,
     state_code: stateCode || undefined,
     formation_date: formationDate || undefined,
     questions: answers,
@@ -89,10 +89,10 @@ export function SubmitDocumentsStep({
 
       <div className="grid grid-cols-2 gap-4">
         <div>
-          <label className={ADMIN_LABEL_CLASS}>Chapter Name</label>
+          <label className={ADMIN_LABEL_CLASS}>Charter Name</label>
           <input
-            value={chapterName}
-            onChange={(e) => setChapterName(e.target.value)}
+            value={charterName}
+            onChange={(e) => setCharterName(e.target.value)}
             className={ADMIN_INPUT_CLASS}
             disabled={!isEditable}
           />
@@ -167,7 +167,7 @@ export function SubmitDocumentsStep({
             disabled={!isEditable}
             className="rounded"
           />
-          I accept the RLC Chapter Memorandum of Understanding
+          I accept the RLC Charter Memorandum of Understanding
         </label>
       </div>
 

@@ -44,7 +44,7 @@ export async function POST(request: Request) {
       slug: input.slug,
       jurisdiction: input.jurisdiction || 'federal',
       state_code: input.stateCode || null,
-      chapter_id: input.chapterId || null,
+      charter_id: input.charterId || null,
       session_year: input.sessionYear,
       status: 'draft',
       created_by: member?.id || null,

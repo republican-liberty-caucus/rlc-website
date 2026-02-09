@@ -17,10 +17,10 @@ interface QuestionInput {
 }
 
 interface SurveyFormProps {
-  chapters: { id: string; name: string }[];
+  charters: { id: string; name: string }[];
 }
 
-export function SurveyForm({ chapters }: SurveyFormProps) {
+export function SurveyForm({ charters }: SurveyFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = React.useState(false);
@@ -31,7 +31,7 @@ export function SurveyForm({ chapters }: SurveyFormProps) {
   const [electionType, setElectionType] = React.useState('');
   const [electionDate, setElectionDate] = React.useState('');
   const [state, setState] = React.useState('');
-  const [chapterId, setChapterId] = React.useState('');
+  const [charterId, setCharterId] = React.useState('');
   const [questions, setQuestions] = React.useState<QuestionInput[]>([
     { questionText: '', questionType: 'scale', weight: 1, idealAnswer: '5' },
   ]);
@@ -84,7 +84,7 @@ export function SurveyForm({ chapters }: SurveyFormProps) {
           electionType: electionType || undefined,
           electionDate: electionDate || undefined,
           state: state || undefined,
-          chapterId: chapterId || undefined,
+          charterId: charterId || undefined,
           questions: validQuestions.map((q, i) => ({
             questionText: q.questionText,
             questionType: q.questionType,
@@ -181,14 +181,14 @@ export function SurveyForm({ chapters }: SurveyFormProps) {
             />
           </div>
           <div>
-            <label className={ADMIN_LABEL_CLASS}>Chapter</label>
+            <label className={ADMIN_LABEL_CLASS}>Charter</label>
             <select
-              value={chapterId}
-              onChange={(e) => setChapterId(e.target.value)}
+              value={charterId}
+              onChange={(e) => setCharterId(e.target.value)}
               className={ADMIN_INPUT_CLASS}
             >
               <option value="">National</option>
-              {chapters.map((ch) => (
+              {charters.map((ch) => (
                 <option key={ch.id} value={ch.id}>{ch.name}</option>
               ))}
             </select>

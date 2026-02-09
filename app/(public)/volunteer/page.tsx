@@ -14,8 +14,8 @@ export default function VolunteerPage() {
   const opportunities = [
     {
       icon: <Users className="h-6 w-6" />,
-      title: 'Chapter Leadership',
-      description: 'Start or lead an RLC chapter in your state or county. Organize local events and recruit new members.',
+      title: 'Charter Leadership',
+      description: 'Start or lead an RLC charter in your state or county. Organize local events and recruit new members.',
     },
     {
       icon: <Megaphone className="h-6 w-6" />,
@@ -69,15 +69,15 @@ export default function VolunteerPage() {
             <div className="mt-12 rounded-lg border bg-muted/30 p-8 text-center">
               <h2 className="font-heading text-2xl font-bold">Ready to Volunteer?</h2>
               <p className="mx-auto mt-3 max-w-lg text-muted-foreground">
-                The best way to start is by joining the RLC and connecting with your local chapter.
-                Our chapter leaders will help you find the best way to contribute.
+                The best way to start is by joining the RLC and connecting with your local charter.
+                Our charter leaders will help you find the best way to contribute.
               </p>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <Button asChild className="bg-rlc-red hover:bg-rlc-red/90">
                   <Link href="/join">Join the RLC</Link>
                 </Button>
                 <Button asChild variant="outline">
-                  <Link href="/chapters">Find Your Chapter</Link>
+                  <Link href="/charters">Find Your Charter</Link>
                 </Button>
                 <Button asChild variant="outline">
                   <Link href="/contact">Contact Us</Link>

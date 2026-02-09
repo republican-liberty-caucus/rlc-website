@@ -46,7 +46,7 @@ export const organizationalMeetingSchema = z.object({
 
 // Step 6: Submit Documents
 export const submitDocumentsSchema = z.object({
-  chapter_name: z.string().min(1),
+  charter_name: z.string().min(1),
   state_code: z.string().length(2).optional(),
   formation_date: z.string().optional(),
   questions: z.object({

@@ -33,11 +33,11 @@ export async function PATCH(
     return NextResponse.json({ error: 'Post not found' }, { status: 404 });
   }
 
-  const existing = existingData as { chapter_id: string | null; published_at: string | null; [key: string]: unknown };
+  const existing = existingData as { charter_id: string | null; published_at: string | null; [key: string]: unknown };
 
-  // Check chapter visibility
-  if (existing.chapter_id && ctx.visibleChapterIds !== null) {
-    if (!ctx.visibleChapterIds.includes(existing.chapter_id)) {
+  // Check charter visibility
+  if (existing.charter_id && ctx.visibleCharterIds !== null) {
+    if (!ctx.visibleCharterIds.includes(existing.charter_id)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
   }
@@ -59,11 +59,11 @@ export async function PATCH(
 
   const input = parseResult.data;
 
-  // If changing chapter, verify new chapter is in scope
-  if (input.chapterId !== undefined && ctx.visibleChapterIds !== null) {
-    if (input.chapterId && !ctx.visibleChapterIds.includes(input.chapterId)) {
+  // If changing charter, verify new charter is in scope
+  if (input.charterId !== undefined && ctx.visibleCharterIds !== null) {
+    if (input.charterId && !ctx.visibleCharterIds.includes(input.charterId)) {
       return NextResponse.json(
-        { error: 'Cannot move post to a chapter outside your scope' },
+        { error: 'Cannot move post to a charter outside your scope' },
         { status: 403 }
       );
     }
@@ -75,7 +75,7 @@ export async function PATCH(
   if (input.content !== undefined) updatePayload.content = input.content || null;
   if (input.excerpt !== undefined) updatePayload.excerpt = input.excerpt || null;
   if (input.featuredImageUrl !== undefined) updatePayload.featured_image_url = input.featuredImageUrl || null;
-  if (input.chapterId !== undefined) updatePayload.chapter_id = input.chapterId || null;
+  if (input.charterId !== undefined) updatePayload.charter_id = input.charterId || null;
   if (input.categories !== undefined) updatePayload.categories = input.categories;
   if (input.tags !== undefined) updatePayload.tags = input.tags;
   if (input.seoTitle !== undefined) updatePayload.seo_title = input.seoTitle || null;

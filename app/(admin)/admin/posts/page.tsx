@@ -23,10 +23,10 @@ interface PostRow {
   published_at: string | null;
   created_at: string;
   author: { first_name: string; last_name: string } | null;
-  chapter: { name: string } | null;
+  charter: { name: string } | null;
 }
 
-async function getPosts(visibleChapterIds: string[] | null): Promise<PostRow[]> {
+async function getPosts(visibleCharterIds: string[] | null): Promise<PostRow[]> {
   const supabase = createServerClient();
 
   let query = supabase
@@ -34,12 +34,12 @@ async function getPosts(visibleChapterIds: string[] | null): Promise<PostRow[]> 
     .select(`
       id, title, slug, status, published_at, created_at,
       author:rlc_members(first_name, last_name),
-      chapter:rlc_chapters(name)
+      charter:rlc_charters(name)
     `)
     .order('created_at', { ascending: false });
 
-  if (visibleChapterIds !== null && visibleChapterIds.length > 0) {
-    query = query.in('chapter_id', visibleChapterIds);
+  if (visibleCharterIds !== null && visibleCharterIds.length > 0) {
+    query = query.in('charter_id', visibleCharterIds);
   }
 
   const { data, error } = await query;
@@ -56,7 +56,7 @@ export default async function AdminPostsPage() {
   const ctx = await getAdminContext(userId);
   if (!ctx) redirect('/dashboard?error=unauthorized');
 
-  const posts = await getPosts(ctx.visibleChapterIds);
+  const posts = await getPosts(ctx.visibleCharterIds);
 
   return (
     <div>
@@ -81,7 +81,7 @@ export default async function AdminPostsPage() {
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 text-left text-sm font-medium">Title</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Author</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Chapter</th>
+                <th className="px-4 py-3 text-left text-sm font-medium">Charter</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Date</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
@@ -95,7 +95,7 @@ export default async function AdminPostsPage() {
                     {post.author ? `${post.author.first_name} ${post.author.last_name}` : '-'}
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {post.chapter?.name || 'National'}
+                    {post.charter?.name || 'National'}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <StatusBadge status={post.status} type="post" />

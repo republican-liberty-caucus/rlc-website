@@ -34,11 +34,11 @@ export async function POST(request: Request) {
 
   const input = parseResult.data;
 
-  // Scoped admins can only create events for their visible chapters
-  if (input.chapterId && ctx.visibleChapterIds !== null) {
-    if (!ctx.visibleChapterIds.includes(input.chapterId)) {
+  // Scoped admins can only create events for their visible charters
+  if (input.charterId && ctx.visibleCharterIds !== null) {
+    if (!ctx.visibleCharterIds.includes(input.charterId)) {
       return NextResponse.json(
-        { error: 'Cannot create event for a chapter outside your scope' },
+        { error: 'Cannot create event for a charter outside your scope' },
         { status: 403 }
       );
     }
@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       max_attendees: input.maxAttendees || null,
       registration_fee: input.registrationFee || null,
       registration_deadline: input.registrationDeadline?.toISOString() || null,
-      chapter_id: input.chapterId || null,
+      charter_id: input.charterId || null,
       organizer_id: ctx.member.id,
       status: input.status,
       metadata: {},

@@ -17,7 +17,7 @@ export async function GET(request: Request) {
       .select(`
         id, title, slug, excerpt, featured_image_url,
         author:rlc_members(id, first_name, last_name),
-        chapter:rlc_chapters(id, name, slug),
+        charter:rlc_charters(id, name, slug),
         status, published_at, categories, tags
       `)
       .eq('status', 'published')

@@ -5,7 +5,7 @@ export const sessionCreateSchema = z.object({
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/),
   jurisdiction: z.enum(['federal', 'state']).default('federal'),
   stateCode: z.string().max(2).optional(),
-  chapterId: z.string().optional(),
+  charterId: z.string().optional(),
   sessionYear: z.number().int().min(2000).max(2100),
 });
 
@@ -15,7 +15,7 @@ export const sessionUpdateSchema = z.object({
   status: z.enum(['draft', 'active', 'published', 'archived']).optional(),
   jurisdiction: z.enum(['federal', 'state']).optional(),
   stateCode: z.string().max(2).optional(),
-  chapterId: z.string().optional(),
+  charterId: z.string().optional(),
   sessionYear: z.number().int().min(2000).max(2100).optional(),
 });
 

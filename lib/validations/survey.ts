@@ -7,7 +7,7 @@ export const surveyCreateSchema = z.object({
   electionType: z.string().optional(),
   electionDate: z.string().optional(),
   state: z.string().optional(),
-  chapterId: z.string().optional(),
+  charterId: z.string().optional(),
   questions: z.array(z.object({
     questionText: z.string().min(1),
     questionType: z.enum(['scale', 'yes_no', 'text', 'multiple_choice']),
@@ -26,7 +26,7 @@ export const surveyUpdateSchema = z.object({
   electionType: z.string().optional(),
   electionDate: z.string().optional(),
   state: z.string().optional(),
-  chapterId: z.string().optional(),
+  charterId: z.string().optional(),
 });
 
 export const candidateCreateSchema = z.object({

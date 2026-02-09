@@ -25,7 +25,7 @@ interface PostRow {
   seo_title: string | null;
   seo_description: string | null;
   author: { first_name: string; last_name: string } | null;
-  chapter: { name: string; slug: string } | null;
+  charter: { name: string; slug: string } | null;
 }
 
 async function getPost(slug: string) {
@@ -35,7 +35,7 @@ async function getPost(slug: string) {
     .select(`
       *,
       author:rlc_members(first_name, last_name),
-      chapter:rlc_chapters(name, slug)
+      charter:rlc_charters(name, slug)
     `)
     .eq('slug', slug)
     .eq('status', 'published')
@@ -95,12 +95,12 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
               {post.published_at && (
                 <span>&middot; {formatDate(post.published_at)}</span>
               )}
-              {post.chapter && (
+              {post.charter && (
                 <Link
-                  href={`/chapters/${post.chapter.slug}`}
+                  href={`/charters/${post.charter.slug}`}
                   className="text-rlc-red hover:underline"
                 >
-                  &middot; {post.chapter.name}
+                  &middot; {post.charter.name}
                 </Link>
               )}
             </div>

@@ -13,7 +13,7 @@ interface StatementEntry {
   id: string;
   contribution_id: string;
   source_type: string;
-  recipient_chapter_id: string;
+  recipient_charter_id: string;
   amount: number;
   status: string;
   transferred_at: string | null;

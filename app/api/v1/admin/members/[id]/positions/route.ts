@@ -20,7 +20,7 @@ export async function GET(
   // Check member exists and is visible
   const { data: memberRaw, error: memberError } = await supabase
     .from('rlc_members')
-    .select('id, primary_chapter_id')
+    .select('id, primary_charter_id')
     .eq('id', memberId)
     .single();
 
@@ -32,9 +32,9 @@ export async function GET(
     return NextResponse.json({ error: 'Member not found' }, { status: 404 });
   }
 
-  const member = memberRaw as { id: string; primary_chapter_id: string | null };
+  const member = memberRaw as { id: string; primary_charter_id: string | null };
 
-  if (!canViewMember(ctx, member.primary_chapter_id)) {
+  if (!canViewMember(ctx, member.primary_charter_id)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -43,7 +43,7 @@ export async function GET(
     .from('rlc_officer_positions')
     .select(`
       id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
-      chapter:rlc_chapters(id, name),
+      charter:rlc_charters(id, name),
       appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
     `)
     .eq('member_id', memberId)

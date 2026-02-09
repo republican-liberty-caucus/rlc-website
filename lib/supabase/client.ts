@@ -4,8 +4,8 @@ import type {
   MembershipStatus,
   ContributionType,
   PaymentStatus,
-  ChapterLevel,
-  ChapterStatus,
+  CharterLevel,
+  CharterStatus,
   HouseholdRole,
   UserRole,
   Jurisdiction,
@@ -27,16 +27,16 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 export type Database = {
   public: {
     Tables: {
-      rlc_chapters: {
+      rlc_charters: {
         Row: {
           id: string;
           name: string;
           slug: string;
-          chapter_level: ChapterLevel;
-          parent_chapter_id: string | null;
+          charter_level: CharterLevel;
+          parent_charter_id: string | null;
           state_code: string | null;
           region_name: string | null;
-          status: ChapterStatus;
+          status: CharterStatus;
           website_url: string | null;
           contact_email: string | null;
           leadership: Record<string, unknown>;
@@ -44,8 +44,8 @@ export type Database = {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['rlc_chapters']['Row'], 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Database['public']['Tables']['rlc_chapters']['Insert']>;
+        Insert: Omit<Database['public']['Tables']['rlc_charters']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_charters']['Insert']>;
       };
       rlc_members: {
         Row: {
@@ -66,7 +66,7 @@ export type Database = {
           membership_start_date: string | null;
           membership_expiry_date: string | null;
           membership_join_date: string | null;
-          primary_chapter_id: string | null;
+          primary_charter_id: string | null;
           highlevel_contact_id: string | null;
           civicrm_contact_id: number | null;
           stripe_customer_id: string | null;
@@ -88,7 +88,7 @@ export type Database = {
           id: string;
           member_id: string;
           role: UserRole;
-          chapter_id: string | null;
+          charter_id: string | null;
           granted_by: string | null;
           granted_at: string;
           expires_at: string | null;
@@ -107,7 +107,7 @@ export type Database = {
           stripe_subscription_id: string | null;
           payment_status: PaymentStatus;
           payment_method: string | null;
-          chapter_id: string | null;
+          charter_id: string | null;
           campaign_id: string | null;
           is_recurring: boolean;
           recurring_interval: string | null;
@@ -141,7 +141,7 @@ export type Database = {
           max_attendees: number | null;
           registration_fee: number | null;
           registration_deadline: string | null;
-          chapter_id: string | null;
+          charter_id: string | null;
           organizer_id: string | null;
           status: string;
           metadata: Record<string, unknown>;
@@ -176,7 +176,7 @@ export type Database = {
           excerpt: string | null;
           featured_image_url: string | null;
           author_id: string | null;
-          chapter_id: string | null;
+          charter_id: string | null;
           status: string;
           published_at: string | null;
           categories: string[];
@@ -231,7 +231,7 @@ export type Database = {
           slug: string;
           jurisdiction: Jurisdiction;
           state_code: string | null;
-          chapter_id: string | null;
+          charter_id: string | null;
           session_year: number;
           status: ScorecardSessionStatus;
           created_by: string | null;
@@ -282,7 +282,7 @@ export type Database = {
           slug: string;
           description: string | null;
           bill_id: string | null;
-          chapter_id: string | null;
+          charter_id: string | null;
           target_chamber: LegislativeChamber | null;
           target_state_code: string | null;
           message_template: string | null;

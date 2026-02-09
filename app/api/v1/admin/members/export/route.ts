@@ -17,7 +17,7 @@ interface ExportRow {
   membership_status: MembershipStatus;
   membership_join_date: string | null;
   membership_expiry_date: string | null;
-  primary_chapter: { name: string } | null;
+  primary_charter: { name: string } | null;
 }
 
 function escapeCsvField(value: string): string {
@@ -51,12 +51,12 @@ export async function GET(request: Request) {
       first_name, last_name, email, phone,
       city, state, membership_tier, membership_status,
       membership_join_date, membership_expiry_date,
-      primary_chapter:rlc_chapters(name)
+      primary_charter:rlc_charters(name)
     `)
     .order('last_name')
     .limit(10000);
 
-  query = applyMemberFilters(query, ctx.visibleChapterIds, { search, status, tier });
+  query = applyMemberFilters(query, ctx.visibleCharterIds, { search, status, tier });
 
   const { data, error } = await query;
 
@@ -67,7 +67,7 @@ export async function GET(request: Request) {
 
   const rows = (data || []) as ExportRow[];
 
-  const headers = ['Name', 'Email', 'Phone', 'City', 'State', 'Tier', 'Status', 'Chapter', 'Join Date', 'Expiry Date'];
+  const headers = ['Name', 'Email', 'Phone', 'City', 'State', 'Tier', 'Status', 'Charter', 'Join Date', 'Expiry Date'];
   const csvLines = [
     headers.join(','),
     ...rows.map((row) => {
@@ -79,7 +79,7 @@ export async function GET(request: Request) {
         row.state || '',
         row.membership_tier,
         row.membership_status,
-        row.primary_chapter?.name || '',
+        row.primary_charter?.name || '',
         row.membership_join_date ? formatDate(row.membership_join_date) : '',
         row.membership_expiry_date ? formatDate(row.membership_expiry_date) : '',
       ];

@@ -39,7 +39,7 @@ export default async function AdminPostDetailPage({ params }: PostDetailPageProp
     content: string | null;
     excerpt: string | null;
     featured_image_url: string | null;
-    chapter_id: string | null;
+    charter_id: string | null;
     status: string;
     published_at: string | null;
     categories: string[];
@@ -48,18 +48,18 @@ export default async function AdminPostDetailPage({ params }: PostDetailPageProp
     seo_description: string | null;
   };
 
-  // Check chapter visibility
-  if (post.chapter_id && ctx.visibleChapterIds !== null) {
-    if (!ctx.visibleChapterIds.includes(post.chapter_id)) {
+  // Check charter visibility
+  if (post.charter_id && ctx.visibleCharterIds !== null) {
+    if (!ctx.visibleCharterIds.includes(post.charter_id)) {
       redirect('/admin/posts?error=forbidden');
     }
   }
 
-  let chaptersQuery = supabase.from('rlc_chapters').select('id, name').eq('status', 'active').order('name');
-  if (ctx.visibleChapterIds !== null && ctx.visibleChapterIds.length > 0) {
-    chaptersQuery = chaptersQuery.in('id', ctx.visibleChapterIds);
+  let chartersQuery = supabase.from('rlc_charters').select('id, name').eq('status', 'active').order('name');
+  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
+    chartersQuery = chartersQuery.in('id', ctx.visibleCharterIds);
   }
-  const { data: chapters } = await chaptersQuery;
+  const { data: charters } = await chartersQuery;
 
   return (
     <div>
@@ -72,7 +72,7 @@ export default async function AdminPostDetailPage({ params }: PostDetailPageProp
 
       <PostEditorForm
         post={post}
-        chapters={(chapters || []) as { id: string; name: string }[]}
+        charters={(charters || []) as { id: string; name: string }[]}
       />
     </div>
   );

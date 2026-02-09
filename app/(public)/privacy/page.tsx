@@ -38,7 +38,7 @@ export default function PrivacyPage() {
                 mailing address when you join, donate, or contact us.
               </li>
               <li>
-                <strong>Membership information</strong> including membership level, chapter
+                <strong>Membership information</strong> including membership level, charter
                 affiliation, and renewal dates.
               </li>
               <li>
@@ -56,7 +56,7 @@ export default function PrivacyPage() {
             <ul>
               <li>Process memberships and donations</li>
               <li>Send organizational updates, newsletters, and action alerts</li>
-              <li>Coordinate with state and local chapters</li>
+              <li>Coordinate with state and local charters</li>
               <li>Improve our website and services</li>
               <li>Comply with legal obligations</li>
             </ul>
@@ -67,7 +67,7 @@ export default function PrivacyPage() {
               information with:
             </p>
             <ul>
-              <li>RLC state chapters relevant to your membership</li>
+              <li>RLC state charters relevant to your membership</li>
               <li>Service providers who assist with our operations (payment processing, email delivery)</li>
               <li>Legal authorities when required by law</li>
             </ul>

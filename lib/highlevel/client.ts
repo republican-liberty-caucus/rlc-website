@@ -201,9 +201,9 @@ export async function syncMemberToHighLevel(member: {
   membershipExpiryDate?: string | null;
   membershipJoinDate?: string | null;
   civicrmContactId?: number | null;
-  chapterStateCode?: string | null;
+  charterStateCode?: string | null;
   contributionSource?: string | null;
-  primaryChapterSlug?: string | null;
+  primaryCharterSlug?: string | null;
 }): Promise<HighLevelResponse<{ contact: HighLevelContact }>> {
   // Search for existing contact
   const searchResult = await searchContactByEmail(member.email);
@@ -217,8 +217,8 @@ export async function syncMemberToHighLevel(member: {
   const statusTag = STATUS_TAGS[member.membershipStatus];
   if (statusTag) tags.push(statusTag);
 
-  if (member.primaryChapterSlug) {
-    tags.push(`Chapter: ${member.primaryChapterSlug}`);
+  if (member.primaryCharterSlug) {
+    tags.push(`Charter: ${member.primaryCharterSlug}`);
   }
 
   // Build custom field mapping per PRD Section 6
@@ -241,8 +241,8 @@ export async function syncMemberToHighLevel(member: {
   if (member.civicrmContactId) {
     customFields.civicrm_id = String(member.civicrmContactId);
   }
-  if (member.chapterStateCode) {
-    customFields.charter_state = member.chapterStateCode;
+  if (member.charterStateCode) {
+    customFields.charter_state = member.charterStateCode;
   }
   if (member.contributionSource) {
     customFields.membership_source = member.contributionSource;

@@ -30,8 +30,8 @@ export async function GET(request: NextRequest) {
     query = query.eq('status', status);
   }
 
-  if (ctx.visibleChapterIds !== null && ctx.visibleChapterIds.length > 0) {
-    query = query.in('chapter_id', ctx.visibleChapterIds);
+  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
+    query = query.in('charter_id', ctx.visibleCharterIds);
   }
 
   const { data, error } = await query;
@@ -82,7 +82,7 @@ export async function POST(request: Request) {
       slug: input.slug,
       description: input.description || null,
       bill_id: input.billId || null,
-      chapter_id: input.chapterId || null,
+      charter_id: input.charterId || null,
       target_chamber: input.targetChamber || null,
       target_state_code: input.targetStateCode || null,
       message_template: input.messageTemplate || null,

@@ -116,7 +116,7 @@ export default function JoinPage() {
               <h3 className="mb-2 text-lg font-semibold">What does my membership include?</h3>
               <p className="text-muted-foreground">
                 All membership levels include full voting rights at RLC conventions, member
-                communications, state chapter membership, and an RLC membership card. Higher
+                communications, state charter membership, and an RLC membership card. Higher
                 tiers include additional benefits like family membership and leadership access.
               </p>
             </div>

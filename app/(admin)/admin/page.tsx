@@ -15,14 +15,14 @@ export const metadata: Metadata = {
   description: 'RLC Admin Dashboard',
 };
 
-/** Apply chapter scoping to a Supabase query builder */
-function scopeByChapter<T extends { in: (col: string, vals: string[]) => T }>(
+/** Apply charter scoping to a Supabase query builder */
+function scopeByCharter<T extends { in: (col: string, vals: string[]) => T }>(
   query: T,
-  visibleChapterIds: string[] | null,
-  column: string = 'primary_chapter_id'
+  visibleCharterIds: string[] | null,
+  column: string = 'primary_charter_id'
 ): T {
-  if (visibleChapterIds !== null && visibleChapterIds.length > 0) {
-    return query.in(column, visibleChapterIds);
+  if (visibleCharterIds !== null && visibleCharterIds.length > 0) {
+    return query.in(column, visibleCharterIds);
   }
   return query;
 }
@@ -30,7 +30,7 @@ function scopeByChapter<T extends { in: (col: string, vals: string[]) => T }>(
 interface DashboardStats {
   totalMembers: number;
   activeMembers: number;
-  totalChapters: number;
+  totalCharters: number;
   upcomingEvents: number;
   monthlyContributions: number;
   newMembersThisMonth: number;
@@ -39,7 +39,7 @@ interface DashboardStats {
   expiringIn30Days: number;
 }
 
-async function getDashboardStats(visibleChapterIds: string[] | null): Promise<DashboardStats> {
+async function getDashboardStats(visibleCharterIds: string[] | null): Promise<DashboardStats> {
   const supabase = createServerClient();
 
   const startOfMonth = new Date();
@@ -52,52 +52,52 @@ async function getDashboardStats(visibleChapterIds: string[] | null): Promise<Da
   // Run all independent queries in parallel
   const results = await Promise.all([
     // Total members
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members').select('*', { count: 'exact', head: true }),
-      visibleChapterIds
+      visibleCharterIds
     ),
     // Active members
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members').select('*', { count: 'exact', head: true }).eq('membership_status', 'current'),
-      visibleChapterIds
+      visibleCharterIds
     ),
-    // Active chapters
-    scopeByChapter(
-      supabase.from('rlc_chapters').select('*', { count: 'exact', head: true }).eq('status', 'active'),
-      visibleChapterIds, 'id'
+    // Active charters
+    scopeByCharter(
+      supabase.from('rlc_charters').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+      visibleCharterIds, 'id'
     ),
     // Upcoming events
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_events').select('*', { count: 'exact', head: true }).eq('status', 'published').gte('start_date', new Date().toISOString()),
-      visibleChapterIds, 'chapter_id'
+      visibleCharterIds, 'charter_id'
     ),
     // Monthly contributions
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_contributions').select('amount').eq('payment_status', 'completed').gte('created_at', startOfMonth.toISOString()),
-      visibleChapterIds, 'chapter_id'
+      visibleCharterIds, 'charter_id'
     ),
     // New members this month
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members').select('*', { count: 'exact', head: true }).gte('created_at', startOfMonth.toISOString()),
-      visibleChapterIds
+      visibleCharterIds
     ),
     // Members by tier
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members').select('membership_tier'),
-      visibleChapterIds
+      visibleCharterIds
     ),
     // Members by status
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members').select('membership_status'),
-      visibleChapterIds
+      visibleCharterIds
     ),
     // Expiring in 30 days
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members').select('*', { count: 'exact', head: true })
         .in('membership_status', ['current', 'expiring'])
         .lte('membership_expiry_date', thirtyDaysFromNow.toISOString())
         .gte('membership_expiry_date', new Date().toISOString()),
-      visibleChapterIds
+      visibleCharterIds
     ),
   ]);
 
@@ -110,7 +110,7 @@ async function getDashboardStats(visibleChapterIds: string[] | null): Promise<Da
   const [
     totalResult,
     activeResult,
-    chapterResult,
+    charterResult,
     eventsResult,
     contribResult,
     newResult,
@@ -137,7 +137,7 @@ async function getDashboardStats(visibleChapterIds: string[] | null): Promise<Da
   return {
     totalMembers: totalResult.count || 0,
     activeMembers: activeResult.count || 0,
-    totalChapters: chapterResult.count || 0,
+    totalCharters: charterResult.count || 0,
     upcomingEvents: eventsResult.count || 0,
     monthlyContributions,
     newMembersThisMonth: newResult.count || 0,
@@ -165,18 +165,18 @@ interface RecentContribution {
   member: { first_name: string; last_name: string } | null;
 }
 
-async function getRecentActivity(visibleChapterIds: string[] | null) {
+async function getRecentActivity(visibleCharterIds: string[] | null) {
   const supabase = createServerClient();
 
   const [membersResult, contribResult] = await Promise.all([
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_members')
         .select('id, first_name, last_name, email, created_at, membership_tier')
         .order('created_at', { ascending: false })
         .limit(5),
-      visibleChapterIds
+      visibleCharterIds
     ),
-    scopeByChapter(
+    scopeByCharter(
       supabase.from('rlc_contributions')
         .select(`
           id, amount, contribution_type, payment_status, created_at,
@@ -185,7 +185,7 @@ async function getRecentActivity(visibleChapterIds: string[] | null) {
         .eq('payment_status', 'completed')
         .order('created_at', { ascending: false })
         .limit(5),
-      visibleChapterIds, 'chapter_id'
+      visibleCharterIds, 'charter_id'
     ),
   ]);
 
@@ -239,8 +239,8 @@ export default async function AdminDashboardPage() {
   if (!ctx) redirect('/dashboard?error=unauthorized');
 
   const [stats, activity] = await Promise.all([
-    getDashboardStats(ctx.visibleChapterIds),
-    getRecentActivity(ctx.visibleChapterIds),
+    getDashboardStats(ctx.visibleCharterIds),
+    getRecentActivity(ctx.visibleCharterIds),
   ]);
 
   const totalForBars = stats.totalMembers || 1;
@@ -249,7 +249,7 @@ export default async function AdminDashboardPage() {
     <div>
       <PageHeader
         title="Dashboard"
-        description={ctx.isNational ? 'National overview' : `Viewing ${ctx.visibleChapterIds?.length || 0} chapter(s)`}
+        description={ctx.isNational ? 'National overview' : `Viewing ${ctx.visibleCharterIds?.length || 0} charter(s)`}
         className="mb-8"
       />
 
@@ -262,8 +262,8 @@ export default async function AdminDashboardPage() {
           description={`${stats.activeMembers.toLocaleString()} active`}
         />
         <StatCard
-          label="Active Chapters"
-          value={stats.totalChapters}
+          label="Active Charters"
+          value={stats.totalCharters}
           icon={<MapPin className="h-5 w-5 text-rlc-blue" />}
         />
         <StatCard

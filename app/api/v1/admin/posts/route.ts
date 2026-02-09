@@ -34,11 +34,11 @@ export async function POST(request: Request) {
 
   const input = parseResult.data;
 
-  // Scoped admins can only create posts for their visible chapters
-  if (input.chapterId && ctx.visibleChapterIds !== null) {
-    if (!ctx.visibleChapterIds.includes(input.chapterId)) {
+  // Scoped admins can only create posts for their visible charters
+  if (input.charterId && ctx.visibleCharterIds !== null) {
+    if (!ctx.visibleCharterIds.includes(input.charterId)) {
       return NextResponse.json(
-        { error: 'Cannot create post for a chapter outside your scope' },
+        { error: 'Cannot create post for a charter outside your scope' },
         { status: 403 }
       );
     }
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       excerpt: input.excerpt || null,
       featured_image_url: input.featuredImageUrl || null,
       author_id: ctx.member.id,
-      chapter_id: input.chapterId || null,
+      charter_id: input.charterId || null,
       status: input.status,
       published_at: input.status === 'published' ? new Date().toISOString() : null,
       categories: input.categories,

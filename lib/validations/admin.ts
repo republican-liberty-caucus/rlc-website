@@ -22,14 +22,14 @@ export const adminMemberUpdateSchema = z.object({
   postalCode: z.string().max(20).nullable().optional(),
   membershipTier: z.enum(VALID_MEMBERSHIP_TIERS).optional(),
   membershipStatus: z.enum(VALID_MEMBERSHIP_STATUSES).optional(),
-  primaryChapterId: z.string().uuid().nullable().optional(),
+  primaryCharterId: z.string().uuid().nullable().optional(),
   membershipExpiryDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Must be YYYY-MM-DD format').nullable().optional(),
   emailOptIn: z.boolean().optional(),
   smsOptIn: z.boolean().optional(),
   doNotPhone: z.boolean().optional(),
 });
 
-export const chapterUpdateSchema = z.object({
+export const charterUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   contactEmail: z.string().email().nullable().optional(),
   websiteUrl: z.string().url().refine(
@@ -44,9 +44,9 @@ export const roleAssignmentSchema = z.object({
     'member', 'chapter_officer', 'chapter_admin', 'state_chair',
     'regional_coordinator', 'national_board', 'super_admin',
   ]),
-  chapterId: z.string().uuid().nullable(),
+  charterId: z.string().uuid().nullable(),
 });
 
 export type AdminMemberUpdateInput = z.infer<typeof adminMemberUpdateSchema>;
-export type ChapterUpdateInput = z.infer<typeof chapterUpdateSchema>;
+export type CharterUpdateInput = z.infer<typeof charterUpdateSchema>;
 export type RoleAssignmentInput = z.infer<typeof roleAssignmentSchema>;

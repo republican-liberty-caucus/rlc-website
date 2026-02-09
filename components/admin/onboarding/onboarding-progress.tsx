@@ -13,8 +13,8 @@ interface StepState {
 }
 
 interface OnboardingProgressProps {
-  chapterId: string;
-  chapterName: string;
+  charterId: string;
+  charterName: string;
   steps: StepState[];
   activeStep: OnboardingStep | null;
 }
@@ -37,13 +37,13 @@ const statusColors: Record<OnboardingStepStatus | 'locked', string> = {
   locked: 'text-muted-foreground/50',
 };
 
-export function OnboardingProgress({ chapterId, chapterName, steps, activeStep }: OnboardingProgressProps) {
+export function OnboardingProgress({ charterId, charterName, steps, activeStep }: OnboardingProgressProps) {
   const { completed, total, percentage } = calculateProgress(steps);
 
   return (
     <div className="space-y-4">
       <div>
-        <h2 className="font-heading text-lg font-semibold">{chapterName}</h2>
+        <h2 className="font-heading text-lg font-semibold">{charterName}</h2>
         <span className="text-xs rounded-full bg-yellow-100 text-yellow-800 px-2 py-0.5">Forming</span>
       </div>
 
@@ -72,7 +72,7 @@ export function OnboardingProgress({ chapterId, chapterName, steps, activeStep }
           return (
             <Link
               key={def.step}
-              href={effectiveStatus === 'locked' ? '#' : `/admin/chapters/${chapterId}/onboarding?step=${def.step}`}
+              href={effectiveStatus === 'locked' ? '#' : `/admin/charters/${charterId}/onboarding?step=${def.step}`}
               className={cn(
                 'flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors',
                 isActive && 'bg-rlc-red/10 text-rlc-red font-medium',

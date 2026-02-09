@@ -13,7 +13,7 @@ interface Post {
   content: string | null;
   excerpt: string | null;
   featured_image_url: string | null;
-  chapter_id: string | null;
+  charter_id: string | null;
   status: string;
   published_at: string | null;
   categories: string[];
@@ -24,14 +24,14 @@ interface Post {
 
 interface PostEditorFormProps {
   post: Post | null;
-  chapters: { id: string; name: string }[];
+  charters: { id: string; name: string }[];
 }
 
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-export function PostEditorForm({ post, chapters }: PostEditorFormProps) {
+export function PostEditorForm({ post, charters }: PostEditorFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
@@ -52,7 +52,7 @@ export function PostEditorForm({ post, chapters }: PostEditorFormProps) {
       content: (fd.get('content') as string) || null,
       excerpt: (fd.get('excerpt') as string) || null,
       featuredImageUrl: (fd.get('featuredImageUrl') as string) || null,
-      chapterId: (fd.get('chapterId') as string) || null,
+      charterId: (fd.get('charterId') as string) || null,
       status: fd.get('status') as string,
       categories: categoriesStr ? categoriesStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
       tags: tagsStr ? tagsStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
@@ -169,10 +169,10 @@ export function PostEditorForm({ post, chapters }: PostEditorFormProps) {
             </select>
           </div>
           <div>
-            <label className={ADMIN_LABEL_CLASS}>Chapter</label>
-            <select name="chapterId" defaultValue={post?.chapter_id || ''} className={ADMIN_INPUT_CLASS}>
-              <option value="">National (no chapter)</option>
-              {chapters.map((ch) => (
+            <label className={ADMIN_LABEL_CLASS}>Charter</label>
+            <select name="charterId" defaultValue={post?.charter_id || ''} className={ADMIN_INPUT_CLASS}>
+              <option value="">National (no charter)</option>
+              {charters.map((ch) => (
                 <option key={ch.id} value={ch.id}>{ch.name}</option>
               ))}
             </select>

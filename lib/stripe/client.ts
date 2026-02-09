@@ -43,7 +43,7 @@ export const MEMBERSHIP_TIERS: TierConfig[] = [
     features: [
       'Full voting rights',
       'Member communications',
-      'State chapter membership',
+      'State charter membership',
       'RLC membership card',
     ],
     includesSpouse: false,
@@ -59,7 +59,7 @@ export const MEMBERSHIP_TIERS: TierConfig[] = [
     features: [
       'Full voting rights',
       'Member communications',
-      'State chapter membership',
+      'State charter membership',
       'RLC membership card',
       'Convention delegate eligibility',
     ],
@@ -211,7 +211,7 @@ export async function createDonationCheckoutSession(params: {
   isRecurring: boolean;
   donorEmail: string;
   memberId?: string;
-  chapterId?: string;
+  charterId?: string;
   campaignId?: string;
   successUrl: string;
   cancelUrl: string;
@@ -221,7 +221,7 @@ export async function createDonationCheckoutSession(params: {
   const metadata: Record<string, string> = {
     type: 'donation',
     member_id: params.memberId || '',
-    chapter_id: params.chapterId || '',
+    charter_id: params.charterId || '',
     campaign_id: params.campaignId || '',
   };
 
@@ -287,10 +287,10 @@ export function formatPrice(cents: number): string {
 // Stripe Connect (Dues Sharing)
 // ===========================================
 
-/** Create a Stripe Connect Express account for a chapter */
+/** Create a Stripe Connect Express account for a charter */
 export async function createConnectAccount(params: {
-  chapterName: string;
-  chapterEmail: string;
+  charterName: string;
+  charterEmail: string;
 }): Promise<Stripe.Account> {
   const stripe = getStripe();
   return stripe.accounts.create({
@@ -298,9 +298,9 @@ export async function createConnectAccount(params: {
     country: 'US',
     business_type: 'non_profit',
     business_profile: {
-      name: params.chapterName,
+      name: params.charterName,
     },
-    email: params.chapterEmail,
+    email: params.charterEmail,
     capabilities: {
       transfers: { requested: true },
     },

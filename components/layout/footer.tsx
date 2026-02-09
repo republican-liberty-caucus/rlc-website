@@ -4,7 +4,7 @@ import Image from 'next/image';
 const footerLinks = {
   organization: [
     { href: '/about', label: 'About Us' },
-    { href: '/chapters', label: 'State Chapters' },
+    { href: '/charters', label: 'State Charters' },
     { href: '/scorecards', label: 'Liberty Scorecards' },
     { href: '/action-center', label: 'Action Center' },
     { href: '/events', label: 'Events' },
@@ -14,7 +14,7 @@ const footerLinks = {
     { href: '/join', label: 'Become a Member' },
     { href: '/donate', label: 'Donate' },
     { href: '/action-center', label: 'Take Action' },
-    { href: '/chapters', label: 'Find Your Chapter' },
+    { href: '/charters', label: 'Find Your Charter' },
   ],
   resources: [
     { href: '/about/principles', label: 'Our Platform' },

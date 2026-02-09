@@ -19,7 +19,7 @@ export const eventCreateSchema = z.object({
   maxAttendees: z.number().int().positive().optional().nullable(),
   registrationFee: z.number().positive().optional().nullable(),
   registrationDeadline: z.coerce.date().optional().nullable(),
-  chapterId: z.string().uuid().optional().nullable(),
+  charterId: z.string().uuid().optional().nullable(),
   status: z.enum(['draft', 'published', 'cancelled']).default('draft'),
 });
 

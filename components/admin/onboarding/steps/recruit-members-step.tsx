@@ -60,7 +60,7 @@ export function RecruitMembersStep({
       <div>
         <h3 className="text-lg font-semibold">Recruit 10 Founding Members</h3>
         <p className="text-sm text-muted-foreground">
-          Identify and link at least 10 founding members for the new chapter.
+          Identify and link at least 10 founding members for the new charter.
         </p>
       </div>
 

@@ -17,7 +17,7 @@ interface MemberContribution {
     email: string;
   };
   splits: {
-    recipient_chapter_id: string;
+    recipient_charter_id: string;
     amount: number;
     status: string;
   }[];

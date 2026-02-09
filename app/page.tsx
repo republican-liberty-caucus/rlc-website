@@ -44,7 +44,7 @@ interface LegislatorSummary {
 interface HomePageData {
   memberCount: number;
   stateCount: number;
-  chapterCount: number;
+  charterCount: number;
   activeCampaignCount: number;
   events: HomeEvent[];
   posts: HomePost[];
@@ -59,7 +59,7 @@ async function getHomePageData(): Promise<HomePageData> {
 
   const [
     membersResult,
-    chaptersResult,
+    chartersResult,
     campaignCountResult,
     eventsResult,
     postsResult,
@@ -71,9 +71,9 @@ async function getHomePageData(): Promise<HomePageData> {
       .select('state', { count: 'exact', head: false })
       .in('membership_status', ['current', 'new_member', 'grace']),
 
-    // Chapter count
+    // Charter count
     supabase
-      .from('rlc_chapters')
+      .from('rlc_charters')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active'),
 
@@ -114,7 +114,7 @@ async function getHomePageData(): Promise<HomePageData> {
 
   // Log any Supabase query errors (non-fatal — we fall back to empty data)
   if (membersResult.error) logger.error('[homepage] members query failed:', membersResult.error);
-  if (chaptersResult.error) logger.error('[homepage] chapters query failed:', chaptersResult.error);
+  if (chartersResult.error) logger.error('[homepage] charters query failed:', chartersResult.error);
   if (campaignCountResult.error) logger.error('[homepage] campaign count query failed:', campaignCountResult.error);
   if (eventsResult.error) logger.error('[homepage] events query failed:', eventsResult.error);
   if (postsResult.error) logger.error('[homepage] posts query failed:', postsResult.error);
@@ -163,7 +163,7 @@ async function getHomePageData(): Promise<HomePageData> {
   return {
     memberCount: membersResult.count || 0,
     stateCount: distinctStates.size,
-    chapterCount: chaptersResult.count || 0,
+    charterCount: chartersResult.count || 0,
     activeCampaignCount: campaignCountResult.count || 0,
     events: (eventsResult.data || []) as HomeEvent[],
     posts: (postsResult.data || []) as HomePost[],
@@ -194,7 +194,7 @@ const ctaCards = [
     heading: 'Get Involved',
     description:
       'With charters in almost every state there\'s bound to be an event near you. Find one and get involved today.',
-    href: '/chapters',
+    href: '/charters',
   },
 ];
 
@@ -207,7 +207,7 @@ export default async function HomePage() {
     data = {
       memberCount: 0,
       stateCount: 0,
-      chapterCount: 0,
+      charterCount: 0,
       activeCampaignCount: 0,
       events: [],
       posts: [],
@@ -329,7 +329,7 @@ export default async function HomePage() {
       <StatsBar
         stats={[
           { value: data.memberCount, label: 'Active Members', suffix: '+' },
-          { value: data.chapterCount, label: 'State Chapters' },
+          { value: data.charterCount, label: 'State Charters' },
           { value: data.stateCount, label: 'States Active' },
           { value: data.activeCampaignCount, label: 'Active Campaigns' },
         ]}

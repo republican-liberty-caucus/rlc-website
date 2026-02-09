@@ -67,8 +67,8 @@ export function EventPreview({ events }: EventPreviewProps) {
         ) : (
           <EmptyState
             title="No Upcoming Events"
-            description="Find your local chapter to stay in the loop on upcoming events."
-            action={{ label: 'Find Your Chapter', href: '/chapters' }}
+            description="Find your local charter to stay in the loop on upcoming events."
+            action={{ label: 'Find Your Charter', href: '/charters' }}
             icon={<Calendar className="h-12 w-12" />}
           />
         )}

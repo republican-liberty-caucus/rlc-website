@@ -109,7 +109,7 @@ export async function PATCH(
   if (input.slug !== undefined) updateFields.slug = input.slug;
   if (input.description !== undefined) updateFields.description = input.description;
   if (input.billId !== undefined) updateFields.bill_id = input.billId;
-  if (input.chapterId !== undefined) updateFields.chapter_id = input.chapterId;
+  if (input.charterId !== undefined) updateFields.charter_id = input.charterId;
   if (input.targetChamber !== undefined) updateFields.target_chamber = input.targetChamber;
   if (input.targetStateCode !== undefined) updateFields.target_state_code = input.targetStateCode;
   if (input.messageTemplate !== undefined) updateFields.message_template = input.messageTemplate;

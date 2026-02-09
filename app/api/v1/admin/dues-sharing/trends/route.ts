@@ -16,9 +16,9 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const months = parseInt(searchParams.get('months') || '12', 10);
-  const chapterId = searchParams.get('chapterId');
+  const charterId = searchParams.get('charterId');
 
-  if (chapterId && ctx.visibleChapterIds !== null && !ctx.visibleChapterIds.includes(chapterId)) {
+  if (charterId && ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -30,18 +30,18 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from('rlc_split_ledger_entries')
-    .select('amount, status, recipient_chapter_id, created_at')
+    .select('amount, status, recipient_charter_id, created_at')
     .gte('created_at', startDate.toISOString())
     .gt('amount', 0); // Exclude reversals
 
-  if (chapterId) {
-    query = query.eq('recipient_chapter_id', chapterId);
-  } else if (ctx.visibleChapterIds !== null) {
-    query = query.in('recipient_chapter_id', ctx.visibleChapterIds);
+  if (charterId) {
+    query = query.eq('recipient_charter_id', charterId);
+  } else if (ctx.visibleCharterIds !== null) {
+    query = query.in('recipient_charter_id', ctx.visibleCharterIds);
   }
 
   const { data: entries } = await query;
-  const rows = (entries || []) as { amount: number; status: string; recipient_chapter_id: string; created_at: string }[];
+  const rows = (entries || []) as { amount: number; status: string; recipient_charter_id: string; created_at: string }[];
 
   // Aggregate by month
   const monthlyData = new Map<string, { transferred: number; pending: number; count: number }>();

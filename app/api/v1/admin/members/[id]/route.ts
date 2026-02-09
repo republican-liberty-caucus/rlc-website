@@ -11,7 +11,7 @@ import { logger } from '@/lib/logger';
 type MemberUpdate = Database['public']['Tables']['rlc_members']['Update'];
 
 // Fields only national_board+ can modify
-const RESTRICTED_FIELDS = ['membershipTier', 'membershipStatus', 'primaryChapterId', 'membershipExpiryDate'] as const;
+const RESTRICTED_FIELDS = ['membershipTier', 'membershipStatus', 'primaryCharterId', 'membershipExpiryDate'] as const;
 
 export async function PATCH(
   request: Request,
@@ -30,7 +30,7 @@ export async function PATCH(
   const { id } = await params;
   const supabase = createServerClient();
 
-  // Fetch the member to verify the admin can see their chapter
+  // Fetch the member to verify the admin can see their charter
   const { data: existing, error: fetchError } = await supabase
     .from('rlc_members')
     .select('*')
@@ -43,7 +43,7 @@ export async function PATCH(
 
   const member = existing as Contact;
 
-  if (!canViewMember(ctx, member.primary_chapter_id)) {
+  if (!canViewMember(ctx, member.primary_charter_id)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
@@ -64,7 +64,7 @@ export async function PATCH(
 
   const input = parseResult.data;
 
-  // Scoped admins (chapter_admin, state_chair) cannot modify restricted fields
+  // Scoped admins (charter_admin, state_chair) cannot modify restricted fields
   const isNationalPlus = getRoleWeight(ctx.highestRole) >= getRoleWeight('national_board');
   if (!isNationalPlus) {
     for (const field of RESTRICTED_FIELDS) {
@@ -77,11 +77,11 @@ export async function PATCH(
     }
   }
 
-  // If changing primaryChapterId, verify the new chapter is also in admin's scope
-  if (input.primaryChapterId !== undefined && ctx.visibleChapterIds !== null) {
-    if (input.primaryChapterId !== null && !ctx.visibleChapterIds.includes(input.primaryChapterId)) {
+  // If changing primaryCharterId, verify the new charter is also in admin's scope
+  if (input.primaryCharterId !== undefined && ctx.visibleCharterIds !== null) {
+    if (input.primaryCharterId !== null && !ctx.visibleCharterIds.includes(input.primaryCharterId)) {
       return NextResponse.json(
-        { error: 'Cannot move member to a chapter outside your scope' },
+        { error: 'Cannot move member to a charter outside your scope' },
         { status: 403 }
       );
     }
@@ -99,7 +99,7 @@ export async function PATCH(
   if (input.postalCode !== undefined) updatePayload.postal_code = input.postalCode || null;
   if (input.membershipTier !== undefined) updatePayload.membership_tier = input.membershipTier;
   if (input.membershipStatus !== undefined) updatePayload.membership_status = input.membershipStatus;
-  if (input.primaryChapterId !== undefined) updatePayload.primary_chapter_id = input.primaryChapterId;
+  if (input.primaryCharterId !== undefined) updatePayload.primary_charter_id = input.primaryCharterId;
   if (input.membershipExpiryDate !== undefined) updatePayload.membership_expiry_date = input.membershipExpiryDate;
   if (input.emailOptIn !== undefined) updatePayload.email_opt_in = input.emailOptIn;
   if (input.smsOptIn !== undefined) updatePayload.sms_opt_in = input.smsOptIn;

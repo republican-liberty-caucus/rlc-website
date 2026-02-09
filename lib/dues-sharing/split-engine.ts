@@ -1,12 +1,12 @@
-import { NATIONAL_FLAT_FEE_CENTS, getNationalChapterId } from './constants';
+import { NATIONAL_FLAT_FEE_CENTS, getNationalCharterId } from './constants';
 import { createServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
-import type { Chapter, DisbursementModel, SplitSourceType } from '@/types';
+import type { Charter, DisbursementModel, SplitSourceType } from '@/types';
 
 // ─── Pure types ──────────────────────────────────────────────────────────────
 
 export interface SplitAllocation {
-  recipientChapterId: string;
+  recipientCharterId: string;
   amountCents: number;
   isNational: boolean;
 }
@@ -18,7 +18,7 @@ export interface SplitResult {
 }
 
 export interface SplitRuleRow {
-  recipient_chapter_id: string;
+  recipient_charter_id: string;
   percentage: number;
   is_active: boolean;
 }
@@ -32,26 +32,26 @@ export interface SplitConfigRow {
 
 /**
  * Calculate the split allocations for a membership payment.
- * National always gets a flat $15. Remainder goes to the state chapter
- * (or sub-split per config). If no state chapter exists, National keeps 100%.
+ * National always gets a flat $15. Remainder goes to the state charter
+ * (or sub-split per config). If no state charter exists, National keeps 100%.
  *
  * All amounts are in cents to avoid floating-point issues.
  */
 export function calculateMembershipSplit(params: {
   totalCents: number;
-  nationalChapterId: string;
-  stateChapterId: string | null;
+  nationalCharterId: string;
+  stateCharterId: string | null;
   splitConfig: SplitConfigRow | null;
   splitRules: SplitRuleRow[];
 }): SplitResult {
-  const { totalCents, nationalChapterId, stateChapterId, splitConfig, splitRules } = params;
+  const { totalCents, nationalCharterId, stateCharterId, splitConfig, splitRules } = params;
 
-  // No state chapter → National keeps 100%
-  if (!stateChapterId) {
+  // No state charter → National keeps 100%
+  if (!stateCharterId) {
     return {
-      allocations: [{ recipientChapterId: nationalChapterId, amountCents: totalCents, isNational: true }],
+      allocations: [{ recipientCharterId: nationalCharterId, amountCents: totalCents, isNational: true }],
       totalCents,
-      splitRuleSnapshot: { reason: 'no_state_chapter' },
+      splitRuleSnapshot: { reason: 'no_state_charter' },
     };
   }
 
@@ -61,19 +61,19 @@ export function calculateMembershipSplit(params: {
   // If the payment is <= national fee, National gets it all
   if (remainder <= 0) {
     return {
-      allocations: [{ recipientChapterId: nationalChapterId, amountCents: totalCents, isNational: true }],
+      allocations: [{ recipientCharterId: nationalCharterId, amountCents: totalCents, isNational: true }],
       totalCents,
       splitRuleSnapshot: { reason: 'amount_lte_national_fee' },
     };
   }
 
   const allocations: SplitAllocation[] = [
-    { recipientChapterId: nationalChapterId, amountCents: nationalShare, isNational: true },
+    { recipientCharterId: nationalCharterId, amountCents: nationalShare, isNational: true },
   ];
 
   // No active config or state_managed → entire remainder to state
   if (!splitConfig?.is_active || splitConfig.disbursement_model === 'state_managed') {
-    allocations.push({ recipientChapterId: stateChapterId, amountCents: remainder, isNational: false });
+    allocations.push({ recipientCharterId: stateCharterId, amountCents: remainder, isNational: false });
     return {
       allocations,
       totalCents,
@@ -89,7 +89,7 @@ export function calculateMembershipSplit(params: {
   const activeRules = splitRules.filter((r) => r.is_active);
   if (activeRules.length === 0) {
     // No rules configured yet → all remainder to state
-    allocations.push({ recipientChapterId: stateChapterId, amountCents: remainder, isNational: false });
+    allocations.push({ recipientCharterId: stateCharterId, amountCents: remainder, isNational: false });
     return {
       allocations,
       totalCents,
@@ -108,7 +108,7 @@ export function calculateMembershipSplit(params: {
       model: 'national_managed',
       national_cents: nationalShare,
       rules: activeRules.map((r) => ({
-        recipient: r.recipient_chapter_id,
+        recipient: r.recipient_charter_id,
         percentage: r.percentage,
       })),
     },
@@ -125,7 +125,7 @@ export function applyPercentageSplit(
 ): SplitAllocation[] {
   // Calculate raw (fractional) amounts
   const raw = rules.map((r) => ({
-    recipientChapterId: r.recipient_chapter_id,
+    recipientCharterId: r.recipient_charter_id,
     rawCents: (totalCents * r.percentage) / 100,
     isNational: false,
   }));
@@ -149,8 +149,8 @@ export function applyPercentageSplit(
     leftover -= 1;
   }
 
-  return sorted.map(({ recipientChapterId, amountCents, isNational }) => ({
-    recipientChapterId,
+  return sorted.map(({ recipientCharterId, amountCents, isNational }) => ({
+    recipientCharterId,
     amountCents,
     isNational,
   }));
@@ -159,43 +159,43 @@ export function applyPercentageSplit(
 // ─── Database functions ──────────────────────────────────────────────────────
 
 /**
- * Walk the chapter hierarchy upward from a given chapter to find its state-level ancestor.
- * Returns null if no state chapter exists in the hierarchy.
+ * Walk the charter hierarchy upward from a given charter to find its state-level ancestor.
+ * Returns null if no state charter exists in the hierarchy.
  */
-export async function resolveStateChapter(chapterId: string): Promise<string | null> {
+export async function resolveStateCharter(charterId: string): Promise<string | null> {
   const supabase = createServerClient();
 
-  // Fetch the chapter and walk up
-  let currentId: string | null = chapterId;
+  // Fetch the charter and walk up
+  let currentId: string | null = charterId;
   const visited = new Set<string>();
 
   while (currentId) {
     if (visited.has(currentId)) {
-      logger.error(`Circular chapter hierarchy detected at ${currentId}`);
+      logger.error(`Circular charter hierarchy detected at ${currentId}`);
       return null;
     }
     visited.add(currentId);
 
     const { data, error } = await supabase
-      .from('rlc_chapters')
-      .select('id, chapter_level, parent_chapter_id')
+      .from('rlc_charters')
+      .select('id, charter_level, parent_charter_id')
       .eq('id', currentId)
       .single();
 
     if (error || !data) return null;
 
-    const chapter = data as Pick<Chapter, 'id' | 'chapter_level' | 'parent_chapter_id'>;
+    const charter = data as Pick<Charter, 'id' | 'charter_level' | 'parent_charter_id'>;
 
-    if (chapter.chapter_level === 'state') {
-      return chapter.id;
+    if (charter.charter_level === 'state') {
+      return charter.id;
     }
 
-    // If we hit national, there's no state chapter in this path
-    if (chapter.chapter_level === 'national') {
+    // If we hit national, there's no state charter in this path
+    if (charter.charter_level === 'national') {
       return null;
     }
 
-    currentId = chapter.parent_chapter_id;
+    currentId = charter.parent_charter_id;
   }
 
   return null;
@@ -208,7 +208,7 @@ export async function resolveStateChapter(chapterId: string): Promise<string | n
  */
 export async function processDuesSplit(contributionId: string): Promise<void> {
   const supabase = createServerClient();
-  const nationalChapterId = getNationalChapterId();
+  const nationalCharterId = getNationalCharterId();
 
   // Fetch the contribution
   interface ContributionRow {
@@ -217,11 +217,11 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
     currency: string;
     contribution_type: string;
     member_id: string | null;
-    chapter_id: string | null;
+    charter_id: string | null;
   }
   const { data: rawContribution, error: contribError } = await supabase
     .from('rlc_contributions')
-    .select('id, amount, currency, contribution_type, member_id, chapter_id')
+    .select('id, amount, currency, contribution_type, member_id, charter_id')
     .eq('id', contributionId)
     .single();
 
@@ -252,23 +252,23 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
     return;
   }
 
-  // Resolve member's state chapter
-  const memberChapterId = contribution.chapter_id as string | null;
-  let stateChapterId: string | null = null;
+  // Resolve member's state charter
+  const memberCharterId = contribution.charter_id as string | null;
+  let stateCharterId: string | null = null;
 
-  if (memberChapterId) {
-    stateChapterId = await resolveStateChapter(memberChapterId);
+  if (memberCharterId) {
+    stateCharterId = await resolveStateCharter(memberCharterId);
   }
 
-  // Look up split config for the state chapter
+  // Look up split config for the state charter
   let splitConfig: SplitConfigRow | null = null;
   let splitRules: SplitRuleRow[] = [];
 
-  if (stateChapterId) {
+  if (stateCharterId) {
     const { data: configData } = await supabase
-      .from('rlc_chapter_split_configs')
+      .from('rlc_charter_split_configs')
       .select('id, disbursement_model, is_active')
-      .eq('chapter_id', stateChapterId)
+      .eq('charter_id', stateCharterId)
       .single();
 
     if (configData) {
@@ -278,8 +278,8 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
       if (splitConfig.is_active && splitConfig.disbursement_model === 'national_managed') {
         const configId = (configData as { id: string }).id;
         const { data: rules } = await supabase
-          .from('rlc_chapter_split_rules')
-          .select('recipient_chapter_id, percentage, is_active')
+          .from('rlc_charter_split_rules')
+          .select('recipient_charter_id, percentage, is_active')
           .eq('config_id', configId)
           .order('sort_order', { ascending: true });
 
@@ -291,8 +291,8 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
   // Calculate the split
   const result = calculateMembershipSplit({
     totalCents,
-    nationalChapterId,
-    stateChapterId,
+    nationalCharterId,
+    stateCharterId,
     splitConfig,
     splitRules,
   });
@@ -307,7 +307,7 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
     .map((a) => ({
       contribution_id: contributionId,
       source_type: sourceType,
-      recipient_chapter_id: a.recipientChapterId,
+      recipient_charter_id: a.recipientCharterId,
       amount: a.amountCents / 100,
       currency: (contribution.currency as string) || 'USD',
       // National entries are "transferred" (money stays in platform account)
@@ -333,7 +333,7 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
     `(total: $${(totalCents / 100).toFixed(2)})`
   );
 
-  // Attempt immediate transfers for chapters with active Stripe accounts
+  // Attempt immediate transfers for charters with active Stripe accounts
   try {
     const { executeTransfersForContribution } = await import('./transfer-engine');
     await executeTransfersForContribution(contributionId);

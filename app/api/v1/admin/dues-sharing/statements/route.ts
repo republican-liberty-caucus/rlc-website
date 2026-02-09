@@ -15,7 +15,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const chapterId = searchParams.get('chapterId');
+  const charterId = searchParams.get('charterId');
   const month = searchParams.get('month'); // YYYY-MM format
   const format = searchParams.get('format') || 'json';
 
@@ -23,17 +23,17 @@ export async function GET(request: Request) {
 
   let query = supabase
     .from('rlc_split_ledger_entries')
-    .select('id, contribution_id, source_type, recipient_chapter_id, amount, currency, status, stripe_transfer_id, transferred_at, created_at')
+    .select('id, contribution_id, source_type, recipient_charter_id, amount, currency, status, stripe_transfer_id, transferred_at, created_at')
     .order('created_at', { ascending: false });
 
-  // Chapter filter
-  if (chapterId) {
-    if (ctx.visibleChapterIds !== null && !ctx.visibleChapterIds.includes(chapterId)) {
+  // Charter filter
+  if (charterId) {
+    if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
-    query = query.eq('recipient_chapter_id', chapterId);
-  } else if (ctx.visibleChapterIds !== null) {
-    query = query.in('recipient_chapter_id', ctx.visibleChapterIds);
+    query = query.eq('recipient_charter_id', charterId);
+  } else if (ctx.visibleCharterIds !== null) {
+    query = query.in('recipient_charter_id', ctx.visibleCharterIds);
   }
 
   // Month filter
@@ -54,7 +54,7 @@ export async function GET(request: Request) {
     id: string;
     contribution_id: string;
     source_type: string;
-    recipient_chapter_id: string;
+    recipient_charter_id: string;
     amount: number;
     currency: string;
     status: string;
@@ -64,9 +64,9 @@ export async function GET(request: Request) {
   }[];
 
   if (format === 'csv') {
-    const header = 'ID,Contribution ID,Source Type,Recipient Chapter,Amount,Currency,Status,Transfer ID,Transferred At,Created At';
+    const header = 'ID,Contribution ID,Source Type,Recipient Charter,Amount,Currency,Status,Transfer ID,Transferred At,Created At';
     const csvRows = rows.map((r) =>
-      `${r.id},${r.contribution_id},${r.source_type},${r.recipient_chapter_id},${r.amount},${r.currency},${r.status},${r.stripe_transfer_id || ''},${r.transferred_at || ''},${r.created_at}`
+      `${r.id},${r.contribution_id},${r.source_type},${r.recipient_charter_id},${r.amount},${r.currency},${r.status},${r.stripe_transfer_id || ''},${r.transferred_at || ''},${r.created_at}`
     );
 
     return new Response([header, ...csvRows].join('\n'), {

@@ -39,8 +39,8 @@ export default async function AdminScorecardsPage() {
     .select('id, name, slug, jurisdiction, state_code, session_year, status, created_at')
     .order('created_at', { ascending: false });
 
-  if (ctx.visibleChapterIds !== null && ctx.visibleChapterIds.length > 0) {
-    query = query.in('chapter_id', ctx.visibleChapterIds);
+  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
+    query = query.in('charter_id', ctx.visibleCharterIds);
   }
 
   const { data, error } = await query;
