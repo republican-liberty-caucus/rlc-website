@@ -14,7 +14,8 @@ export async function GET(request: Request) {
     const result = await getRepresentatives(address);
     return NextResponse.json(result);
   } catch (err) {
-    logger.error('Civic API error:', err);
-    return NextResponse.json({ error: 'Failed to look up representatives' }, { status: 500 });
+    const message = err instanceof Error ? err.message : String(err);
+    logger.error('Civic API error:', message);
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
