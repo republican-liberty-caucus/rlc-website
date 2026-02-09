@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { MapPin, ExternalLink } from 'lucide-react';
+import { MapPin, ExternalLink, Landmark, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import type { OfficialCategory } from '@/lib/civic/client';
 
 interface Rep {
   name: string;
@@ -14,15 +15,21 @@ interface Rep {
   urls: string[];
   channels: Array<{ type: string; id: string }>;
   office: string;
-  category?: string;
+  category?: OfficialCategory;
 }
 
 // Only show elected representatives, not appointed executive officials
-const ELECTED_CATEGORIES = new Set([
+const ELECTED_CATEGORIES: OfficialCategory[] = [
   'federal_legislature',
   'state_legislature',
   'local',
-]);
+];
+
+const CATEGORY_LABELS: Record<string, { label: string; icon: typeof Landmark }> = {
+  federal_legislature: { label: 'Federal', icon: Landmark },
+  state_legislature: { label: 'State', icon: Scale },
+  local: { label: 'Local', icon: MapPin },
+};
 
 interface MyRepsPreviewProps {
   memberAddress: string | null;
@@ -34,6 +41,19 @@ export function MyRepsPreview({ memberAddress, memberState }: MyRepsPreviewProps
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
   const [error, setError] = useState(false);
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, Rep[]>();
+    for (const rep of reps) {
+      const cat = rep.category || 'local';
+      const list = map.get(cat) || [];
+      list.push(rep);
+      map.set(cat, list);
+    }
+    return ELECTED_CATEGORIES
+      .filter((cat) => map.has(cat))
+      .map((cat) => ({ category: cat, label: CATEGORY_LABELS[cat], reps: map.get(cat)! }));
+  }, [reps]);
 
   useEffect(() => {
     if (!memberAddress || fetched) return;
@@ -51,7 +71,7 @@ export function MyRepsPreview({ memberAddress, memberState }: MyRepsPreviewProps
       .then((data) => {
         if (!cancelled && data.officials) {
           const elected = data.officials.filter(
-            (o: Rep) => o.category && ELECTED_CATEGORIES.has(o.category)
+            (o: Rep) => o.category && ELECTED_CATEGORIES.includes(o.category as OfficialCategory)
           );
           setReps(elected);
         }
@@ -132,42 +152,57 @@ export function MyRepsPreview({ memberAddress, memberState }: MyRepsPreviewProps
           <span className="text-xs text-muted-foreground">{memberState}</span>
         )}
       </div>
-      {reps.length > 0 ? (
-        <div className="mt-4 space-y-3">
-          {reps.map((rep, idx) => (
-            <div
-              key={`${rep.name}-${idx}`}
-              className="flex items-center justify-between rounded-lg border p-3"
-            >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <p className="font-medium">{rep.name}</p>
-                  <span className="text-xs text-muted-foreground">({rep.party})</span>
+      {grouped.length > 0 ? (
+        <div className="mt-4 space-y-5">
+          {grouped.map(({ category, label, reps: groupReps }) => {
+            const Icon = label.icon;
+            return (
+              <div key={category}>
+                <div className="mb-2 flex items-center gap-1.5 border-b pb-1.5">
+                  <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                    {label.label}
+                  </span>
                 </div>
-                <p className="text-xs text-muted-foreground">{rep.office}</p>
+                <div className="space-y-2">
+                  {groupReps.map((rep, idx) => (
+                    <div
+                      key={`${rep.name}-${idx}`}
+                      className="flex items-center justify-between rounded-lg border p-3"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="font-medium">{rep.name}</p>
+                          <span className="text-xs text-muted-foreground">({rep.party})</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{rep.office}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {rep.phones[0] && (
+                          <a
+                            href={`tel:${rep.phones[0]}`}
+                            className="text-xs text-rlc-blue hover:underline"
+                          >
+                            {rep.phones[0]}
+                          </a>
+                        )}
+                        {rep.urls[0] && (
+                          <a
+                            href={rep.urls[0]}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-muted-foreground hover:text-foreground"
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="flex items-center gap-2">
-                {rep.phones[0] && (
-                  <a
-                    href={`tel:${rep.phones[0]}`}
-                    className="text-xs text-rlc-blue hover:underline"
-                  >
-                    {rep.phones[0]}
-                  </a>
-                )}
-                {rep.urls[0] && (
-                  <a
-                    href={rep.urls[0]}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <ExternalLink className="h-3.5 w-3.5" />
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : fetched ? (
         <p className="mt-4 text-sm text-muted-foreground">
