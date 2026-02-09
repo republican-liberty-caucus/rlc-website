@@ -68,10 +68,11 @@ interface MemberFilterParams {
   search?: string | null;
   status?: string | null;
   tier?: string | null;
+  source?: string | null;
 }
 
-/** Apply standard member list filters (charter scoping, search, status, tier) to a Supabase query builder. */
-export function applyMemberFilters<T extends { in: (col: string, vals: string[]) => T; or: (filter: string) => T; eq: (col: string, val: string) => T }>(
+/** Apply standard member list filters (charter scoping, search, status, tier, source) to a Supabase query builder. */
+export function applyMemberFilters<T extends { in: (col: string, vals: string[]) => T; or: (filter: string) => T; eq: (col: string, val: string) => T; is: (col: string, val: null) => T; not: (col: string, op: string, val: null) => T }>(
   query: T,
   visibleCharterIds: string[] | null,
   filters: MemberFilterParams
@@ -88,6 +89,19 @@ export function applyMemberFilters<T extends { in: (col: string, vals: string[])
   }
   if (filters.tier && (VALID_MEMBERSHIP_TIERS as readonly string[]).includes(filters.tier)) {
     query = query.eq('membership_tier', filters.tier);
+  }
+  if (filters.source) {
+    if (filters.source === 'highlevel') {
+      query = query.not('highlevel_contact_id', 'is', null);
+    } else if (filters.source === 'civicrm') {
+      query = query.not('civicrm_contact_id', 'is', null);
+    } else if (filters.source === 'both') {
+      query = query.not('highlevel_contact_id', 'is', null).not('civicrm_contact_id', 'is', null);
+    } else if (filters.source === 'highlevel_only') {
+      query = query.not('highlevel_contact_id', 'is', null).is('civicrm_contact_id', null);
+    } else if (filters.source === 'civicrm_only') {
+      query = query.not('civicrm_contact_id', 'is', null).is('highlevel_contact_id', null);
+    }
   }
   return query;
 }

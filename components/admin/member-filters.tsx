@@ -76,6 +76,16 @@ export function MemberFilters() {
         <option value="benefactor">Benefactor</option>
         <option value="roundtable">Roundtable</option>
       </select>
+      <select
+        defaultValue={searchParams.get('source') || ''}
+        onChange={(e) => updateParam('source', e.target.value)}
+        className="rounded-md border bg-background px-3 py-2"
+      >
+        <option value="">All Sources</option>
+        <option value="highlevel_only">HighLevel Only</option>
+        <option value="civicrm_only">CiviCRM Only</option>
+        <option value="both">Both Sources</option>
+      </select>
       {isPending && (
         <div className="flex items-center text-sm text-muted-foreground">
           Loading...

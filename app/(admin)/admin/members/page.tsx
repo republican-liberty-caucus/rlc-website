@@ -22,6 +22,7 @@ interface SearchParams {
   search?: string;
   status?: string;
   tier?: string;
+  source?: string;
 }
 
 interface ContactRow {
@@ -82,6 +83,7 @@ function buildFilterParams(params: SearchParams, page?: number): URLSearchParams
   if (params.search) sp.set('search', params.search);
   if (params.status) sp.set('status', params.status);
   if (params.tier) sp.set('tier', params.tier);
+  if (params.source) sp.set('source', params.source);
   return sp;
 }
 
