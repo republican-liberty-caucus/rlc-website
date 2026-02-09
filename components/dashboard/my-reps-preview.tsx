@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { MapPin, ExternalLink, Landmark, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { OfficialCategory } from '@/lib/civic/client';
@@ -170,12 +171,28 @@ export function MyRepsPreview({ memberAddress, memberState }: MyRepsPreviewProps
                       key={`${rep.name}-${idx}`}
                       className="flex items-center justify-between rounded-lg border p-3"
                     >
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium">{rep.name}</p>
-                          <span className="text-xs text-muted-foreground">({rep.party})</span>
+                      <div className="flex min-w-0 flex-1 items-center gap-3">
+                        {rep.photoUrl ? (
+                          <Image
+                            src={rep.photoUrl}
+                            alt={rep.name}
+                            width={36}
+                            height={36}
+                            unoptimized
+                            className="h-9 w-9 shrink-0 rounded-full object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+                            {rep.name.charAt(0)}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">{rep.name}</p>
+                            <span className="text-xs text-muted-foreground">({rep.party})</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{rep.office}</p>
                         </div>
-                        <p className="text-xs text-muted-foreground">{rep.office}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         {rep.phones[0] && (
