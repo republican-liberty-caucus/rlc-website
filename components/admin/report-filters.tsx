@@ -33,7 +33,7 @@ export function ReportFilters() {
 
   return (
     <div className="mb-8 rounded-lg border bg-card p-4">
-      <div className="flex flex-wrap items-end gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:gap-4">
         <div>
           <label className="mb-1 block text-sm font-medium">Start Date</label>
           <input
@@ -68,7 +68,7 @@ export function ReportFilters() {
         </Button>
         <a
           href={`/api/v1/admin/reports/export?${new URLSearchParams({ start: startDate, end: endDate }).toString()}`}
-          className="ml-auto"
+          className="sm:ml-auto"
         >
           <Button variant="outline" size="sm">
             <Download className="mr-2 h-4 w-4" />
