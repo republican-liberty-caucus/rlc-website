@@ -45,7 +45,7 @@ interface HomePageData {
   memberCount: number;
   stateCount: number;
   charterCount: number;
-  activeCampaignCount: number;
+  endorsedCandidateCount: number;
   events: HomeEvent[];
   posts: HomePost[];
   champions: LegislatorSummary[];
@@ -60,7 +60,7 @@ async function getHomePageData(): Promise<HomePageData> {
   const [
     membersResult,
     chartersResult,
-    campaignCountResult,
+    endorsedCandidateResult,
     eventsResult,
     postsResult,
     scorecardResult,
@@ -76,11 +76,11 @@ async function getHomePageData(): Promise<HomePageData> {
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active'),
 
-    // Total active campaign count (for stats bar)
+    // Endorsed candidate count
     supabase
-      .from('rlc_action_campaigns')
+      .from('rlc_candidate_responses')
       .select('id', { count: 'exact', head: true })
-      .eq('status', 'active'),
+      .eq('endorsement_status', 'endorsed'),
 
     // Next 3 upcoming events
     supabase
@@ -114,7 +114,7 @@ async function getHomePageData(): Promise<HomePageData> {
   // Log any Supabase query errors (non-fatal — we fall back to empty data)
   if (membersResult.error) logger.error('[homepage] members query failed:', membersResult.error);
   if (chartersResult.error) logger.error('[homepage] charters query failed:', chartersResult.error);
-  if (campaignCountResult.error) logger.error('[homepage] campaign count query failed:', campaignCountResult.error);
+  if (endorsedCandidateResult.error) logger.error('[homepage] endorsed candidate count query failed:', endorsedCandidateResult.error);
   if (eventsResult.error) logger.error('[homepage] events query failed:', eventsResult.error);
   if (postsResult.error) logger.error('[homepage] posts query failed:', postsResult.error);
   // PGRST116 is expected when no published sessions exist; log other errors
@@ -163,7 +163,7 @@ async function getHomePageData(): Promise<HomePageData> {
     memberCount: membersResult.count || 0,
     stateCount: distinctStates.size,
     charterCount: chartersResult.count || 0,
-    activeCampaignCount: campaignCountResult.count || 0,
+    endorsedCandidateCount: endorsedCandidateResult.count || 0,
     events: (eventsResult.data || []) as HomeEvent[],
     posts: (postsResult.data || []) as HomePost[],
     champions,
@@ -207,7 +207,7 @@ export default async function HomePage() {
       memberCount: 0,
       stateCount: 0,
       charterCount: 0,
-      activeCampaignCount: 0,
+      endorsedCandidateCount: 0,
       events: [],
       posts: [],
       champions: [],
@@ -223,7 +223,7 @@ export default async function HomePage() {
 
       <HeroSection
         memberCount={data.memberCount}
-        campaignCount={data.activeCampaignCount}
+        charterCount={data.charterCount}
         stateCount={data.stateCount}
       />
 
@@ -330,7 +330,7 @@ export default async function HomePage() {
           { value: data.memberCount, label: 'Members', suffix: '+' },
           { value: data.charterCount, label: 'State Charters' },
           { value: data.stateCount, label: 'States Active' },
-          { value: data.activeCampaignCount, label: 'Active Campaigns' },
+          { value: data.endorsedCandidateCount, label: 'Endorsed Candidates' },
         ]}
       />
 
