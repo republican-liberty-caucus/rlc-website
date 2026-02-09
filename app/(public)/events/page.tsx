@@ -1,6 +1,5 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import { auth } from '@clerk/nextjs/server';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
@@ -98,11 +97,11 @@ export default async function EventsPage() {
                 >
                   {event.featured_image_url && (
                     <div className="relative h-48 w-full">
-                      <Image
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
                         src={event.featured_image_url}
                         alt={event.title}
-                        fill
-                        className="object-cover"
+                        className="h-full w-full object-cover"
                       />
                     </div>
                   )}

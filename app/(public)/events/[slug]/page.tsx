@@ -5,8 +5,7 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate, formatCurrency } from '@/lib/utils';
-import Image from 'next/image';
-import { Calendar, MapPin, Video, Users, Clock, DollarSign, Mail, User } from 'lucide-react';
+import { Calendar, MapPin, Video, Users, Clock, DollarSign, User } from 'lucide-react';
 import { RegistrationButton } from '@/components/events/registration-button';
 
 interface EventDetailProps {
@@ -37,7 +36,7 @@ interface EventRow {
   charter_id: string | null;
   status: string;
   charter: { name: string; slug: string } | null;
-  organizer: { first_name: string; last_name: string; email: string | null } | null;
+  organizer: { first_name: string; last_name: string } | null;
 }
 
 async function getEvent(slug: string) {
@@ -48,7 +47,7 @@ async function getEvent(slug: string) {
     .select(`
       *,
       charter:rlc_charters(name, slug),
-      organizer:rlc_contacts!organizer_id(first_name, last_name, email)
+      organizer:rlc_contacts!organizer_id(first_name, last_name)
     `)
     .eq('slug', slug)
     .eq('status', 'published')
@@ -94,12 +93,11 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
       {/* Featured Image */}
       {event.featured_image_url && (
         <div className="relative h-64 w-full md:h-96">
-          <Image
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
             src={event.featured_image_url}
             alt={event.title}
-            fill
-            className="object-cover"
-            priority
+            className="h-full w-full object-cover"
           />
         </div>
       )}
@@ -241,20 +239,9 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-rlc-blue/10">
                     <User className="h-5 w-5 text-rlc-blue" />
                   </div>
-                  <div>
-                    <p className="font-medium">
-                      {event.organizer.first_name} {event.organizer.last_name}
-                    </p>
-                    {event.organizer.email && (
-                      <a
-                        href={`mailto:${event.organizer.email}`}
-                        className="flex items-center gap-1 text-sm text-rlc-red hover:underline"
-                      >
-                        <Mail className="h-3 w-3" />
-                        {event.organizer.email}
-                      </a>
-                    )}
-                  </div>
+                  <p className="font-medium">
+                    {event.organizer.first_name} {event.organizer.last_name}
+                  </p>
                 </div>
               </div>
             )}

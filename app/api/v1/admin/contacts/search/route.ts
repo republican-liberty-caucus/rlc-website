@@ -20,7 +20,10 @@ export async function GET(request: NextRequest) {
   }
 
   const supabase = createServerClient();
-  const pattern = `%${q}%`;
+
+  // Escape PostgREST filter special characters to prevent filter injection
+  const sanitized = q.replace(/[\\.,()]/g, '\\$&');
+  const pattern = `%${sanitized}%`;
 
   const { data, error } = await supabase
     .from('rlc_contacts')
