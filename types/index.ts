@@ -471,6 +471,204 @@ export interface CharterOnboardingStep {
   updated_at: string;
 }
 
+// Candidate Vetting types
+
+export type VettingStage =
+  | 'survey_submitted'
+  | 'auto_audit'
+  | 'assigned'
+  | 'research'
+  | 'interview'
+  | 'committee_review'
+  | 'board_vote';
+
+export type VettingReportSectionType =
+  | 'digital_presence_audit'
+  | 'executive_summary'
+  | 'election_schedule'
+  | 'voting_rules'
+  | 'candidate_background'
+  | 'incumbent_record'
+  | 'opponent_research'
+  | 'electoral_results'
+  | 'district_data';
+
+export type AuditStatus = 'audit_pending' | 'running' | 'audit_completed' | 'audit_failed';
+export type VettingRecommendation = 'endorse' | 'do_not_endorse' | 'no_position';
+export type VettingSectionStatus = 'section_not_started' | 'section_assigned' | 'section_in_progress' | 'section_completed' | 'needs_revision';
+export type BoardVoteChoice = 'vote_endorse' | 'vote_do_not_endorse' | 'vote_no_position' | 'vote_abstain';
+export type CommitteeRole = 'chair' | 'committee_member';
+
+export interface CandidateVettingCommittee {
+  id: string;
+  name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CandidateVettingCommitteeMember {
+  id: string;
+  committee_id: string;
+  contact_id: string;
+  role: CommitteeRole;
+  is_active: boolean;
+  joined_at: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CandidateVetting {
+  id: string;
+  candidate_response_id: string;
+  committee_id: string | null;
+  stage: VettingStage;
+  candidate_name: string;
+  candidate_office: string | null;
+  candidate_district: string | null;
+  candidate_state: string | null;
+  candidate_party: string | null;
+  election_deadline_id: string | null;
+  district_data_id: string | null;
+  interview_date: string | null;
+  interview_notes: string | null;
+  interviewers: string[];
+  recommendation: VettingRecommendation | null;
+  recommendation_notes: string | null;
+  recommended_at: string | null;
+  endorsement_result: VettingRecommendation | null;
+  endorsed_at: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CandidateVettingReportSection {
+  id: string;
+  vetting_id: string;
+  section: VettingReportSectionType;
+  status: VettingSectionStatus;
+  data: Record<string, unknown>;
+  ai_draft_data: Record<string, unknown> | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CandidateVettingSectionAssignment {
+  id: string;
+  section_id: string;
+  committee_member_id: string;
+  assigned_by_id: string | null;
+  assigned_at: string;
+}
+
+export interface CandidateVettingOpponent {
+  id: string;
+  vetting_id: string;
+  name: string;
+  party: string | null;
+  is_incumbent: boolean;
+  background: string | null;
+  credibility: string | null;
+  fundraising: Record<string, unknown> | null;
+  endorsements: string[];
+  social_links: Record<string, unknown> | null;
+  photo_url: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CandidateVettingBoardVote {
+  id: string;
+  vetting_id: string;
+  voter_id: string;
+  vote: BoardVoteChoice;
+  notes: string | null;
+  voted_at: string;
+}
+
+export interface CandidateElectionDeadline {
+  id: string;
+  state_code: string;
+  cycle_year: number;
+  office_type: string;
+  primary_date: string | null;
+  primary_runoff_date: string | null;
+  general_date: string | null;
+  general_runoff_date: string | null;
+  filing_deadline: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CandidateDistrictData {
+  id: string;
+  state_code: string;
+  district_id: string;
+  office_type: string;
+  cook_pvi: string | null;
+  population: number | null;
+  party_registration: Record<string, unknown> | null;
+  municipalities: string[];
+  counties: string[];
+  overlapping_districts: string[];
+  electoral_history: Record<string, unknown> | null;
+  map_url: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CandidateDigitalAudit {
+  id: string;
+  vetting_id: string;
+  status: AuditStatus;
+  started_at: string | null;
+  completed_at: string | null;
+  triggered_by_id: string | null;
+  candidate_overall_score: number | null;
+  candidate_grade: string | null;
+  candidate_score_breakdown: Record<string, unknown> | null;
+  candidate_risks: Record<string, unknown>[] | null;
+  opponent_audits: Record<string, unknown>[] | null;
+  discovery_log: Record<string, unknown> | null;
+  screenshots_manifest: Record<string, unknown> | null;
+  error_message: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CandidateAuditPlatform {
+  id: string;
+  audit_id: string;
+  entity_type: string;
+  entity_name: string;
+  platform_name: string;
+  platform_url: string | null;
+  confidence_score: number | null;
+  discovery_method: string | null;
+  activity_status: string | null;
+  last_activity_date: string | null;
+  followers: number | null;
+  engagement_rate: number | null;
+  screenshot_desktop_url: string | null;
+  screenshot_mobile_url: string | null;
+  score_presence: number | null;
+  score_consistency: number | null;
+  score_quality: number | null;
+  score_accessibility: number | null;
+  total_score: number | null;
+  grade: string | null;
+  contact_methods: Record<string, unknown> | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data?: T;
