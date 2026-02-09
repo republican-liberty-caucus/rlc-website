@@ -27,29 +27,24 @@ export function Testimonials() {
           What Leaders Are Saying
         </h2>
 
-        <div className="mx-auto max-w-4xl space-y-12">
-          {testimonials.map((t, i) => (
+        <div className="mx-auto grid max-w-5xl gap-8 md:grid-cols-2">
+          {testimonials.map((t) => (
             <div
               key={t.name}
-              className={`flex flex-col items-center gap-6 md:flex-row ${
-                i % 2 !== 0 ? 'md:flex-row-reverse' : ''
-              }`}
+              className="relative rounded-lg border-t-4 border-t-rlc-red bg-card p-8 shadow-sm"
             >
-              <div className="flex shrink-0 flex-col items-center gap-2">
-                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-rlc-blue text-xl font-bold text-white">
+              <Quote className="mb-4 h-8 w-8 fill-rlc-red/10 text-rlc-red" />
+              <blockquote className="mb-6 text-lg leading-relaxed text-muted-foreground">
+                &ldquo;{t.quote}&rdquo;
+              </blockquote>
+              <div className="flex items-center gap-3 border-t pt-4">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rlc-blue text-sm font-bold text-white">
                   {t.initials}
                 </div>
-                <div className="text-center">
-                  <p className="font-semibold">{t.name}</p>
+                <div>
+                  <p className="font-semibold leading-tight">{t.name}</p>
                   <p className="text-sm text-muted-foreground">{t.title}</p>
                 </div>
-              </div>
-
-              <div className="relative rounded-lg border bg-card p-6">
-                <Quote className="absolute -top-3 left-4 h-6 w-6 fill-rlc-red/20 text-rlc-red" />
-                <blockquote className="text-lg italic text-muted-foreground">
-                  &ldquo;{t.quote}&rdquo;
-                </blockquote>
               </div>
             </div>
           ))}
