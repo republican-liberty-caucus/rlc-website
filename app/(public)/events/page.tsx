@@ -62,7 +62,7 @@ export default async function EventsPage() {
         const { data: registrations } = await supabase
           .from('rlc_event_registrations')
           .select('event_id')
-          .eq('member_id', member.id);
+          .eq('contact_id', member.id);
         registeredEventIds = new Set((registrations || []).map((r: { event_id: string }) => r.event_id));
       } catch {
         // Non-fatal — just don't show registration badges

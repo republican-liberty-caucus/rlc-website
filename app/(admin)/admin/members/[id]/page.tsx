@@ -71,7 +71,7 @@ export default async function AdminMemberDetailPage({
     supabase
       .from('rlc_contributions')
       .select('*')
-      .eq('member_id', id)
+      .eq('contact_id', id)
       .order('created_at', { ascending: false })
       .limit(10),
     supabase
@@ -86,7 +86,7 @@ export default async function AdminMemberDetailPage({
         charter:rlc_charters(name),
         granter:rlc_members!rlc_member_roles_granted_by_fkey(first_name, last_name)
       `)
-      .eq('member_id', id),
+      .eq('contact_id', id),
     member.household_id
       ? supabase
           .from('rlc_members')
@@ -102,7 +102,7 @@ export default async function AdminMemberDetailPage({
         charter:rlc_charters(id, name),
         appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
       `)
-      .eq('member_id', id)
+      .eq('contact_id', id)
       .order('is_active', { ascending: false })
       .order('started_at', { ascending: false }),
   ]);

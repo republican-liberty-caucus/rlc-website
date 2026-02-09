@@ -177,7 +177,7 @@ export const getAdminContext = cache(async (clerkUserId: string): Promise<AdminC
   const { data: roleData, error: roleError } = await supabase
     .from('rlc_member_roles')
     .select('id, role, charter_id, granted_by, granted_at, expires_at')
-    .eq('member_id', member.id)
+    .eq('contact_id', member.id)
     .in('role', ADMIN_ROLES)
     .or(`expires_at.is.null,expires_at.gte.${new Date().toISOString()}`);
 

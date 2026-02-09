@@ -265,7 +265,7 @@ async function handleCheckoutComplete(
   const { data: contributionRow, error: insertError } = await supabase
     .from('rlc_contributions')
     .insert({
-      member_id: member.id,
+      contact_id: member.id,
       contribution_type: 'membership',
       amount: (session.amount_total || 0) / 100,
       currency: session.currency?.toUpperCase() || 'USD',
@@ -403,7 +403,7 @@ async function handleInvoicePaid(
   const { data: contributionRow, error: insertError } = await supabase
     .from('rlc_contributions')
     .insert({
-      member_id: member.id,
+      contact_id: member.id,
       contribution_type: 'membership',
       amount: (invoice.amount_paid || 0) / 100,
       currency: invoice.currency?.toUpperCase() || 'USD',
@@ -444,7 +444,7 @@ async function handleInvoiceFailed(
   }
 
   const { error: insertError } = await supabase.from('rlc_contributions').insert({
-    member_id: member.id,
+    contact_id: member.id,
     contribution_type: 'membership',
     amount: (invoice.amount_due || 0) / 100,
     currency: invoice.currency?.toUpperCase() || 'USD',
@@ -512,7 +512,7 @@ async function handleDonationCheckout(
   }
 
   const { error: insertError } = await supabase.from('rlc_contributions').insert({
-    member_id: resolvedMemberId,
+    contact_id: resolvedMemberId,
     contribution_type: 'donation',
     amount: (session.amount_total || 0) / 100,
     currency: session.currency?.toUpperCase() || 'USD',

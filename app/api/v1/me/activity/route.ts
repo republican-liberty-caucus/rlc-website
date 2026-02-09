@@ -21,7 +21,7 @@ export async function GET() {
     const { data: participations, error: partErr } = await supabase
       .from('rlc_campaign_participations')
       .select('id, action, created_at, campaign:rlc_action_campaigns(title, slug)')
-      .eq('member_id', member.id)
+      .eq('contact_id', member.id)
       .order('created_at', { ascending: false })
       .limit(10);
 
@@ -31,7 +31,7 @@ export async function GET() {
     const { data: contributions, error: contribErr } = await supabase
       .from('rlc_contributions')
       .select('id, contribution_type, amount, created_at')
-      .eq('member_id', member.id)
+      .eq('contact_id', member.id)
       .eq('payment_status', 'completed')
       .order('created_at', { ascending: false })
       .limit(10);
@@ -42,7 +42,7 @@ export async function GET() {
     const { data: registrations, error: regErr } = await supabase
       .from('rlc_event_registrations')
       .select('id, created_at, event:rlc_events(title, slug)')
-      .eq('member_id', member.id)
+      .eq('contact_id', member.id)
       .order('created_at', { ascending: false })
       .limit(10);
 

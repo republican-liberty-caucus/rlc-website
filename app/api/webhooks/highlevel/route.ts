@@ -206,7 +206,7 @@ async function handleOpportunityCreated(
   // Create contribution if the opportunity has a monetary value
   if (opportunity.monetaryValue > 0) {
     const { error: insertError } = await supabase.from('rlc_contributions').insert({
-      member_id: member.id,
+      contact_id: member.id,
       contribution_type: 'donation',
       amount: opportunity.monetaryValue,
       payment_status: opportunity.status === 'won' ? 'completed' : 'pending',

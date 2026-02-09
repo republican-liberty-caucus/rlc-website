@@ -214,7 +214,7 @@ export async function POST(req: Request) {
         last_name: lastName,
         household_id: householdId,
         household_role: role,
-        primary_member_id: member.id,
+        primary_contact_id: member.id,
         membership_tier: member.membership_tier,
         membership_status: member.membership_status,
         membership_start_date: member.membership_start_date,

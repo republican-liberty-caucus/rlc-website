@@ -36,7 +36,7 @@ async function trySyncRoleToClerk(
     const { data: roles } = await supabase
       .from('rlc_member_roles')
       .select('id, role, charter_id, granted_by, granted_at, expires_at')
-      .eq('member_id', memberId);
+      .eq('contact_id', memberId);
 
     const highest = getHighestRole((roles || []) as AdminRole[]);
     const clerk = await clerkClient();
@@ -102,7 +102,7 @@ export async function POST(
   const { data: roleData, error: insertError } = await supabase
     .from('rlc_member_roles')
     .insert({
-      member_id: memberId,
+      contact_id: memberId,
       role,
       charter_id: charterId,
       granted_by: ctx.member.id,
@@ -156,9 +156,9 @@ export async function DELETE(
   // Verify the role belongs to this member
   const { data: roleRow, error: roleError } = await supabase
     .from('rlc_member_roles')
-    .select('id, member_id')
+    .select('id, contact_id')
     .eq('id', roleId)
-    .eq('member_id', memberId)
+    .eq('contact_id', memberId)
     .single();
 
   if (roleError || !roleRow) {

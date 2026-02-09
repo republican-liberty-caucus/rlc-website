@@ -130,7 +130,7 @@ export async function getMemberContributionTotal(memberId: string): Promise<numb
   const { data, error } = await supabase
     .from('rlc_contributions')
     .select('amount')
-    .eq('member_id', memberId)
+    .eq('contact_id', memberId)
     .eq('payment_status', 'completed');
 
   if (error) {

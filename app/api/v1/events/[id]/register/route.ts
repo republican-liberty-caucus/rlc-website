@@ -76,7 +76,7 @@ export async function POST(
         .from('rlc_event_registrations')
         .select('id')
         .eq('event_id', eventId)
-        .eq('member_id', memberId)
+        .eq('contact_id', memberId)
         .in('registration_status', ['registered', 'checked_in'])
         .maybeSingle();
 
@@ -117,7 +117,7 @@ export async function POST(
     .insert({
       id: registrationId,
       event_id: eventId,
-      member_id: memberId,
+      contact_id: memberId,
       guest_email: guestEmail,
       guest_name: guestName,
       registration_status: 'registered',

@@ -62,13 +62,13 @@ export default async function DashboardPage() {
     supabase
       .from('rlc_campaign_participations')
       .select('id, action, created_at, legislator_id, campaign:rlc_action_campaigns(title, slug)')
-      .eq('member_id', member.id)
+      .eq('contact_id', member.id)
       .order('created_at', { ascending: false })
       .limit(20),
     supabase
       .from('rlc_event_registrations')
       .select('id, created_at, event:rlc_events(title, slug)')
-      .eq('member_id', member.id)
+      .eq('contact_id', member.id)
       .order('created_at', { ascending: false })
       .limit(10),
     supabase
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
     supabase
       .from('rlc_contributions')
       .select('id, contribution_type, amount, created_at')
-      .eq('member_id', member.id)
+      .eq('contact_id', member.id)
       .eq('payment_status', 'completed')
       .order('created_at', { ascending: false })
       .limit(10),

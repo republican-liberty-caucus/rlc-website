@@ -38,7 +38,7 @@ async function checkMattAdmin() {
     const { data: roles } = await supabase
       .from('rlc_member_roles')
       .select('role, chapter_id, granted_at, expires_at')
-      .eq('member_id', matt.id);
+      .eq('contact_id', matt.id);
 
     if (!roles || roles.length === 0) {
       console.log('  NO ROLES ASSIGNED');

@@ -12,7 +12,7 @@ interface RegistrationsPageProps {
 
 interface RegistrationRow {
   id: string;
-  member_id: string | null;
+  contact_id: string | null;
   guest_email: string | null;
   guest_name: string | null;
   registration_status: string;
@@ -55,7 +55,7 @@ export default async function AdminEventRegistrationsPage({ params }: Registrati
   const { data: registrations, error: regError } = await supabase
     .from('rlc_event_registrations')
     .select(`
-      id, member_id, guest_email, guest_name, registration_status, checked_in_at, created_at,
+      id, contact_id, guest_email, guest_name, registration_status, checked_in_at, created_at,
       member:rlc_members(first_name, last_name, email)
     `)
     .eq('event_id', id)
@@ -110,7 +110,7 @@ export default async function AdminEventRegistrationsPage({ params }: Registrati
                     {reg.member?.email || reg.guest_email || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm">
-                    {reg.member_id ? 'Member' : 'Guest'}
+                    {reg.contact_id ? 'Member' : 'Guest'}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <span className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${statusColors[reg.registration_status] || 'bg-gray-100'}`}>

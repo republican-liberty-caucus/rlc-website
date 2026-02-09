@@ -80,7 +80,7 @@ export async function DELETE(
       .update({
         household_id: null,
         household_role: null,
-        primary_member_id: null,
+        primary_contact_id: null,
         membership_status: 'cancelled',
       } as never)
       .eq('id', targetId);

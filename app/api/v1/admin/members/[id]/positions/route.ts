@@ -46,7 +46,7 @@ export async function GET(
       charter:rlc_charters(id, name),
       appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
     `)
-    .eq('member_id', memberId)
+    .eq('contact_id', memberId)
     .order('is_active', { ascending: false })
     .order('started_at', { ascending: false });
 

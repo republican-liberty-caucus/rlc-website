@@ -27,7 +27,7 @@ export async function GET(
     .from('rlc_officer_positions')
     .select(`
       id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
-      member:rlc_members!rlc_officer_positions_member_id_fkey(id, first_name, last_name, email),
+      member:rlc_members!rlc_officer_positions_contact_id_fkey(id, first_name, last_name, email),
       appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
     `)
     .eq('charter_id', charterId)
@@ -79,7 +79,7 @@ export async function POST(
   const { data, error } = await (supabase as any)
     .from('rlc_officer_positions')
     .insert({
-      member_id: memberId,
+      contact_id: memberId,
       charter_id: charterId,
       title,
       committee_name: committeeName || null,

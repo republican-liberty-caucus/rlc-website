@@ -141,9 +141,9 @@ async function handleUserDeleted(evt: WebhookEvent) {
         membership_status: 'cancelled',
         household_id: null,
         household_role: null,
-        primary_member_id: null,
+        primary_contact_id: null,
       } as never)
-      .eq('primary_member_id', member.id);
+      .eq('primary_contact_id', member.id);
 
     if (householdError) {
       throw new Error(`Failed to update household members for deleted primary ${member.id}: ${householdError.message}`);

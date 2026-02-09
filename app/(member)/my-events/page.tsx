@@ -39,7 +39,7 @@ async function getEventRegistrations(memberId: string): Promise<RegistrationWith
         *,
         event:rlc_events(*)
       `)
-      .eq('member_id', memberId)
+      .eq('contact_id', memberId)
       .order('created_at', { ascending: false });
 
     return (data || []) as RegistrationWithEvent[];

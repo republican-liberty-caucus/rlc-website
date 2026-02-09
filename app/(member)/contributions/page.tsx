@@ -30,7 +30,7 @@ async function getContributions(memberId: string): Promise<ContributionRow[]> {
     const { data } = await supabase
       .from('rlc_contributions')
       .select('*')
-      .eq('member_id', memberId)
+      .eq('contact_id', memberId)
       .order('created_at', { ascending: false });
 
     return (data || []) as ContributionRow[];

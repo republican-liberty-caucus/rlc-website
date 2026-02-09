@@ -192,14 +192,14 @@ export async function PATCH(
           if (officer.member_id) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const { error: upsertError } = await (supabase as any).from('rlc_officer_positions').upsert({
-              member_id: officer.member_id,
+              contact_id: officer.member_id,
               charter_id: charterId,
               title: officer.title,
               started_at: new Date().toISOString(),
               is_active: true,
               appointed_by_id: ctx.member.id,
             }, {
-              onConflict: 'member_id,charter_id,title,committee_name',
+              onConflict: 'contact_id,charter_id,title,committee_name',
             });
             if (upsertError) {
               logger.error('Error upserting officer position:', { officer, charterId, error: upsertError });

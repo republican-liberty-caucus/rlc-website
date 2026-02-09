@@ -39,13 +39,13 @@ export async function GET(
   if (include === 'participations') {
     const { data: participations } = await supabase
       .from('rlc_campaign_participations')
-      .select('id, action, legislator_id, created_at, member_id')
+      .select('id, action, legislator_id, created_at, contact_id')
       .eq('campaign_id', id)
       .order('created_at', { ascending: false })
       .limit(100);
 
     // Fetch member names for participations
-    const memberIds = [...new Set((participations || []).map((p: { member_id: string }) => p.member_id))];
+    const memberIds = [...new Set((participations || []).map((p: { contact_id: string }) => p.contact_id))];
     let membersMap: Record<string, { full_name: string; email: string }> = {};
 
     if (memberIds.length > 0) {
@@ -59,12 +59,12 @@ export async function GET(
       );
     }
 
-    result.participations = (participations || []).map((p: { id: string; action: string; legislator_id: string | null; created_at: string; member_id: string }) => ({
+    result.participations = (participations || []).map((p: { id: string; action: string; legislator_id: string | null; created_at: string; contact_id: string }) => ({
       id: p.id,
       action: p.action,
       legislator_id: p.legislator_id,
       created_at: p.created_at,
-      member: membersMap[p.member_id] || null,
+      member: membersMap[p.contact_id] || null,
     }));
   }
 

@@ -50,7 +50,7 @@ export default async function ActionCenterPage() {
       const { data: participations } = await supabase
         .from('rlc_campaign_participations')
         .select('campaign_id')
-        .eq('member_id', member.id);
+        .eq('contact_id', member.id);
       memberParticipations = new Set((participations || []).map((p: { campaign_id: string }) => p.campaign_id));
     }
   }

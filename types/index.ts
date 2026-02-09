@@ -98,7 +98,7 @@ export interface Charter {
 
 export interface Contribution {
   id: string;
-  member_id: string | null;
+  contact_id: string | null;
   contribution_type: ContributionType;
   amount: number;
   currency: string;
@@ -148,7 +148,7 @@ export interface Event {
 export interface EventRegistration {
   id: string;
   event_id: string;
-  member_id: string | null;
+  contact_id: string | null;
   guest_email: string | null;
   guest_name: string | null;
   registration_status: string;
@@ -341,7 +341,7 @@ export interface ActionCampaign {
 export interface CampaignParticipation {
   id: string;
   campaign_id: string;
-  member_id: string;
+  contact_id: string;
   action: string;
   legislator_id: string | null;
   metadata: Record<string, unknown>;
@@ -430,7 +430,7 @@ export type OnboardingStep =
 
 export interface OfficerPosition {
   id: string;
-  member_id: string;
+  contact_id: string;
   charter_id: string;
   title: OfficerTitle;
   committee_name: string | null;

@@ -59,7 +59,7 @@ export async function POST(
     .insert({
       id: crypto.randomUUID(),
       campaign_id: id,
-      member_id: member.id,
+      contact_id: member.id,
       action: input.action,
       legislator_id: input.legislatorId || null,
       metadata: input.metadata || {},

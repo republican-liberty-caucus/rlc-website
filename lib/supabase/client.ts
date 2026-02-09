@@ -82,7 +82,7 @@ export type Database = {
           do_not_phone: boolean;
           household_id: string | null;
           household_role: HouseholdRole | null;
-          primary_member_id: string | null;
+          primary_contact_id: string | null;
           metadata: Record<string, unknown>;
           created_at: string;
           updated_at: string;
