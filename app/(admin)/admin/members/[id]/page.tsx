@@ -62,8 +62,8 @@ export default async function AdminMemberDetailPage({
     redirect('/admin/members?error=forbidden');
   }
 
-  // Fetch chapters, contributions, roles, household, and positions in parallel
-  const [chaptersRes, contributionsRes, rolesRes, householdRes, positionsRes] = await Promise.all([
+  // Fetch chapters, contributions, memberships, roles, household, and positions in parallel
+  const [chaptersRes, contributionsRes, membershipsRes, rolesRes, householdRes, positionsRes] = await Promise.all([
     (ctx.visibleChapterIds !== null
       ? supabase.from('rlc_chapters').select('id, name').in('id', ctx.visibleChapterIds).order('name')
       : supabase.from('rlc_chapters').select('id, name').order('name')
@@ -74,6 +74,11 @@ export default async function AdminMemberDetailPage({
       .eq('member_id', id)
       .order('created_at', { ascending: false })
       .limit(10),
+    supabase
+      .from('rlc_memberships')
+      .select('*')
+      .eq('contact_id', id)
+      .order('join_date', { ascending: false }),
     supabase
       .from('rlc_member_roles')
       .select(`
@@ -104,11 +109,21 @@ export default async function AdminMemberDetailPage({
 
   if (chaptersRes.error) logger.error('Error fetching chapters:', chaptersRes.error);
   if (contributionsRes.error) logger.error('Error fetching contributions:', contributionsRes.error);
+  if (membershipsRes.error) logger.error('Error fetching memberships:', membershipsRes.error);
   if (rolesRes.error) logger.error('Error fetching member roles:', rolesRes.error);
   if (positionsRes.error) logger.error('Error fetching member positions:', positionsRes.error);
 
   const chapters = (chaptersRes.data || []) as Pick<Chapter, 'id' | 'name'>[];
   const contributions = (contributionsRes.data || []) as Contribution[];
+  const memberships = (membershipsRes.data || []) as {
+    id: string;
+    membership_tier: string;
+    membership_status: string;
+    join_date: string | null;
+    start_date: string | null;
+    expiry_date: string | null;
+    is_auto_renew: boolean;
+  }[];
   const memberRoles = (rolesRes.data || []) as MemberRoleRow[];
   const householdMembers = (householdRes.data || []) as {
     id: string;
@@ -200,6 +215,51 @@ export default async function AdminMemberDetailPage({
               </dl>
             </CardContent>
           </Card>
+
+          {/* Membership History Card */}
+          {memberships.length > 0 && (
+            <Card>
+              <CardContent className="p-6">
+                <div className="mb-4 flex items-center gap-2">
+                  <Calendar className="h-5 w-5 text-rlc-red" />
+                  <h2 className="font-heading font-semibold">Membership History</h2>
+                </div>
+                <div className="space-y-3">
+                  {memberships.map((m) => (
+                    <div key={m.id} className="border-l-2 border-rlc-red/20 pl-3">
+                      <div className="flex items-center justify-between">
+                        <StatusBadge status={m.membership_status} type="membership" />
+                        <span className="text-xs capitalize text-muted-foreground">{m.membership_tier}</span>
+                      </div>
+                      <dl className="mt-2 space-y-1 text-xs">
+                        {m.join_date && (
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Joined</dt>
+                            <dd>{formatDate(m.join_date)}</dd>
+                          </div>
+                        )}
+                        {m.start_date && (
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Started</dt>
+                            <dd>{formatDate(m.start_date)}</dd>
+                          </div>
+                        )}
+                        {m.expiry_date && (
+                          <div className="flex justify-between">
+                            <dt className="text-muted-foreground">Expires</dt>
+                            <dd>{formatDate(m.expiry_date)}</dd>
+                          </div>
+                        )}
+                        {m.is_auto_renew && (
+                          <div className="text-xs text-green-600">Auto-renew enabled</div>
+                        )}
+                      </dl>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Household Card */}
           {householdMembers.length > 0 && (
