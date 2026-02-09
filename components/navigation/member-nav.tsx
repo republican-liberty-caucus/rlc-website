@@ -111,7 +111,9 @@ export function MemberNav() {
           <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
             <Link href="/">Back to Site</Link>
           </Button>
-          <UserButton afterSignOutUrl="/" />
+          <div className="hidden md:block">
+            <UserButton afterSignOutUrl="/" />
+          </div>
 
           {/* Mobile Menu Button */}
           <button

@@ -169,50 +169,48 @@ export function MyRepsPreview({ memberAddress, memberState }: MyRepsPreviewProps
                   {groupReps.map((rep, idx) => (
                     <div
                       key={`${rep.name}-${idx}`}
-                      className="flex items-center justify-between rounded-lg border p-3"
+                      className="flex items-start gap-3 rounded-lg border p-3"
                     >
-                      <div className="flex min-w-0 flex-1 items-center gap-3">
-                        {rep.photoUrl ? (
-                          <Image
-                            src={rep.photoUrl}
-                            alt={rep.name}
-                            width={36}
-                            height={36}
-                            unoptimized
-                            className="h-9 w-9 shrink-0 rounded-full object-cover"
-                          />
-                        ) : (
-                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
-                            {rep.name.charAt(0)}
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium">{rep.name}</p>
-                            <span className="text-xs text-muted-foreground">({rep.party})</span>
-                          </div>
-                          <p className="text-xs text-muted-foreground">{rep.office}</p>
+                      {rep.photoUrl ? (
+                        <Image
+                          src={rep.photoUrl}
+                          alt={rep.name}
+                          width={36}
+                          height={36}
+                          unoptimized
+                          className="h-9 w-9 shrink-0 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-muted text-sm font-bold text-muted-foreground">
+                          {rep.name.charAt(0)}
                         </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {rep.phones[0] && (
-                          <a
-                            href={`tel:${rep.phones[0]}`}
-                            className="text-xs text-rlc-blue hover:underline"
-                          >
-                            {rep.phones[0]}
-                          </a>
-                        )}
-                        {rep.urls[0] && (
-                          <a
-                            href={rep.urls[0]}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-muted-foreground hover:text-foreground"
-                          >
-                            <ExternalLink className="h-3.5 w-3.5" />
-                          </a>
-                        )}
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-baseline gap-x-2">
+                          <p className="font-medium">{rep.name}</p>
+                          <span className="text-xs text-muted-foreground">({rep.party})</span>
+                        </div>
+                        <p className="text-xs text-muted-foreground">{rep.office}</p>
+                        <div className="mt-1 flex items-center gap-2">
+                          {rep.phones[0] && (
+                            <a
+                              href={`tel:${rep.phones[0]}`}
+                              className="text-xs text-rlc-blue hover:underline"
+                            >
+                              {rep.phones[0]}
+                            </a>
+                          )}
+                          {rep.urls[0] && (
+                            <a
+                              href={rep.urls[0]}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-muted-foreground hover:text-foreground"
+                            >
+                              <ExternalLink className="h-3.5 w-3.5" />
+                            </a>
+                          )}
+                        </div>
                       </div>
                     </div>
                   ))}
