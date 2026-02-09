@@ -24,7 +24,7 @@ export function WPContentPage({ title, subtitle, content, children }: WPContentP
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-4xl">
             <div
-              className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-rlc-red prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg"
+              className="prose prose-lg max-w-none dark:prose-invert prose-headings:text-foreground prose-a:text-rlc-red prose-a:no-underline hover:prose-a:underline prose-img:rounded-lg prose-img:w-full prose-img:h-auto"
               dangerouslySetInnerHTML={{ __html: content }}  /* content is sanitized server-side via sanitizeWPContent() */
             />
             {children}
