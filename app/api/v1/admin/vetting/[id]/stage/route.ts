@@ -1,0 +1,106 @@
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
+import { getVettingContext, canCreateVetting } from '@/lib/vetting/permissions';
+import { vettingStageAdvanceSchema } from '@/lib/validations/vetting';
+import { canAdvanceStage } from '@/lib/vetting/engine';
+import { logger } from '@/lib/logger';
+import type { VettingStage, VettingSectionStatus, VettingReportSectionType } from '@/types';
+
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const ctx = await getVettingContext(userId);
+    if (!ctx || !canCreateVetting(ctx)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { id } = await params;
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const parseResult = vettingStageAdvanceSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parseResult.error.flatten() },
+        { status: 400 }
+      );
+    }
+
+    const { targetStage } = parseResult.data;
+    const supabase = createServerClient();
+
+    // Fetch current vetting stage + recommendation
+    const { data: rawVetting, error: vettingError } = await supabase
+      .from('rlc_candidate_vettings')
+      .select('id, stage, recommendation')
+      .eq('id', id)
+      .single();
+
+    if (vettingError) {
+      if (vettingError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+      }
+      logger.error('Error fetching vetting for stage advance:', { id, error: vettingError });
+      return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
+    }
+
+    const vetting = rawVetting as unknown as { id: string; stage: string; recommendation: string | null };
+
+    // Fetch sections for gate checks
+    const { data: rawSections, error: sectionsError } = await supabase
+      .from('rlc_candidate_vetting_report_sections')
+      .select('section, status')
+      .eq('vetting_id', id);
+
+    if (sectionsError) {
+      logger.error('Error fetching sections for stage advance:', { id, error: sectionsError });
+      return NextResponse.json({ error: 'Failed to fetch sections' }, { status: 500 });
+    }
+
+    const sectionStates = (rawSections ?? []) as unknown as { section: VettingReportSectionType; status: VettingSectionStatus }[];
+
+    const gateResult = canAdvanceStage(
+      vetting.stage as VettingStage,
+      targetStage as VettingStage,
+      sectionStates,
+      { hasRecommendation: !!vetting.recommendation }
+    );
+
+    if (!gateResult.allowed) {
+      return NextResponse.json(
+        { error: 'Cannot advance stage', reason: gateResult.reason },
+        { status: 400 }
+      );
+    }
+
+    const { data: updated, error: updateError } = await supabase
+      .from('rlc_candidate_vettings')
+      .update({ stage: targetStage } as never)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (updateError) {
+      logger.error('Error advancing stage:', { id, targetStage, error: updateError });
+      return NextResponse.json({ error: 'Failed to advance stage' }, { status: 500 });
+    }
+
+    return NextResponse.json({ vetting: updated });
+  } catch (err) {
+    logger.error('Unhandled error in PATCH /api/v1/admin/vetting/[id]/stage:', err);
+    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+  }
+}
