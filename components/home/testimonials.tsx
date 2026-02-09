@@ -16,7 +16,7 @@ const testimonials = [
       "If you are serious about it and want to get elected and you want to move the needle, you need to run as a Republican, and that's why the Republican Liberty Caucus is in the sweet spot right now.",
     name: 'Thomas Massie',
     title: 'U.S. Representative, Kentucky',
-    image: '/images/testimonials/thomas-massie.png',
+    image: '/images/testimonials/thomas-massie.jpg',
   },
 ];
 
