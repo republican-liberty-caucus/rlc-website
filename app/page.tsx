@@ -43,9 +43,9 @@ interface LegislatorSummary {
 
 interface HomePageData {
   memberCount: number;
-  stateCount: number;
   charterCount: number;
   endorsedCandidateCount: number;
+  legislatorsScoredCount: number;
   events: HomeEvent[];
   posts: HomePost[];
   champions: LegislatorSummary[];
@@ -61,14 +61,15 @@ async function getHomePageData(): Promise<HomePageData> {
     membersResult,
     chartersResult,
     endorsedCandidateResult,
+    legislatorsScoredResult,
     eventsResult,
     postsResult,
     scorecardResult,
   ] = await Promise.all([
-    // Total member count + distinct states
+    // Total member count
     supabase
       .from('rlc_members')
-      .select('state', { count: 'exact', head: false }),
+      .select('id', { count: 'exact', head: true }),
 
     // Charter count
     supabase
@@ -81,6 +82,12 @@ async function getHomePageData(): Promise<HomePageData> {
       .from('rlc_candidate_responses')
       .select('id', { count: 'exact', head: true })
       .eq('endorsement_status', 'endorsed'),
+
+    // Legislators scored count
+    supabase
+      .from('rlc_legislators')
+      .select('id', { count: 'exact', head: true })
+      .not('current_score', 'is', null),
 
     // Next 3 upcoming events
     supabase
@@ -115,16 +122,13 @@ async function getHomePageData(): Promise<HomePageData> {
   if (membersResult.error) logger.error('[homepage] members query failed:', membersResult.error);
   if (chartersResult.error) logger.error('[homepage] charters query failed:', chartersResult.error);
   if (endorsedCandidateResult.error) logger.error('[homepage] endorsed candidate count query failed:', endorsedCandidateResult.error);
+  if (legislatorsScoredResult.error) logger.error('[homepage] legislators scored count query failed:', legislatorsScoredResult.error);
   if (eventsResult.error) logger.error('[homepage] events query failed:', eventsResult.error);
   if (postsResult.error) logger.error('[homepage] posts query failed:', postsResult.error);
   // PGRST116 is expected when no published sessions exist; log other errors
   if (scorecardResult.error && scorecardResult.error.code !== 'PGRST116') {
     logger.error('[homepage] scorecard session query failed:', scorecardResult.error);
   }
-
-  // Get distinct states from members
-  const memberRows = (membersResult.data || []) as Array<{ state: string | null }>;
-  const distinctStates = new Set(memberRows.map((m) => m.state).filter(Boolean));
 
   // Get top/bottom legislators for scorecard spotlight
   let champions: LegislatorSummary[] = [];
@@ -161,9 +165,9 @@ async function getHomePageData(): Promise<HomePageData> {
 
   return {
     memberCount: membersResult.count || 0,
-    stateCount: distinctStates.size,
     charterCount: chartersResult.count || 0,
     endorsedCandidateCount: endorsedCandidateResult.count || 0,
+    legislatorsScoredCount: legislatorsScoredResult.count || 0,
     events: (eventsResult.data || []) as HomeEvent[],
     posts: (postsResult.data || []) as HomePost[],
     champions,
@@ -205,9 +209,9 @@ export default async function HomePage() {
     logger.error('[homepage] Failed to load homepage data:', err);
     data = {
       memberCount: 0,
-      stateCount: 0,
       charterCount: 0,
       endorsedCandidateCount: 0,
+      legislatorsScoredCount: 0,
       events: [],
       posts: [],
       champions: [],
@@ -224,7 +228,7 @@ export default async function HomePage() {
       <HeroSection
         memberCount={data.memberCount}
         charterCount={data.charterCount}
-        stateCount={data.stateCount}
+        endorsedCandidateCount={data.endorsedCandidateCount}
       />
 
       {/* Three CTA Cards */}
@@ -329,8 +333,8 @@ export default async function HomePage() {
         stats={[
           { value: data.memberCount, label: 'Members', suffix: '+' },
           { value: data.charterCount, label: 'State Charters' },
-          { value: data.stateCount, label: 'States Active' },
           { value: data.endorsedCandidateCount, label: 'Endorsed Candidates' },
+          { value: data.legislatorsScoredCount, label: 'Legislators Scored' },
         ]}
       />
 
