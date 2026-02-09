@@ -161,6 +161,38 @@ export async function searchContactByEmail(email: string): Promise<HighLevelResp
 }
 
 /**
+ * List all contacts with cursor-based pagination
+ * Uses GET /contacts/ endpoint with locationId parameter
+ *
+ * @param limit - Number of contacts to fetch per page (default: 100, max: 100)
+ * @param startAfter - Cursor for pagination (contact ID from previous response)
+ * @returns Contacts array and pagination metadata with nextStartAfter cursor
+ */
+export async function listContacts(
+  limit: number = 100,
+  startAfter?: string
+): Promise<HighLevelResponse<{
+  contacts: HighLevelContact[];
+  meta: { nextStartAfter?: string; total?: number };
+}>> {
+  const config = getConfig();
+
+  // Build query parameters
+  const params = new URLSearchParams({
+    locationId: config.locationId,
+    limit: String(Math.min(limit, 100)), // HighLevel max is 100
+  });
+
+  if (startAfter) {
+    params.append('startAfter', startAfter);
+  }
+
+  return fetchHighLevel(`/contacts/?${params.toString()}`, {
+    method: 'GET',
+  });
+}
+
+/**
  * Add tags to a contact
  */
 export async function addTagsToContact(contactId: string, tags: string[]): Promise<HighLevelResponse<{ contact: HighLevelContact }>> {
