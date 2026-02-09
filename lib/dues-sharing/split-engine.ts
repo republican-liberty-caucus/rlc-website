@@ -230,12 +230,12 @@ export async function processDuesSplit(contributionId: string): Promise<void> {
     amount: number;
     currency: string;
     contribution_type: string;
-    member_id: string | null;
+    contact_id: string | null;
     charter_id: string | null;
   }
   const { data: rawContribution, error: contribError } = await supabase
     .from('rlc_contributions')
-    .select('id, amount, currency, contribution_type, member_id, charter_id')
+    .select('id, amount, currency, contribution_type, contact_id, charter_id')
     .eq('id', contributionId)
     .single();
 
