@@ -65,11 +65,10 @@ async function getHomePageData(): Promise<HomePageData> {
     postsResult,
     scorecardResult,
   ] = await Promise.all([
-    // Active member count + distinct states
+    // Total member count + distinct states
     supabase
       .from('rlc_members')
-      .select('state', { count: 'exact', head: false })
-      .in('membership_status', ['current', 'new_member', 'grace']),
+      .select('state', { count: 'exact', head: false }),
 
     // Charter count
     supabase
@@ -328,7 +327,7 @@ export default async function HomePage() {
 
       <StatsBar
         stats={[
-          { value: data.memberCount, label: 'Active Members', suffix: '+' },
+          { value: data.memberCount, label: 'Members', suffix: '+' },
           { value: data.charterCount, label: 'State Charters' },
           { value: data.stateCount, label: 'States Active' },
           { value: data.activeCampaignCount, label: 'Active Campaigns' },
