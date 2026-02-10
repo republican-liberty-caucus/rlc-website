@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useUser } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Check, Users } from 'lucide-react';
 import type { TierConfig } from '@/lib/stripe/client';
@@ -11,10 +12,18 @@ interface TierCardProps {
 }
 
 export function JoinTierCard({ tier }: TierCardProps) {
+  const { isSignedIn } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleJoin() {
+    // Unauthenticated users must sign up first — redirect with tier so we can
+    // resume checkout after sign-up completes.
+    if (!isSignedIn) {
+      window.location.href = `/sign-up?redirect_url=/join&tier=${tier.tier}`;
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -33,9 +42,6 @@ export function JoinTierCard({ tier }: TierCardProps) {
 
       if (data.url) {
         window.location.href = data.url;
-      } else {
-        // If checkout requires email (unauthenticated), redirect to sign-up with tier
-        window.location.href = `/sign-up?tier=${tier.tier}`;
       }
     } catch (err) {
       console.error('Failed to start checkout:', err);
