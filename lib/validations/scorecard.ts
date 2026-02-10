@@ -16,6 +16,7 @@ export const sessionUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   slug: z.string().min(1).max(200).regex(/^[a-z0-9-]+$/).optional(),
   status: z.enum(['draft', 'active', 'published', 'archived']).optional(),
+  description: z.string().nullable().optional(),
   jurisdiction: z.enum(['federal', 'state']).optional(),
   stateCode: z.string().max(2).optional(),
   charterId: z.string().optional(),

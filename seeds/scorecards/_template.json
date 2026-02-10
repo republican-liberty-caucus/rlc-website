@@ -1,0 +1,37 @@
+{
+  "session": {
+    "name": "119th Congress (2025-2026) - U.S. House",
+    "slug": "2026-us-house",
+    "jurisdiction": "federal",
+    "session_year": 2026,
+    "chamber": "us_house",
+    "description": "The Republican Liberty Caucus rates members of the U.S. House of Representatives based on key votes affecting individual liberty, limited government, and free markets during the 119th Congress.",
+    "absence_penalty_threshold": 3
+  },
+  "bills": [
+    {
+      "bill_number": "H.R. 1",
+      "title": "Example Bill Title",
+      "description": "Description of what this bill does and why the RLC took a position on it.",
+      "liberty_position": "yea",
+      "category": "fiscal",
+      "weight": 1,
+      "sort_order": 1,
+      "is_bonus": false,
+      "bonus_point_value": 0,
+      "vote_result_summary": "Passed 220-210"
+    }
+  ],
+  "legislators": [
+    {
+      "name": "Doe, John",
+      "party": "R",
+      "state_code": "TX",
+      "chamber": "us_house",
+      "district": "1",
+      "votes": {
+        "H.R. 1": "yea"
+      }
+    }
+  ]
+}

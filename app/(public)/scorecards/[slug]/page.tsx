@@ -5,7 +5,12 @@ import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { LegislatorTable } from '@/components/scorecards/legislator-table';
 import { ShareButtons } from '@/components/shared/share-buttons';
-import type { ScorecardSession, ScorecardBill, Legislator } from '@/types';
+import { ScorecardTabs } from '@/components/scorecards/scorecard-tabs';
+import { ScorecardOverview } from '@/components/scorecards/scorecard-overview';
+import { TopDefenders } from '@/components/scorecards/top-defenders';
+import { BillExplanations } from '@/components/scorecards/bill-explanations';
+import { VoteMatrix } from '@/components/scorecards/vote-matrix';
+import type { ScorecardSession, ScorecardBill, ScorecardVote, Legislator } from '@/types';
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -16,14 +21,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const supabase = createServerClient();
   const { data } = await supabase
     .from('rlc_scorecard_sessions')
-    .select('name')
+    .select('name, description')
     .eq('slug', slug)
     .single();
 
-  const session = data as { name: string } | null;
+  const session = data as { name: string; description: string | null } | null;
   return {
     title: session ? `${session.name} - Liberty Scorecard` : 'Liberty Scorecard',
-    description: session ? `See how legislators scored on the ${session.name} Liberty Scorecard.` : 'Liberty Scorecard results',
+    description: session?.description
+      ? session.description.slice(0, 160)
+      : session
+        ? `See how legislators scored on the ${session.name} Liberty Scorecard.`
+        : 'Liberty Scorecard results',
   };
 }
 
@@ -31,6 +40,7 @@ export default async function ScorecardDetailPage({ params }: Props) {
   const { slug } = await params;
   const supabase = createServerClient();
 
+  // Fetch session
   const { data: sessionData, error: sessionError } = await supabase
     .from('rlc_scorecard_sessions')
     .select('*')
@@ -41,33 +51,37 @@ export default async function ScorecardDetailPage({ params }: Props) {
   if (sessionError || !sessionData) notFound();
   const session = sessionData as ScorecardSession;
 
-  // Get bills
-  const { data: billsData } = await supabase
+  const { data: billsData, error: billsError } = await supabase
     .from('rlc_scorecard_bills')
-    .select('id, weight')
+    .select('*')
     .eq('session_id', session.id)
-    .eq('bill_status', 'voted');
+    .eq('bill_status', 'voted')
+    .order('sort_order', { ascending: true });
 
-  const bills = (billsData || []) as Pick<ScorecardBill, 'id' | 'weight'>[];
+  if (billsError) throw new Error('Unable to load scorecard bills.');
+  const bills = (billsData ?? []) as ScorecardBill[];
   const billIds = bills.map((b) => b.id);
   const weightMap = new Map<string, number>();
   for (const b of bills) {
     weightMap.set(b.id, Number(b.weight) || 1);
   }
 
-  // Get votes
+  // Fetch ALL votes (full records for the matrix)
+  let allVotes: ScorecardVote[] = [];
   let legislators: (Legislator & { computed_score: number | null })[] = [];
 
   if (billIds.length > 0) {
-    const { data: votesData } = await supabase
+    const { data: votesData, error: votesError } = await supabase
       .from('rlc_scorecard_votes')
-      .select('legislator_id, aligned_with_liberty, bill_id')
+      .select('*')
       .in('bill_id', billIds);
 
-    const votes = (votesData || []) as { legislator_id: string; aligned_with_liberty: boolean; bill_id: string }[];
+    if (votesError) throw new Error('Unable to load scorecard votes.');
+    allVotes = (votesData ?? []) as ScorecardVote[];
 
+    // Compute scores per legislator
     const scores = new Map<string, { weightedSum: number; totalWeight: number }>();
-    for (const vote of votes) {
+    for (const vote of allVotes) {
       const current = scores.get(vote.legislator_id) || { weightedSum: 0, totalWeight: 0 };
       const weight = weightMap.get(vote.bill_id) || 1;
       current.totalWeight += weight;
@@ -77,12 +91,13 @@ export default async function ScorecardDetailPage({ params }: Props) {
 
     const legislatorIds = Array.from(scores.keys());
     if (legislatorIds.length > 0) {
-      const { data: legData } = await supabase
+      const { data: legData, error: legError } = await supabase
         .from('rlc_legislators')
         .select('*')
         .in('id', legislatorIds);
 
-      legislators = ((legData || []) as Legislator[]).map((leg) => {
+      if (legError) throw new Error('Unable to load legislator data.');
+      legislators = ((legData ?? []) as Legislator[]).map((leg) => {
         const s = scores.get(leg.id);
         const score = s && s.totalWeight > 0
           ? Math.round((s.weightedSum / s.totalWeight) * 10000) / 100
@@ -93,6 +108,17 @@ export default async function ScorecardDetailPage({ params }: Props) {
       legislators.sort((a, b) => (b.computed_score ?? -1) - (a.computed_score ?? -1));
     }
   }
+
+  // Compute top/bottom scorers and average
+  const scoredLegislators = legislators.filter((l) => l.computed_score !== null);
+  const topScorers = scoredLegislators.slice(0, 10);
+  const bottomScorers = [...scoredLegislators].reverse().slice(0, 10);
+  const averageScore = scoredLegislators.length > 0
+    ? Math.round(
+        (scoredLegislators.reduce((sum, l) => sum + (l.computed_score ?? 0), 0) /
+        scoredLegislators.length) * 100
+      ) / 100
+    : null;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -113,7 +139,7 @@ export default async function ScorecardDetailPage({ params }: Props) {
       <section className="py-16">
         <div className="container mx-auto px-4">
           <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-            <h2 className="font-heading text-xl font-semibold">All Legislators</h2>
+            <h2 className="font-heading text-xl font-semibold">Liberty Scorecard</h2>
             <ShareButtons
               url={`/scorecards/${slug}`}
               title={`${session.name} Liberty Scorecard`}
@@ -121,7 +147,57 @@ export default async function ScorecardDetailPage({ params }: Props) {
               compact
             />
           </div>
-          <LegislatorTable legislators={legislators} scorecardSlug={slug} />
+
+          <ScorecardTabs
+            defaultTab="top-defenders"
+            tabs={[
+              {
+                id: 'overview',
+                label: 'Overview',
+                content: (
+                  <ScorecardOverview
+                    session={session}
+                    billCount={bills.length}
+                    legislatorCount={legislators.length}
+                  />
+                ),
+              },
+              {
+                id: 'top-defenders',
+                label: 'Top Defenders',
+                content: (
+                  <TopDefenders
+                    topScorers={topScorers}
+                    bottomScorers={bottomScorers}
+                    averageScore={averageScore}
+                    scorecardSlug={slug}
+                  />
+                ),
+              },
+              {
+                id: 'bills',
+                label: 'Bills',
+                content: <BillExplanations bills={bills} />,
+              },
+              {
+                id: 'vote-matrix',
+                label: 'Vote Matrix',
+                content: (
+                  <VoteMatrix
+                    legislators={legislators}
+                    bills={bills}
+                    votes={allVotes}
+                    scorecardSlug={slug}
+                  />
+                ),
+              },
+              {
+                id: 'all-legislators',
+                label: 'All Legislators',
+                content: <LegislatorTable legislators={legislators} scorecardSlug={slug} />,
+              },
+            ]}
+          />
         </div>
       </section>
 

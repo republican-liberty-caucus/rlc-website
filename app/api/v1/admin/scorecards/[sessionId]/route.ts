@@ -53,6 +53,7 @@ export async function PATCH(
   if (input.name !== undefined) updatePayload.name = input.name;
   if (input.slug !== undefined) updatePayload.slug = input.slug;
   if (input.status !== undefined) updatePayload.status = input.status;
+  if (input.description !== undefined) updatePayload.description = input.description;
   if (input.jurisdiction !== undefined) updatePayload.jurisdiction = input.jurisdiction;
   if (input.stateCode !== undefined) updatePayload.state_code = input.stateCode || null;
   if (input.charterId !== undefined) updatePayload.charter_id = input.charterId || null;
