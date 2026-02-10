@@ -15,6 +15,11 @@ export const metadata: Metadata = {
   description: 'RLC Admin Dashboard',
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database type doesn't include RPC function signatures
+function rpc(supabase: any, fn: string, args: Record<string, unknown>) {
+  return supabase.rpc(fn, args);
+}
+
 /** Apply charter scoping to a Supabase query builder */
 function scopeByCharter<T extends { in: (col: string, vals: string[]) => T }>(
   query: T,
@@ -41,62 +46,61 @@ interface DashboardStats {
 
 async function getDashboardStats(visibleCharterIds: string[] | null): Promise<DashboardStats> {
   const supabase = createServerClient();
+  const rpcCharterIds = visibleCharterIds ?? undefined;
 
   const startOfMonth = new Date();
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
+  const startOfMonthISO = startOfMonth.toISOString();
+  const nowISO = new Date().toISOString();
 
   const thirtyDaysFromNow = new Date();
   thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
 
   // Run all independent queries in parallel
   const results = await Promise.all([
-    // Total members
+    // 0: Total members (all statuses — head-only count, no row limit)
     scopeByCharter(
       supabase.from('rlc_members').select('*', { count: 'exact', head: true }),
       visibleCharterIds
     ),
-    // Active members
+    // 1: Active members (current only — head-only count)
     scopeByCharter(
       supabase.from('rlc_members').select('*', { count: 'exact', head: true }).eq('membership_status', 'current'),
       visibleCharterIds
     ),
-    // Active charters
+    // 2: Active charters (head-only count)
     scopeByCharter(
       supabase.from('rlc_charters').select('*', { count: 'exact', head: true }).eq('status', 'active'),
       visibleCharterIds, 'id'
     ),
-    // Upcoming events
+    // 3: Upcoming events (head-only count)
     scopeByCharter(
-      supabase.from('rlc_events').select('*', { count: 'exact', head: true }).eq('status', 'published').gte('start_date', new Date().toISOString()),
+      supabase.from('rlc_events').select('*', { count: 'exact', head: true }).eq('status', 'published').gte('start_date', nowISO),
       visibleCharterIds, 'charter_id'
     ),
-    // Monthly contributions
-    scopeByCharter(
-      supabase.from('rlc_contributions').select('amount').eq('payment_status', 'completed').gte('created_at', startOfMonth.toISOString()),
-      visibleCharterIds, 'charter_id'
-    ),
-    // New members this month
-    scopeByCharter(
-      supabase.from('rlc_members').select('*', { count: 'exact', head: true }).gte('created_at', startOfMonth.toISOString()),
-      visibleCharterIds
-    ),
-    // Members by tier
-    scopeByCharter(
-      supabase.from('rlc_members').select('membership_tier'),
-      visibleCharterIds
-    ),
-    // Members by status
-    scopeByCharter(
-      supabase.from('rlc_members').select('membership_status'),
-      visibleCharterIds
-    ),
-    // Expiring in 30 days
+    // 4: Monthly contributions — RPC to avoid 1000-row limit
+    rpc(supabase, 'get_contribution_summary', {
+      p_start_date: startOfMonthISO,
+      p_end_date: nowISO,
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 5: New members this month — RPC uses membership_join_date (not created_at)
+    rpc(supabase, 'get_new_members_count', {
+      p_start_date: startOfMonthISO,
+      p_end_date: nowISO,
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 6: Members by tier (current only) — RPC to avoid 1000-row limit
+    rpc(supabase, 'get_members_by_tier', { p_charter_ids: rpcCharterIds }),
+    // 7: Members by status (all) — RPC to avoid 1000-row limit
+    rpc(supabase, 'get_members_by_status', { p_charter_ids: rpcCharterIds }),
+    // 8: Expiring in 30 days (head-only count)
     scopeByCharter(
       supabase.from('rlc_members').select('*', { count: 'exact', head: true })
         .in('membership_status', ['current', 'expiring'])
         .lte('membership_expiry_date', thirtyDaysFromNow.toISOString())
-        .gte('membership_expiry_date', new Date().toISOString()),
+        .gte('membership_expiry_date', nowISO),
       visibleCharterIds
     ),
   ]);
@@ -113,25 +117,28 @@ async function getDashboardStats(visibleCharterIds: string[] | null): Promise<Da
     charterResult,
     eventsResult,
     contribResult,
-    newResult,
+    newMembersResult,
     tierResult,
     statusResult,
     expiringResult,
   ] = results;
 
+  // Monthly contributions from RPC: sum total_amount across contribution types
   const monthlyContributions = (contribResult.data || []).reduce(
-    (sum, c) => sum + Number((c as { amount: number }).amount),
+    (sum: number, row: { total_amount: number }) => sum + Number(row.total_amount),
     0
   );
 
+  // Members by tier from RPC: [{membership_tier, count}] — pre-aggregated
   const membersByTier: Record<string, number> = {};
-  for (const row of (tierResult.data || []) as { membership_tier: string }[]) {
-    membersByTier[row.membership_tier] = (membersByTier[row.membership_tier] || 0) + 1;
+  for (const row of (tierResult.data || []) as { membership_tier: string; count: number }[]) {
+    membersByTier[row.membership_tier] = Number(row.count);
   }
 
+  // Members by status from RPC: [{membership_status, count}] — pre-aggregated
   const membersByStatus: Record<string, number> = {};
-  for (const row of (statusResult.data || []) as { membership_status: string }[]) {
-    membersByStatus[row.membership_status] = (membersByStatus[row.membership_status] || 0) + 1;
+  for (const row of (statusResult.data || []) as { membership_status: string; count: number }[]) {
+    membersByStatus[row.membership_status] = Number(row.count);
   }
 
   return {
@@ -140,7 +147,7 @@ async function getDashboardStats(visibleCharterIds: string[] | null): Promise<Da
     totalCharters: charterResult.count || 0,
     upcomingEvents: eventsResult.count || 0,
     monthlyContributions,
-    newMembersThisMonth: newResult.count || 0,
+    newMembersThisMonth: Number(newMembersResult.data) || 0,
     membersByTier,
     membersByStatus,
     expiringIn30Days: expiringResult.count || 0,
@@ -243,7 +250,10 @@ export default async function AdminDashboardPage() {
     getRecentActivity(ctx.visibleCharterIds),
   ]);
 
-  const totalForBars = stats.totalMembers || 1;
+  // Tier chart denominator: sum of current-only tier counts (from RPC)
+  const totalCurrentMembers = Object.values(stats.membersByTier).reduce((a, b) => a + b, 0) || 1;
+  // Status chart denominator: sum of all-status counts (from RPC)
+  const totalAllStatuses = Object.values(stats.membersByStatus).reduce((a, b) => a + b, 0) || 1;
 
   return (
     <div>
@@ -301,7 +311,7 @@ export default async function AdminDashboardPage() {
             <div className="space-y-3">
               {Object.entries(TIER_LABELS).map(([key, label]) => {
                 const count = stats.membersByTier[key] || 0;
-                const pct = totalForBars > 0 ? (count / totalForBars) * 100 : 0;
+                const pct = (count / totalCurrentMembers) * 100;
                 return (
                   <div key={key}>
                     <div className="mb-1 flex items-center justify-between text-sm">
@@ -328,7 +338,7 @@ export default async function AdminDashboardPage() {
             <div className="space-y-3">
               {Object.entries(STATUS_LABELS).map(([key, label]) => {
                 const count = stats.membersByStatus[key] || 0;
-                const pct = totalForBars > 0 ? (count / totalForBars) * 100 : 0;
+                const pct = (count / totalAllStatuses) * 100;
                 return (
                   <div key={key}>
                     <div className="mb-1 flex items-center justify-between text-sm">
