@@ -528,20 +528,24 @@ export type Database = {
     };
     Functions: {
       get_members_by_tier: {
-        Args: { p_charter_ids: string[] | null };
+        Args: { p_charter_ids?: string[] };
         Returns: { membership_tier: string; count: number }[];
       };
       get_members_by_status: {
-        Args: { p_charter_ids: string[] | null };
+        Args: { p_charter_ids?: string[] };
         Returns: { membership_status: string; count: number }[];
       };
       get_members_by_charter: {
-        Args: { p_charter_ids: string[] | null };
+        Args: { p_charter_ids?: string[] };
         Returns: { charter_id: string; charter_name: string; count: number }[];
       };
       get_contribution_summary: {
-        Args: { p_start_date: string; p_end_date: string; p_charter_ids: string[] | null };
+        Args: { p_start_date: string; p_end_date: string; p_charter_ids?: string[] };
         Returns: { contribution_type: string; count: number; total_amount: number }[];
+      };
+      get_new_members_count: {
+        Args: { p_start_date: string; p_end_date: string; p_charter_ids?: string[] };
+        Returns: number;
       };
     };
   };
