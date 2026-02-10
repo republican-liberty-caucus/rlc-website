@@ -63,6 +63,7 @@ export async function POST(request: Request) {
       tags: input.tags,
       seo_title: input.seoTitle || null,
       seo_description: input.seoDescription || null,
+      content_type: input.contentType || 'post',
       metadata: {},
       updated_at: new Date().toISOString(),
     } as never)

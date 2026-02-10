@@ -45,8 +45,8 @@ async function getPosts(page: number): Promise<{ posts: PostRow[]; total: number
       { count: 'exact' }
     )
     .eq('status', 'published')
+    .eq('content_type', 'post')
     .not('published_at', 'is', null)
-    .not('categories', 'cs', '{"Pages"}')
     .order('published_at', { ascending: false })
     .range(from, to);
 

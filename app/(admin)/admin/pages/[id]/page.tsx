@@ -7,19 +7,19 @@ import { getAdminContext } from '@/lib/admin/permissions';
 import { PostEditorForm } from '@/components/admin/post-editor-form';
 import type { Post } from '@/types';
 
-interface PostDetailPageProps {
+interface PageDetailPageProps {
   params: Promise<{ id: string }>;
 }
 
-export async function generateMetadata({ params }: PostDetailPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageDetailPageProps): Promise<Metadata> {
   const { id } = await params;
   const supabase = createServerClient();
   const { data } = await supabase.from('rlc_posts').select('title').eq('id', id).single();
   const post = data as { title: string } | null;
-  return { title: post ? `${post.title} - Admin` : 'Post - Admin' };
+  return { title: post ? `${post.title} - Admin` : 'Page - Admin' };
 }
 
-export default async function AdminPostDetailPage({ params }: PostDetailPageProps) {
+export default async function AdminPageDetailPage({ params }: PageDetailPageProps) {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
   const ctx = await getAdminContext(userId);
@@ -29,37 +29,25 @@ export default async function AdminPostDetailPage({ params }: PostDetailPageProp
   const supabase = createServerClient();
 
   const { data: postData, error: postError } = await supabase
-    .from('rlc_posts').select('*').eq('id', id).single();
+    .from('rlc_posts').select('*').eq('id', id).eq('content_type', 'page').single();
 
   if (postError || !postData) notFound();
 
   const post = postData as Post;
 
-  // Check charter visibility
-  if (post.charter_id && ctx.visibleCharterIds !== null) {
-    if (!ctx.visibleCharterIds.includes(post.charter_id)) {
-      redirect('/admin/posts?error=forbidden');
-    }
-  }
-
-  let chartersQuery = supabase.from('rlc_charters').select('id, name').eq('status', 'active').order('name');
-  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
-    chartersQuery = chartersQuery.in('id', ctx.visibleCharterIds);
-  }
-  const { data: charters } = await chartersQuery;
-
   return (
     <div>
       <div className="mb-8">
-        <Link href="/admin/posts" className="text-sm text-muted-foreground hover:underline">
-          &larr; Back to Posts
+        <Link href="/admin/pages" className="text-sm text-muted-foreground hover:underline">
+          &larr; Back to Pages
         </Link>
         <h1 className="mt-2 text-3xl font-bold">{post.title}</h1>
       </div>
 
       <PostEditorForm
         post={post}
-        charters={(charters || []) as { id: string; name: string }[]}
+        charters={[]}
+        contentType="page"
       />
     </div>
   );

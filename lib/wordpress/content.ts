@@ -205,16 +205,20 @@ interface WPPage {
   excerpt: string | null;
 }
 
-/** Fetch a WordPress "Pages" category item by slug */
+/** Fetch a page by slug (uses content_type='page' column) */
 export async function getWPPageContent(slug: string): Promise<WPPage | null> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('rlc_posts')
     .select('id, title, slug, content, excerpt')
     .eq('slug', slug)
-    .contains('categories', ['Pages'])
+    .eq('content_type', 'page')
     .single();
 
-  if (error || !data) return null;
+  if (error) {
+    console.error(`[getWPPageContent] Failed to fetch page "${slug}":`, error.message);
+    return null;
+  }
+  if (!data) return null;
   return data as WPPage;
 }

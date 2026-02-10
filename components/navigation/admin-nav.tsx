@@ -11,6 +11,7 @@ import {
   Rocket,
   Calendar,
   FileText,
+  File,
   Settings,
   CreditCard,
   BarChart,
@@ -52,6 +53,7 @@ const navSections: NavSection[] = [
     label: 'Content',
     items: [
       { href: '/admin/posts', label: 'Posts', icon: FileText },
+      { href: '/admin/pages', label: 'Pages', icon: File },
       { href: '/admin/events', label: 'Events', icon: Calendar },
     ],
   },
