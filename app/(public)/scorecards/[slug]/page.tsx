@@ -10,6 +10,7 @@ import { ScorecardOverview } from '@/components/scorecards/scorecard-overview';
 import { TopDefenders } from '@/components/scorecards/top-defenders';
 import { BillExplanations } from '@/components/scorecards/bill-explanations';
 import { VoteMatrix } from '@/components/scorecards/vote-matrix';
+import { ScorecardSwitcher } from '@/components/scorecards/scorecard-switcher';
 import type { ScorecardSession, ScorecardBill, ScorecardVote, Legislator } from '@/types';
 
 interface Props {
@@ -50,6 +51,19 @@ export default async function ScorecardDetailPage({ params }: Props) {
 
   if (sessionError || !sessionData) notFound();
   const session = sessionData as ScorecardSession;
+
+  // Fetch all sessions for the switcher (lightweight query)
+  const { data: allSessionsData } = await supabase
+    .from('rlc_scorecard_sessions')
+    .select('slug, session_year, chamber')
+    .in('status', ['active', 'published'])
+    .order('session_year', { ascending: false });
+
+  const allSessions = (allSessionsData ?? []) as {
+    slug: string;
+    session_year: number;
+    chamber: string | null;
+  }[];
 
   const { data: billsData, error: billsError } = await supabase
     .from('rlc_scorecard_bills')
@@ -133,6 +147,7 @@ export default async function ScorecardDetailPage({ params }: Props) {
           <p className="mt-4 text-white/70">
             {legislators.length} legislators scored across {bills.length} bills
           </p>
+          <ScorecardSwitcher currentSlug={slug} sessions={allSessions} />
         </div>
       </section>
 
