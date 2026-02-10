@@ -220,12 +220,12 @@ const TIER_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   new_member: 'New',
   current: 'Current',
+  expiring: 'Expiring',
   grace: 'Grace',
   expired: 'Expired',
-  pending: 'Pending',
   cancelled: 'Cancelled',
   deceased: 'Deceased',
-  expiring: 'Expiring',
+  pending: 'Pending',
 };
 
 const STATUS_COLORS: Record<string, string> = {
