@@ -2,7 +2,9 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
+import { getDescendantIds } from '@/lib/admin/report-helpers';
 import { logger } from '@/lib/logger';
+import type { Charter } from '@/types';
 
 export async function GET(request: Request) {
   const { userId } = await auth();
@@ -18,8 +20,29 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const startParam = url.searchParams.get('start');
   const endParam = url.searchParams.get('end');
+  const charterParam = url.searchParams.get('charter');
 
   const supabase = createServerClient();
+
+  // Compute effective charter IDs when charter filter is applied
+  let effectiveCharterIds = ctx.visibleCharterIds;
+  if (charterParam) {
+    const { data: allCharters } = await supabase
+      .from('rlc_charters')
+      .select('id, parent_charter_id');
+    const charters = (allCharters || []) as Pick<Charter, 'id' | 'parent_charter_id'>[];
+    const descendants = getDescendantIds(charterParam, charters);
+    if (ctx.visibleCharterIds === null) {
+      effectiveCharterIds = descendants;
+    } else {
+      const visibleSet = new Set(ctx.visibleCharterIds);
+      effectiveCharterIds = descendants.filter((id) => visibleSet.has(id));
+      // If intersection is empty, the charter is outside this user's scope — fall back to their full visible set
+      if (effectiveCharterIds.length === 0) {
+        effectiveCharterIds = ctx.visibleCharterIds;
+      }
+    }
+  }
 
   // Contribution report with date filtering
   let query = supabase
@@ -39,8 +62,8 @@ export async function GET(request: Request) {
   if (endParam) {
     query = query.lte('created_at', new Date(endParam).toISOString());
   }
-  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
-    query = query.in('charter_id', ctx.visibleCharterIds);
+  if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
+    query = query.in('charter_id', effectiveCharterIds);
   }
 
   const { data, error } = await query;
