@@ -191,7 +191,7 @@ export async function PATCH(
         for (const officer of meetingData.officers) {
           if (officer.member_id) {
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const { error: upsertError } = await (supabase as any).from('rlc_officer_positions').upsert({
+            const { error: upsertError } = await (supabase as any).from('rlc_organizational_positions').upsert({
               contact_id: officer.member_id,
               charter_id: charterId,
               title: officer.title,

@@ -28,8 +28,8 @@ interface MemberRolesCardProps {
 
 const ROLE_OPTIONS: { value: UserRole; label: string }[] = [
   { value: 'member', label: 'Member' },
-  { value: 'chapter_officer', label: 'Chapter Officer' },
-  { value: 'chapter_admin', label: 'Chapter Admin' },
+  { value: 'charter_officer', label: 'Charter Officer' },
+  { value: 'charter_admin', label: 'Charter Admin' },
   { value: 'state_chair', label: 'State Chair' },
   { value: 'regional_coordinator', label: 'Regional Coordinator' },
   { value: 'national_board', label: 'National Board' },

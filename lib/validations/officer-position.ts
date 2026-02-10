@@ -8,6 +8,7 @@ export const OFFICER_TITLES: OfficerTitle[] = [
   'treasurer',
   'at_large_board',
   'committee_chair',
+  'committee_member',
   'state_coordinator',
   'regional_director',
 ];
@@ -19,6 +20,7 @@ export const OFFICER_TITLE_LABELS: Record<OfficerTitle, string> = {
   treasurer: 'Treasurer',
   at_large_board: 'At-Large Board',
   committee_chair: 'Committee Chair',
+  committee_member: 'Committee Member',
   state_coordinator: 'State Coordinator',
   regional_director: 'Regional Director',
 };
@@ -32,8 +34,8 @@ export const assignOfficerPositionSchema = z
     notes: z.string().max(1000).optional().nullable(),
   })
   .refine(
-    (data) => data.title !== 'committee_chair' || (data.committeeName && data.committeeName.trim().length > 0),
-    { message: 'Committee name is required for Committee Chair', path: ['committeeName'] }
+    (data) => !['committee_chair', 'committee_member'].includes(data.title) || (data.committeeName && data.committeeName.trim().length > 0),
+    { message: 'Committee name is required for committee positions', path: ['committeeName'] }
   );
 
 export const updateOfficerPositionSchema = z.object({

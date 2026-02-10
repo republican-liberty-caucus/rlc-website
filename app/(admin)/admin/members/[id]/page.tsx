@@ -96,11 +96,11 @@ export default async function AdminMemberDetailPage({
       : Promise.resolve({ data: [] }),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (supabase as any)
-      .from('rlc_officer_positions')
+      .from('rlc_organizational_positions')
       .select(`
         id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
         charter:rlc_charters(id, name),
-        appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
+        appointed_by:rlc_members!rlc_organizational_positions_appointed_by_id_fkey(first_name, last_name)
       `)
       .eq('contact_id', id)
       .order('is_active', { ascending: false })

@@ -24,11 +24,11 @@ export async function GET(
   const supabase = createServerClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
-    .from('rlc_officer_positions')
+    .from('rlc_organizational_positions')
     .select(`
       id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
-      member:rlc_members!rlc_officer_positions_contact_id_fkey(id, first_name, last_name, email),
-      appointed_by:rlc_members!rlc_officer_positions_appointed_by_id_fkey(first_name, last_name)
+      member:rlc_members!rlc_organizational_positions_contact_id_fkey(id, first_name, last_name, email),
+      appointed_by:rlc_members!rlc_organizational_positions_appointed_by_id_fkey(first_name, last_name)
     `)
     .eq('charter_id', charterId)
     .order('is_active', { ascending: false })
@@ -77,7 +77,7 @@ export async function POST(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
-    .from('rlc_officer_positions')
+    .from('rlc_organizational_positions')
     .insert({
       contact_id: memberId,
       charter_id: charterId,

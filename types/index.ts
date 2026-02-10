@@ -38,8 +38,8 @@ export type HouseholdRole = 'primary' | 'spouse' | 'child';
 
 export type UserRole =
   | 'member'
-  | 'chapter_officer'
-  | 'chapter_admin'
+  | 'charter_officer'
+  | 'charter_admin'
   | 'state_chair'
   | 'regional_coordinator'
   | 'national_board'
@@ -413,6 +413,7 @@ export type OfficerTitle =
   | 'treasurer'
   | 'at_large_board'
   | 'committee_chair'
+  | 'committee_member'
   | 'state_coordinator'
   | 'regional_director';
 

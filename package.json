@@ -42,6 +42,8 @@
     "rollback:highlevel": "tsx --env-file=.env.local scripts/civicrm/rollback-highlevel.ts",
     "sync:highlevel": "tsx --env-file=.env.local scripts/civicrm/sync-highlevel.ts",
     "stripe:setup-products": "tsx --env-file=.env.local scripts/stripe-setup-products.ts",
+    "cleanup:charters": "tsx --env-file=.env.local scripts/civicrm/cleanup-charters.ts",
+    "cleanup:charters:dry-run": "tsx --env-file=.env.local scripts/civicrm/cleanup-charters.ts --dry-run",
     "migrate:wordpress": "tsx scripts/wordpress/migrate-wordpress.ts",
     "migrate:wordpress:dry-run": "tsx scripts/wordpress/migrate-wordpress.ts --dry-run",
     "migrate:wordpress:media": "tsx scripts/wordpress/migrate-media.ts",

@@ -39,7 +39,7 @@ export async function PATCH(
   // Verify position belongs to this charter
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existing, error: findError } = await (supabase as any)
-    .from('rlc_officer_positions')
+    .from('rlc_organizational_positions')
     .select('id')
     .eq('id', positionId)
     .eq('charter_id', charterId)
@@ -65,7 +65,7 @@ export async function PATCH(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
-    .from('rlc_officer_positions')
+    .from('rlc_organizational_positions')
     .update(updates)
     .eq('id', positionId)
     .select()
@@ -97,7 +97,7 @@ export async function DELETE(
   // Verify position exists before deleting
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: existing, error: findError } = await (supabase as any)
-    .from('rlc_officer_positions')
+    .from('rlc_organizational_positions')
     .select('id')
     .eq('id', positionId)
     .eq('charter_id', charterId)
@@ -113,7 +113,7 @@ export async function DELETE(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { error } = await (supabase as any)
-    .from('rlc_officer_positions')
+    .from('rlc_organizational_positions')
     .delete()
     .eq('id', positionId)
     .eq('charter_id', charterId);

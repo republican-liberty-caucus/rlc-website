@@ -41,7 +41,7 @@ export const charterUpdateSchema = z.object({
 
 export const roleAssignmentSchema = z.object({
   role: z.enum([
-    'member', 'chapter_officer', 'chapter_admin', 'state_chair',
+    'member', 'charter_officer', 'charter_admin', 'state_chair',
     'regional_coordinator', 'national_board', 'super_admin',
   ]),
   charterId: z.string().uuid().nullable(),

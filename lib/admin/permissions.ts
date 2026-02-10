@@ -6,8 +6,8 @@ import type { Contact, UserRole, Charter } from '@/types';
 // Role hierarchy: higher index = more privilege
 const ROLE_HIERARCHY: UserRole[] = [
   'member',
-  'chapter_officer',
-  'chapter_admin',
+  'charter_officer',
+  'charter_admin',
   'state_chair',
   'regional_coordinator',
   'national_board',
@@ -16,7 +16,7 @@ const ROLE_HIERARCHY: UserRole[] = [
 
 // Minimum role that grants admin panel access
 const ADMIN_ROLES: UserRole[] = [
-  'chapter_admin',
+  'charter_admin',
   'state_chair',
   'regional_coordinator',
   'national_board',
