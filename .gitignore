@@ -40,8 +40,8 @@ prisma/*.db-journal
 *.tsbuildinfo
 next-env.d.ts
 
-# CiviCRM migration data (PII — never commit)
-scripts/civicrm/data/
+# CiviCRM database credentials
+scripts/civicrm/.env.civicrm
 
 # WordPress migration data (raw content — never commit)
 scripts/wordpress/data/*.json
