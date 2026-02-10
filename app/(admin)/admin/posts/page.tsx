@@ -36,6 +36,7 @@ async function getPosts(visibleCharterIds: string[] | null): Promise<PostRow[]> 
       author:rlc_members(first_name, last_name),
       charter:rlc_charters(name)
     `)
+    .eq('content_type', 'post')
     .order('created_at', { ascending: false });
 
   if (visibleCharterIds !== null && visibleCharterIds.length > 0) {

@@ -39,6 +39,7 @@ async function getPost(slug: string) {
     `)
     .eq('slug', slug)
     .eq('status', 'published')
+    .eq('content_type', 'post')
     .single();
 
   if (error || !data) return null;

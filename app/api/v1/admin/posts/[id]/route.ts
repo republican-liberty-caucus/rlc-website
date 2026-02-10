@@ -80,6 +80,7 @@ export async function PATCH(
   if (input.tags !== undefined) updatePayload.tags = input.tags;
   if (input.seoTitle !== undefined) updatePayload.seo_title = input.seoTitle || null;
   if (input.seoDescription !== undefined) updatePayload.seo_description = input.seoDescription || null;
+  if (input.contentType !== undefined) updatePayload.content_type = input.contentType;
 
   // Set published_at when first publishing
   if (input.status !== undefined) {

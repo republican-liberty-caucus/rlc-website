@@ -172,6 +172,7 @@ export interface Post {
   author_id: string | null;
   charter_id: string | null;
   status: string;
+  content_type: 'post' | 'page';
   published_at: string | null;
   categories: string[];
   tags: string[];

@@ -190,6 +190,7 @@ export type Database = {
           author_id: string | null;
           charter_id: string | null;
           status: string;
+          content_type: string;
           published_at: string | null;
           categories: string[];
           tags: string[];

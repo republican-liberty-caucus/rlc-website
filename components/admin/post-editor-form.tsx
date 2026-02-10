@@ -1,41 +1,63 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 import { ADMIN_INPUT_CLASS, ADMIN_LABEL_CLASS } from '@/components/admin/form-styles';
-
-interface Post {
-  id: string;
-  title: string;
-  slug: string;
-  content: string | null;
-  excerpt: string | null;
-  featured_image_url: string | null;
-  charter_id: string | null;
-  status: string;
-  published_at: string | null;
-  categories: string[];
-  tags: string[];
-  seo_title: string | null;
-  seo_description: string | null;
-}
+import { NovelEditor } from '@/components/admin/novel-editor';
+import { Upload } from 'lucide-react';
+import type { Post } from '@/types';
+import { uploadFile } from '@/lib/upload';
 
 interface PostEditorFormProps {
   post: Post | null;
   charters: { id: string; name: string }[];
+  contentType?: 'post' | 'page';
 }
 
 function slugify(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-export function PostEditorForm({ post, charters }: PostEditorFormProps) {
+export function PostEditorForm({ post, charters, contentType = 'post' }: PostEditorFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = useState(false);
   const [autoSlug, setAutoSlug] = useState(!post);
+  const [content, setContent] = useState(post?.content || '');
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const featuredImageRef = useRef<HTMLInputElement>(null);
+
+  const isPage = contentType === 'page';
+  const entityLabel = isPage ? 'Page' : 'Post';
+
+  async function handleFeaturedImageUpload() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      setUploadingImage(true);
+      try {
+        const url = await uploadFile(file);
+        if (featuredImageRef.current) {
+          featuredImageRef.current.value = url;
+        }
+        toast({ title: 'Image uploaded', description: 'Featured image URL has been set.' });
+      } catch (error) {
+        toast({
+          title: 'Upload failed',
+          description: error instanceof Error ? error.message : 'Something went wrong',
+          variant: 'destructive',
+        });
+      } finally {
+        setUploadingImage(false);
+      }
+    };
+    input.click();
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -49,16 +71,24 @@ export function PostEditorForm({ post, charters }: PostEditorFormProps) {
     const body: Record<string, unknown> = {
       title: fd.get('title') as string,
       slug: fd.get('slug') as string,
-      content: (fd.get('content') as string) || null,
+      content: content || null,
       excerpt: (fd.get('excerpt') as string) || null,
       featuredImageUrl: (fd.get('featuredImageUrl') as string) || null,
-      charterId: (fd.get('charterId') as string) || null,
       status: fd.get('status') as string,
-      categories: categoriesStr ? categoriesStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
-      tags: tagsStr ? tagsStr.split(',').map((s) => s.trim()).filter(Boolean) : [],
+      contentType,
       seoTitle: (fd.get('seoTitle') as string) || null,
       seoDescription: (fd.get('seoDescription') as string) || null,
     };
+
+    if (!isPage) {
+      body.charterId = (fd.get('charterId') as string) || null;
+      body.categories = categoriesStr ? categoriesStr.split(',').map((s) => s.trim()).filter(Boolean) : [];
+      body.tags = tagsStr ? tagsStr.split(',').map((s) => s.trim()).filter(Boolean) : [];
+    } else {
+      body.charterId = null;
+      body.categories = [];
+      body.tags = [];
+    }
 
     const isCreate = !post;
     const url = isCreate ? '/api/v1/admin/posts' : `/api/v1/admin/posts/${post.id}`;
@@ -72,24 +102,20 @@ export function PostEditorForm({ post, charters }: PostEditorFormProps) {
       });
 
       if (!res.ok) {
-        let msg = `Failed to ${isCreate ? 'create' : 'update'} post`;
-        try {
-          const err = await res.json();
-          msg = err.error || msg;
-        } catch {
-          // non-JSON response
-        }
-        throw new Error(msg);
+        const fallback = `Failed to ${isCreate ? 'create' : 'update'} ${entityLabel.toLowerCase()}`;
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || fallback);
       }
 
       const data = await res.json();
       toast({
-        title: isCreate ? 'Post created' : 'Post updated',
+        title: isCreate ? `${entityLabel} created` : `${entityLabel} updated`,
         description: `"${body.title}" has been ${isCreate ? 'created' : 'updated'}.`,
       });
 
+      const backPath = isPage ? '/admin/pages' : '/admin/posts';
       if (isCreate && data.post?.id) {
-        router.push(`/admin/posts/${data.post.id}`);
+        router.push(`${backPath}/${data.post.id}`);
       } else {
         router.refresh();
       }
@@ -108,7 +134,7 @@ export function PostEditorForm({ post, charters }: PostEditorFormProps) {
     <form onSubmit={handleSubmit}>
       {/* Basic Info */}
       <div className="rounded-lg border bg-card p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">Post Details</h2>
+        <h2 className="text-lg font-semibold mb-4">{entityLabel} Details</h2>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <label className={ADMIN_LABEL_CLASS}>Title</label>
@@ -136,22 +162,22 @@ export function PostEditorForm({ post, charters }: PostEditorFormProps) {
             />
           </div>
           <div className="md:col-span-2">
-            <label className={ADMIN_LABEL_CLASS}>Excerpt</label>
+            <label className={ADMIN_LABEL_CLASS}>
+              {isPage ? 'Description (optional, used for SEO)' : 'Excerpt'}
+            </label>
             <textarea
               name="excerpt"
               defaultValue={post?.excerpt || ''}
               rows={2}
               className={ADMIN_INPUT_CLASS}
-              placeholder="Brief summary for listings..."
+              placeholder={isPage ? 'Brief description for search engines...' : 'Brief summary for listings...'}
             />
           </div>
           <div className="md:col-span-2">
-            <label className={ADMIN_LABEL_CLASS}>Content (HTML)</label>
-            <textarea
-              name="content"
-              defaultValue={post?.content || ''}
-              rows={16}
-              className={`${ADMIN_INPUT_CLASS} font-mono text-sm`}
+            <label className={ADMIN_LABEL_CLASS}>Content</label>
+            <NovelEditor
+              initialContent={post?.content || undefined}
+              onChange={setContent}
             />
           </div>
         </div>
@@ -168,27 +194,52 @@ export function PostEditorForm({ post, charters }: PostEditorFormProps) {
               <option value="published">Published</option>
             </select>
           </div>
+          {!isPage && (
+            <div>
+              <label className={ADMIN_LABEL_CLASS}>Charter</label>
+              <select name="charterId" defaultValue={post?.charter_id || ''} className={ADMIN_INPUT_CLASS}>
+                <option value="">National (no charter)</option>
+                {charters.map((ch) => (
+                  <option key={ch.id} value={ch.id}>{ch.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
-            <label className={ADMIN_LABEL_CLASS}>Charter</label>
-            <select name="charterId" defaultValue={post?.charter_id || ''} className={ADMIN_INPUT_CLASS}>
-              <option value="">National (no charter)</option>
-              {charters.map((ch) => (
-                <option key={ch.id} value={ch.id}>{ch.name}</option>
-              ))}
-            </select>
+            <label className={ADMIN_LABEL_CLASS}>Featured Image</label>
+            <div className="flex gap-2">
+              <input
+                ref={featuredImageRef}
+                name="featuredImageUrl"
+                type="url"
+                defaultValue={post?.featured_image_url || ''}
+                className={ADMIN_INPUT_CLASS}
+                placeholder="https://..."
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="icon"
+                onClick={handleFeaturedImageUpload}
+                disabled={uploadingImage}
+                title="Upload image"
+              >
+                <Upload className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
-          <div>
-            <label className={ADMIN_LABEL_CLASS}>Featured Image URL</label>
-            <input name="featuredImageUrl" type="url" defaultValue={post?.featured_image_url || ''} className={ADMIN_INPUT_CLASS} />
-          </div>
-          <div>
-            <label className={ADMIN_LABEL_CLASS}>Categories (comma-separated)</label>
-            <input name="categories" defaultValue={post?.categories.join(', ') || ''} className={ADMIN_INPUT_CLASS} placeholder="news, policy, events" />
-          </div>
-          <div>
-            <label className={ADMIN_LABEL_CLASS}>Tags (comma-separated)</label>
-            <input name="tags" defaultValue={post?.tags.join(', ') || ''} className={ADMIN_INPUT_CLASS} placeholder="liberty, second-amendment" />
-          </div>
+          {!isPage && (
+            <>
+              <div>
+                <label className={ADMIN_LABEL_CLASS}>Categories (comma-separated)</label>
+                <input name="categories" defaultValue={post?.categories.join(', ') || ''} className={ADMIN_INPUT_CLASS} placeholder="news, policy, events" />
+              </div>
+              <div>
+                <label className={ADMIN_LABEL_CLASS}>Tags (comma-separated)</label>
+                <input name="tags" defaultValue={post?.tags.join(', ') || ''} className={ADMIN_INPUT_CLASS} placeholder="liberty, second-amendment" />
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -212,7 +263,7 @@ export function PostEditorForm({ post, charters }: PostEditorFormProps) {
           Cancel
         </Button>
         <Button type="submit" disabled={saving} className="bg-rlc-red hover:bg-rlc-red/90">
-          {saving ? 'Saving...' : post ? 'Save Changes' : 'Create Post'}
+          {saving ? 'Saving...' : post ? `Save Changes` : `Create ${entityLabel}`}
         </Button>
       </div>
     </form>
