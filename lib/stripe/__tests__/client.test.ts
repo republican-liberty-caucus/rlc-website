@@ -41,7 +41,7 @@ describe('Stripe client', () => {
     vi.clearAllMocks();
     mockCheckoutSessionsCreate.mockResolvedValue({
       id: 'cs_test_123',
-      url: 'https://checkout.stripe.com/test',
+      client_secret: 'cs_test_123_secret_abc',
     });
     mockCustomersCreate.mockResolvedValue({
       id: 'cus_new_123',
@@ -84,15 +84,16 @@ describe('Stripe client', () => {
         tier: 'individual', // has stripePriceId set
         memberEmail: 'test@example.com',
         memberId: 'member-1',
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
+        returnUrl: 'https://example.com/success?session_id={CHECKOUT_SESSION_ID}',
       });
 
       expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
         expect.objectContaining({
+          ui_mode: 'embedded',
           mode: 'subscription',
           customer: 'cus_existing',
           line_items: [{ price: 'price_test_individual', quantity: 1 }],
+          return_url: 'https://example.com/success?session_id={CHECKOUT_SESSION_ID}',
           metadata: expect.objectContaining({
             tier: 'individual',
             type: 'membership',
@@ -110,8 +111,7 @@ describe('Stripe client', () => {
       await createCheckoutSession({
         tier: 'student_military', // no stripePriceId
         memberEmail: 'test@example.com',
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
+        returnUrl: 'https://example.com/success?session_id={CHECKOUT_SESSION_ID}',
       });
 
       expect(mockCheckoutSessionsCreate).toHaveBeenCalledWith(
@@ -139,8 +139,7 @@ describe('Stripe client', () => {
       await createCheckoutSession({
         tier: 'student_military',
         memberEmail: 'test@example.com',
-        successUrl: 'https://example.com/success',
-        cancelUrl: 'https://example.com/cancel',
+        returnUrl: 'https://example.com/success?session_id={CHECKOUT_SESSION_ID}',
       });
 
       const callArgs = mockCheckoutSessionsCreate.mock.calls[0][0];

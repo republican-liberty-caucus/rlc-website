@@ -9,9 +9,10 @@ import { formatPrice } from '@/lib/stripe/client';
 
 interface TierCardProps {
   tier: TierConfig;
+  onCheckout: (clientSecret: string, tier: TierConfig) => void;
 }
 
-export function JoinTierCard({ tier }: TierCardProps) {
+export function JoinTierCard({ tier, onCheckout }: TierCardProps) {
   const { isSignedIn } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,14 +53,14 @@ export function JoinTierCard({ tier }: TierCardProps) {
 
       const data = await res.json();
 
-      if (data.url) {
-        window.location.href = data.url;
+      if (data.clientSecret) {
+        onCheckout(data.clientSecret, tier);
       } else {
-        throw new Error('No checkout URL returned. Please try again.');
+        throw new Error('No checkout session returned. Please try again.');
       }
     } catch (err) {
       console.error('Failed to start checkout:', err);
-      setError('Unable to start checkout. Please try again.');
+      setError(err instanceof Error ? err.message : 'Unable to start checkout. Please try again.');
     } finally {
       setLoading(false);
     }
