@@ -94,8 +94,8 @@ export async function POST(req: Request) {
       logger.info(`Stripe event ${event.id} already processed, skipping`);
       return new Response('', { status: 200 });
     }
-    // 42P01 = table doesn't exist — gracefully fall through
-    if (idempotencyError && idempotencyError.code !== '42P01') {
+    // 42P01 (Postgres) / PGRST205 (PostgREST) = table doesn't exist — gracefully fall through
+    if (idempotencyError && idempotencyError.code !== '42P01' && idempotencyError.code !== 'PGRST205') {
       logger.error('Webhook idempotency check failed:', idempotencyError);
     }
   } catch (idempotencyErr) {

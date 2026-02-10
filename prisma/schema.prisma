@@ -1181,3 +1181,13 @@ model CandidateAuditPlatform {
   @@index([auditId, entityType])
   @@map("rlc_candidate_audit_platforms")
 }
+
+/// Webhook Events (idempotency tracking for Stripe webhooks)
+model WebhookEvent {
+  id            String   @id @default(uuid())
+  stripeEventId String   @unique @map("stripe_event_id")
+  eventType     String   @map("event_type")
+  processedAt   DateTime @default(now()) @map("processed_at")
+
+  @@map("rlc_webhook_events")
+}
