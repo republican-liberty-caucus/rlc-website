@@ -28,19 +28,14 @@ interface ContactIdRow {
 }
 
 /**
- * Verify HighLevel webhook signature using HMAC-SHA256
+ * Verify shared secret from HighLevel workflow custom webhook header.
+ * Uses timing-safe comparison to prevent timing attacks.
  */
-function verifySignature(payload: string, signature: string, secret: string): boolean {
-  const expectedSignature = crypto
-    .createHmac('sha256', secret)
-    .update(payload)
-    .digest('hex');
-
-  // Use timing-safe comparison to prevent timing attacks
+function verifySharedSecret(provided: string, expected: string): boolean {
   try {
     return crypto.timingSafeEqual(
-      Buffer.from(signature),
-      Buffer.from(expectedSignature)
+      Buffer.from(provided),
+      Buffer.from(expected)
     );
   } catch {
     return false;
@@ -57,24 +52,22 @@ export async function POST(req: Request) {
   const signature = headersList.get('x-highlevel-signature');
   const webhookSecret = process.env.HIGHLEVEL_WEBHOOK_SECRET;
 
-  // Get raw body for signature verification
-  const rawBody = await req.text();
-
-  // Verify webhook signature - require secret in production
   if (!webhookSecret) {
     logger.error('HighLevel webhook: HIGHLEVEL_WEBHOOK_SECRET not configured');
     return new Response('Webhook secret not configured', { status: 500 });
   }
 
   if (!signature) {
-    logger.error('HighLevel webhook: Missing signature header');
+    logger.error('HighLevel webhook: Missing x-highlevel-signature header');
     return new Response('Missing signature', { status: 401 });
   }
 
-  if (!verifySignature(rawBody, signature, webhookSecret)) {
+  if (!verifySharedSecret(signature, webhookSecret)) {
     logger.error('HighLevel webhook: Invalid signature');
     return new Response('Invalid signature', { status: 401 });
   }
+
+  const rawBody = await req.text();
 
   let payload: HighLevelWebhookPayload;
   try {
