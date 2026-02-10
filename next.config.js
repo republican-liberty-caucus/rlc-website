@@ -63,7 +63,7 @@ const nextConfig = {
       // WordPress admin/feed URLs
       { source: '/wp-admin', destination: '/admin', permanent: false },
       { source: '/wp-login.php', destination: '/sign-in', permanent: false },
-      { source: '/feed', destination: '/blog', permanent: true },
+      { source: '/feed', destination: '/feed.xml', permanent: true },
     ];
   },
 };
