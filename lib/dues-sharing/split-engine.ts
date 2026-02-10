@@ -168,6 +168,29 @@ export function applyPercentageSplit(
 // ─── Database functions ──────────────────────────────────────────────────────
 
 /**
+ * Look up a state-level charter by 2-letter state code.
+ * Returns the charter ID, or null if no state charter exists for that code.
+ */
+export async function resolveCharterByState(stateCode: string): Promise<string | null> {
+  const supabase = createServerClient();
+
+  const { data, error } = await supabase
+    .from('rlc_charters')
+    .select('id')
+    .eq('state_code', stateCode)
+    .eq('charter_level', 'state')
+    .single();
+
+  if (error) {
+    if (error.code === 'PGRST116') return null; // Not found
+    logger.error(`resolveCharterByState: DB error looking up state="${stateCode}":`, error);
+    throw new Error(`Database error in resolveCharterByState: ${error.message}`);
+  }
+
+  return data ? (data as { id: string }).id : null;
+}
+
+/**
  * Walk the charter hierarchy upward from a given charter to find its state-level ancestor.
  * Returns null if no state charter exists in the hierarchy.
  */
