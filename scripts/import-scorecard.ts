@@ -8,11 +8,16 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
+import * as crypto from 'crypto';
 import * as dotenv from 'dotenv';
 import * as fs from 'fs';
 import * as path from 'path';
 
 dotenv.config({ path: '.env.local' });
+
+function cuid(): string {
+  return crypto.randomUUID();
+}
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -89,10 +94,20 @@ async function main() {
   console.log(`  Legislators: ${seed.legislators.length}`);
 
   // 1. Upsert session
+  // Check if session already exists by slug
+  const { data: existingSession } = await supabase
+    .from('rlc_scorecard_sessions')
+    .select('id')
+    .eq('slug', seed.session.slug)
+    .single();
+
+  const sessionId = existingSession?.id || cuid();
+
   const { data: sessionData, error: sessionError } = await supabase
     .from('rlc_scorecard_sessions')
     .upsert(
       {
+        id: sessionId,
         name: seed.session.name,
         slug: seed.session.slug,
         jurisdiction: seed.session.jurisdiction,
@@ -114,8 +129,7 @@ async function main() {
     process.exit(1);
   }
 
-  const sessionId = sessionData.id;
-  console.log(`  Session ID: ${sessionId}`);
+  console.log(`  Session ID: ${sessionData.id}`);
 
   // 2. Upsert bills
   const billIdMap = new Map<string, string>(); // bill_number -> id
@@ -158,6 +172,7 @@ async function main() {
       const { data: newBill, error: billError } = await supabase
         .from('rlc_scorecard_bills')
         .insert({
+          id: cuid(),
           session_id: sessionId,
           bill_number: bill.bill_number,
           title: bill.title,
@@ -170,6 +185,7 @@ async function main() {
           bonus_point_value: bill.bonus_point_value ?? 0,
           vote_result_summary: bill.vote_result_summary || null,
           bill_status: 'voted',
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -216,12 +232,14 @@ async function main() {
       const { data: newLeg, error: legError } = await supabase
         .from('rlc_legislators')
         .insert({
+          id: cuid(),
           name: leg.name,
           party: leg.party,
           state_code: leg.state_code,
           chamber: leg.chamber,
           district: leg.district || null,
           photo_url: leg.photo_url || null,
+          updated_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -261,10 +279,19 @@ async function main() {
         alignedWithLiberty = voteChoice === bill.liberty_position;
       }
 
+      // Check if vote exists
+      const { data: existingVote } = await supabase
+        .from('rlc_scorecard_votes')
+        .select('id')
+        .eq('bill_id', billId)
+        .eq('legislator_id', legislatorId)
+        .single();
+
       const { error: voteError } = await supabase
         .from('rlc_scorecard_votes')
         .upsert(
           {
+            id: existingVote?.id || cuid(),
             bill_id: billId,
             legislator_id: legislatorId,
             vote: voteChoice,
