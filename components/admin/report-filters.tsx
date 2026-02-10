@@ -124,6 +124,17 @@ export function ReportFilters({ charters, isNational }: ReportFiltersProps) {
           <Button variant="outline" size="sm" onClick={() => setPreset(365)}>
             1 year
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              setStartDate('');
+              setEndDate('');
+              navigateWithParams({ start: '', end: '' });
+            }}
+          >
+            All
+          </Button>
         </div>
         <Button size="sm" onClick={applyCustomDates}>
           Apply

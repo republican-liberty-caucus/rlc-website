@@ -557,9 +557,10 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           <CardContent className="p-6">
             <h2 className="mb-4 font-heading text-lg font-semibold">Members by Status</h2>
             <div className="space-y-3">
-              {Object.entries(membersByStatus)
-                .sort(([, a], [, b]) => b - a)
-                .map(([status, count]) => {
+              {['new_member', 'current', 'expiring', 'grace', 'expired', 'cancelled', 'deceased', 'pending']
+                .filter((s) => membersByStatus[s] != null)
+                .map((status) => {
+                  const count = membersByStatus[status] || 0;
                   const pct = totalAllStatuses > 0 ? (count / totalAllStatuses) * 100 : 0;
                   return (
                     <div key={status}>
