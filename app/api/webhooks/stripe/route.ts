@@ -1,7 +1,7 @@
 import Stripe from 'stripe';
 import { headers } from 'next/headers';
 import { createServerClient } from '@/lib/supabase/server';
-import { getStripe, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
+import { getStripe, MEMBERSHIP_TIERS, getTierConfig, getMembershipPaymentDescription } from '@/lib/stripe/client';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import { triggerWelcomeSequence } from '@/lib/highlevel/notifications';
 import { processDuesSplit } from '@/lib/dues-sharing/split-engine';
@@ -326,6 +326,21 @@ async function handleCheckoutComplete(
     }
   }
 
+  // Set descriptive payment description (matches CiviCRM format for Stripe dashboard)
+  if (paymentIntentId) {
+    const tierConfig = getTierConfig(membershipTier);
+    if (tierConfig) {
+      try {
+        const stripe = getStripe();
+        await stripe.paymentIntents.update(paymentIntentId, {
+          description: getMembershipPaymentDescription(tierConfig),
+        });
+      } catch (descError) {
+        logger.error('Failed to set payment description (non-fatal):', descError);
+      }
+    }
+  }
+
   // Calculate membership dates: 1 year from now
   const now = new Date();
   const expiryDate = new Date(now);
@@ -497,6 +512,21 @@ async function handleInvoicePaid(
     if (existing) {
       logger.info(`Invoice already processed for payment_intent ${paymentIntentId}, skipping`);
       return;
+    }
+  }
+
+  // Set descriptive payment description for renewal (matches CiviCRM format)
+  if (paymentIntentId && member.membership_tier) {
+    const tierConfig = getTierConfig(member.membership_tier);
+    if (tierConfig) {
+      try {
+        const stripe = getStripe();
+        await stripe.paymentIntents.update(paymentIntentId, {
+          description: `RLC National Membership Renewal - ${tierConfig.name}`,
+        });
+      } catch (descError) {
+        logger.error('Failed to set renewal payment description (non-fatal):', descError);
+      }
     }
   }
 

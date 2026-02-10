@@ -172,6 +172,17 @@ export function getTierConfig(tier: MembershipTier): TierConfig | undefined {
   return MEMBERSHIP_TIERS.find((t) => t.tier === tier);
 }
 
+/** Build payment description matching CiviCRM format for Stripe dashboard */
+export function getMembershipPaymentDescription(tierConfig: TierConfig): string {
+  let desc = `RLC National Membership Signup - ${tierConfig.name}`;
+  if (tierConfig.includesFamily) {
+    desc += ' (Includes Family)';
+  } else if (tierConfig.includesSpouse) {
+    desc += ' (Includes Spouse)';
+  }
+  return desc;
+}
+
 // ===========================================
 // Checkout session creation
 // ===========================================
