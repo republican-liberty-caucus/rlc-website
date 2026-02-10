@@ -1,4 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
+import { auth, clerkClient } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createCheckoutSession, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
@@ -33,12 +33,18 @@ export async function POST(request: Request) {
     let memberEmail = parseResult.data.email;
     let memberId: string | undefined;
 
-    // If authenticated, use their member record
+    // If authenticated, use their member record (or fall back to Clerk email for new users)
     if (userId) {
       const member = await getMemberByClerkId(userId);
       if (member) {
         memberEmail = member.email;
         memberId = member.id;
+      } else if (!memberEmail) {
+        // New user who signed up through Clerk but hasn't completed checkout yet —
+        // no rlc_members record exists. Get their email from Clerk directly.
+        const clerk = await clerkClient();
+        const clerkUser = await clerk.users.getUser(userId);
+        memberEmail = clerkUser.emailAddresses[0]?.emailAddress;
       }
     }
 
