@@ -65,36 +65,39 @@ export function ScorecardSwitcher({ currentSlug, sessions }: ScorecardSwitcherPr
   if (sessions.length <= 1) return null;
 
   return (
-    <div className="mt-4 flex items-center justify-center gap-3">
-      <Select value={String(selectedYear)} onValueChange={handleYearChange}>
-        <SelectTrigger className="w-[120px] border-white/30 bg-white/10 text-white hover:bg-white/20">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {years.map((y) => (
-            <SelectItem key={y} value={String(y)}>
-              {y}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+    <div className="flex flex-col gap-2">
+      <p className="text-xs font-medium uppercase tracking-widest text-white/50">Browse Scorecards</p>
+      <div className="flex items-center gap-2">
+        <Select value={String(selectedYear)} onValueChange={handleYearChange}>
+          <SelectTrigger className="h-9 w-[100px] border-white/20 bg-white/10 text-sm text-white hover:bg-white/20 focus:ring-white/30">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map((y) => (
+              <SelectItem key={y} value={String(y)}>
+                {y}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-      <Select
-        value={currentChamber ?? ''}
-        onValueChange={handleChamberChange}
-        disabled={chambersForYear.length <= 1}
-      >
-        <SelectTrigger className="w-[160px] border-white/30 bg-white/10 text-white hover:bg-white/20 disabled:opacity-60">
-          <SelectValue />
-        </SelectTrigger>
-        <SelectContent>
-          {chambersForYear.map((s) => (
-            <SelectItem key={s.chamber} value={s.chamber ?? ''}>
-              {CHAMBER_LABELS[s.chamber ?? ''] ?? s.chamber}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <Select
+          value={currentChamber ?? ''}
+          onValueChange={handleChamberChange}
+          disabled={chambersForYear.length <= 1}
+        >
+          <SelectTrigger className="h-9 w-[150px] border-white/20 bg-white/10 text-sm text-white hover:bg-white/20 focus:ring-white/30 disabled:opacity-50">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {chambersForYear.map((s) => (
+              <SelectItem key={s.chamber} value={s.chamber ?? ''}>
+                {CHAMBER_LABELS[s.chamber ?? ''] ?? s.chamber}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
     </div>
   );
 }

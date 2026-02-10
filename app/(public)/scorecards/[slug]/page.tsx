@@ -138,15 +138,15 @@ export default async function ScorecardDetailPage({ params }: Props) {
     <div className="flex min-h-screen flex-col">
       <MainNav />
 
-      <section className="bg-gradient-to-br from-rlc-blue to-rlc-blue/80 py-16 text-white">
-        <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold">{session.name}</h1>
-          <p className="mt-2 text-lg text-white/90">
-            {session.jurisdiction === 'federal' ? 'Federal' : session.state_code} Liberty Scorecard | {session.session_year}
-          </p>
-          <p className="mt-4 text-white/70">
-            {legislators.length} legislators scored across {bills.length} bills
-          </p>
+      <section className="bg-gradient-to-br from-rlc-blue to-rlc-blue/80 py-12 text-white">
+        <div className="container mx-auto flex flex-col gap-6 px-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-medium uppercase tracking-widest text-white/60">Liberty Scorecard</p>
+            <h1 className="mt-1 text-3xl font-bold md:text-4xl">{session.name}</h1>
+            <p className="mt-2 text-white/70">
+              {session.jurisdiction === 'federal' ? 'Federal' : session.state_code} &middot; {legislators.length} legislators &middot; {bills.length} bills
+            </p>
+          </div>
           <ScorecardSwitcher currentSlug={slug} sessions={allSessions} />
         </div>
       </section>
