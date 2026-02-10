@@ -51,6 +51,11 @@ export async function PATCH(
   if (input.contactEmail !== undefined) updatePayload.contact_email = input.contactEmail;
   if (input.websiteUrl !== undefined) updatePayload.website_url = input.websiteUrl;
   if (input.status !== undefined) updatePayload.status = input.status;
+  if (input.description !== undefined) updatePayload.description = input.description;
+  if (input.contactPhone !== undefined) updatePayload.contact_phone = input.contactPhone;
+  if (input.facebookUrl !== undefined) updatePayload.facebook_url = input.facebookUrl;
+  if (input.twitterUrl !== undefined) updatePayload.twitter_url = input.twitterUrl;
+  if (input.bylawsUrl !== undefined) updatePayload.bylaws_url = input.bylawsUrl;
 
   const supabase = createServerClient();
 

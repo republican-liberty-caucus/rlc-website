@@ -6,8 +6,9 @@ import { Footer } from '@/components/layout/footer';
 import { Button } from '@/components/ui/button';
 import { createServerClient } from '@/lib/supabase/server';
 import { formatDate } from '@/lib/utils';
-import { MapPin, Users, Calendar, ExternalLink, Mail } from 'lucide-react';
-import type { Charter } from '@/types';
+import { OFFICER_TITLE_LABELS } from '@/lib/validations/officer-position';
+import { MapPin, Users, Calendar, ExternalLink, Mail, Phone, FileText } from 'lucide-react';
+import type { Charter, OfficerTitle } from '@/types';
 
 interface CharterDetailProps {
   params: Promise<{ slug: string }>;
@@ -32,9 +33,12 @@ export async function generateMetadata({ params }: CharterDetailProps): Promise<
   const charter = await getCharter(slug);
   if (!charter) return { title: 'Charter Not Found' };
 
+  const description = charter.description
+    || `Learn about ${charter.name}, find upcoming events, and get involved with liberty-minded Republicans in ${charter.state_code || 'your area'}.`;
+
   return {
     title: `${charter.name} - Republican Liberty Caucus`,
-    description: `Learn about ${charter.name}, find upcoming events, and get involved with liberty-minded Republicans in ${charter.state_code || 'your area'}.`,
+    description,
   };
 }
 
@@ -45,7 +49,8 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
 
   const supabase = createServerClient();
 
-  const [memberCountResult, eventsResult] = await Promise.all([
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [memberCountResult, eventsResult, officersResult] = await Promise.all([
     supabase
       .from('rlc_members')
       .select('*', { count: 'exact', head: true })
@@ -58,6 +63,15 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
       .gte('start_date', new Date().toISOString())
       .order('start_date')
       .limit(5),
+    (supabase as any)
+      .from('rlc_organizational_positions')
+      .select(`
+        id, title, committee_name, started_at,
+        member:rlc_members!rlc_organizational_positions_contact_id_fkey(first_name, last_name)
+      `)
+      .eq('charter_id', charter.id)
+      .eq('is_active', true)
+      .order('started_at', { ascending: true }),
   ]);
 
   const memberCount = memberCountResult.count || 0;
@@ -65,8 +79,15 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
     id: string; title: string; slug: string; start_date: string;
     is_virtual: boolean; city: string | null; state: string | null;
   }>;
+  const officers = (officersResult.data || []) as Array<{
+    id: string;
+    title: OfficerTitle;
+    committee_name: string | null;
+    started_at: string;
+    member: { first_name: string; last_name: string } | null;
+  }>;
 
-  const leadership = charter.leadership as Record<string, string> | null;
+  const hasContact = charter.contact_email || charter.website_url || charter.contact_phone || charter.facebook_url || charter.twitter_url;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -117,17 +138,28 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
         <div className="grid gap-8 lg:grid-cols-3">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Leadership */}
-            {leadership && Object.keys(leadership).length > 0 && (
+            {/* About */}
+            {charter.description && (
               <section>
-                <h2 className="mb-4 text-2xl font-bold text-rlc-blue">Leadership</h2>
+                <h2 className="mb-4 text-2xl font-bold text-rlc-blue">About</h2>
+                <p className="whitespace-pre-line text-muted-foreground">{charter.description}</p>
+              </section>
+            )}
+
+            {/* Officers */}
+            {officers.length > 0 && (
+              <section>
+                <h2 className="mb-4 text-2xl font-bold text-rlc-blue">Officers</h2>
                 <div className="grid gap-4 sm:grid-cols-2">
-                  {Object.entries(leadership).map(([role, name]) => (
-                    <div key={role} className="rounded-lg border bg-card p-4">
-                      <p className="text-sm text-muted-foreground capitalize">
-                        {role.replace(/_/g, ' ')}
+                  {officers.map((o) => (
+                    <div key={o.id} className="rounded-lg border bg-card p-4">
+                      <p className="text-sm text-muted-foreground">
+                        {OFFICER_TITLE_LABELS[o.title]}
+                        {o.committee_name && ` — ${o.committee_name}`}
                       </p>
-                      <p className="font-semibold">{name}</p>
+                      <p className="font-semibold">
+                        {o.member ? `${o.member.first_name} ${o.member.last_name}` : 'Vacant'}
+                      </p>
                     </div>
                   ))}
                 </div>
@@ -182,7 +214,7 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
             </div>
 
             {/* Contact */}
-            {(charter.contact_email || charter.website_url) && (
+            {hasContact && (
               <div className="rounded-lg border bg-card p-6">
                 <h3 className="mb-4 text-lg font-semibold">Contact</h3>
                 <div className="space-y-3">
@@ -193,6 +225,15 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
                     >
                       <Mail className="h-4 w-4" />
                       {charter.contact_email}
+                    </a>
+                  )}
+                  {charter.contact_phone && (
+                    <a
+                      href={`tel:${charter.contact_phone}`}
+                      className="flex items-center gap-2 text-sm text-rlc-red hover:underline"
+                    >
+                      <Phone className="h-4 w-4" />
+                      {charter.contact_phone}
                     </a>
                   )}
                   {charter.website_url && (
@@ -206,7 +247,45 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
                       Visit Website
                     </a>
                   )}
+                  {charter.facebook_url && (
+                    <a
+                      href={charter.facebook_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-rlc-red hover:underline"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Facebook
+                    </a>
+                  )}
+                  {charter.twitter_url && (
+                    <a
+                      href={charter.twitter_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 text-sm text-rlc-red hover:underline"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      Twitter/X
+                    </a>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* Bylaws */}
+            {charter.bylaws_url && (
+              <div className="rounded-lg border bg-card p-6">
+                <h3 className="mb-4 text-lg font-semibold">Bylaws</h3>
+                <a
+                  href={charter.bylaws_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-rlc-red hover:underline"
+                >
+                  <FileText className="h-4 w-4" />
+                  View Bylaws
+                </a>
               </div>
             )}
           </div>

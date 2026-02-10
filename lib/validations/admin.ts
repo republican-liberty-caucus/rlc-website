@@ -29,14 +29,21 @@ export const adminMemberUpdateSchema = z.object({
   doNotPhone: z.boolean().optional(),
 });
 
+const httpUrl = z.string().url().refine(
+  (url) => url.startsWith('http://') || url.startsWith('https://'),
+  'URL must start with http:// or https://'
+);
+
 export const charterUpdateSchema = z.object({
   name: z.string().min(1).max(200).optional(),
   contactEmail: z.string().email().nullable().optional(),
-  websiteUrl: z.string().url().refine(
-    (url) => url.startsWith('http://') || url.startsWith('https://'),
-    'URL must start with http:// or https://'
-  ).nullable().optional(),
+  websiteUrl: httpUrl.nullable().optional(),
   status: z.enum(['active', 'inactive', 'forming']).optional(),
+  description: z.string().max(5000).nullable().optional(),
+  contactPhone: z.string().max(20).nullable().optional(),
+  facebookUrl: httpUrl.nullable().optional(),
+  twitterUrl: httpUrl.nullable().optional(),
+  bylawsUrl: httpUrl.nullable().optional(),
 });
 
 export const roleAssignmentSchema = z.object({
