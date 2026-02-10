@@ -208,11 +208,11 @@ export function NovelEditor({ initialContent, onChange, className }: NovelEditor
     <EditorRoot>
       <EditorContent
         className={cn(
-          'relative min-h-[400px] rounded-md border bg-background p-4',
+          'relative min-h-[400px] rounded-md border border-input bg-background p-4',
           'prose prose-sm max-w-none dark:prose-invert',
           'prose-headings:text-foreground prose-a:text-rlc-red',
           'prose-img:rounded-lg prose-img:border',
-          'focus-within:border-rlc-red focus-within:ring-1 focus-within:ring-rlc-red',
+          'focus-within:border-ring focus-within:ring-1 focus-within:ring-ring',
           className
         )}
         extensions={extensions}

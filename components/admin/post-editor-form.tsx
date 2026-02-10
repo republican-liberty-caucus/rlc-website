@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 import { ADMIN_INPUT_CLASS, ADMIN_LABEL_CLASS } from '@/components/admin/form-styles';
 import { NovelEditor } from '@/components/admin/novel-editor';
-import { Upload } from 'lucide-react';
+import { ExternalLink, Upload } from 'lucide-react';
 import type { Post } from '@/types';
 import { uploadFile } from '@/lib/upload';
 
@@ -259,6 +259,18 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
       </div>
 
       <div className="flex justify-end gap-2">
+        {post && (
+          <Button type="button" variant="outline" asChild>
+            <a
+              href={isPage ? `/${post.slug}` : `/blog/${post.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="mr-2 h-4 w-4" />
+              Preview
+            </a>
+          </Button>
+        )}
         <Button type="button" variant="outline" onClick={() => router.back()}>
           Cancel
         </Button>
