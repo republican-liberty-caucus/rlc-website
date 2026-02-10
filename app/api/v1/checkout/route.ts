@@ -59,11 +59,22 @@ export async function POST(request: Request) {
       tier: tier as MembershipTier,
       memberEmail,
       memberId,
-      successUrl: `${origin}/join/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancelUrl: `${origin}/join?cancelled=true`,
+      returnUrl: `${origin}/join/success?session_id={CHECKOUT_SESSION_ID}`,
     });
 
-    return NextResponse.json({ url: session.url });
+    if (!session.client_secret) {
+      logger.error('Checkout session created but client_secret is null', {
+        sessionId: session.id,
+        tier,
+        uiMode: session.ui_mode,
+      });
+      return NextResponse.json(
+        { error: 'Failed to initialize payment form' },
+        { status: 500 }
+      );
+    }
+
+    return NextResponse.json({ clientSecret: session.client_secret });
   } catch (error) {
     const err = error as { message?: string; type?: string; code?: string };
     logger.error('Checkout session creation failed:', {

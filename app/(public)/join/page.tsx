@@ -3,7 +3,7 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { Users, Star, Megaphone } from 'lucide-react';
 import { MEMBERSHIP_TIERS } from '@/lib/stripe/client';
-import { JoinTierCard } from '@/components/join/tier-card';
+import { JoinFlow } from '@/components/join/join-flow';
 
 export const metadata: Metadata = {
   title: 'Join the RLC',
@@ -12,10 +12,6 @@ export const metadata: Metadata = {
 };
 
 export default function JoinPage() {
-  // Split tiers into two rows for display: first 4, then 3
-  const primaryTiers = MEMBERSHIP_TIERS.slice(0, 4);
-  const premiumTiers = MEMBERSHIP_TIERS.slice(4);
-
   return (
     <div className="flex min-h-screen flex-col">
       <MainNav />
@@ -31,7 +27,7 @@ export default function JoinPage() {
         </div>
       </section>
 
-      {/* Membership Tiers */}
+      {/* Membership Tiers / Embedded Checkout */}
       <section className="py-16">
         <div className="container mx-auto px-4">
           <h2 className="mb-2 text-center text-3xl font-bold">Choose Your Membership</h2>
@@ -39,24 +35,7 @@ export default function JoinPage() {
             All memberships are annual and include full voting rights.
           </p>
 
-          {/* Primary tiers - 4 columns */}
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {primaryTiers.map((tier) => (
-              <JoinTierCard key={tier.tier} tier={tier} />
-            ))}
-          </div>
-
-          {/* Premium tiers */}
-          <div className="mt-12">
-            <h3 className="mb-6 text-center text-xl font-semibold text-muted-foreground">
-              Leadership & Major Supporter Tiers
-            </h3>
-            <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-3">
-              {premiumTiers.map((tier) => (
-                <JoinTierCard key={tier.tier} tier={tier} />
-              ))}
-            </div>
-          </div>
+          <JoinFlow tiers={MEMBERSHIP_TIERS} />
         </div>
       </section>
 

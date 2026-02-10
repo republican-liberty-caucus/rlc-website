@@ -251,8 +251,7 @@ export async function createCheckoutSession(params: {
   tier: MembershipTier;
   memberEmail: string;
   memberId?: string;
-  successUrl: string;
-  cancelUrl: string;
+  returnUrl: string;
 }): Promise<Stripe.Checkout.Session> {
   const stripe = getStripe();
   const tierConfig = getTierConfig(params.tier);
@@ -280,8 +279,9 @@ export async function createCheckoutSession(params: {
         quantity: 1,
       };
 
-  // Subscription mode requires an explicit Customer (not customer_email)
+  // Embedded mode: renders payment form in an iframe on our page
   const sessionParams: Stripe.Checkout.SessionCreateParams = {
+    ui_mode: 'embedded',
     mode,
     line_items: [lineItem],
     metadata: {
@@ -290,8 +290,7 @@ export async function createCheckoutSession(params: {
       source: 'rlc-website',
       member_id: params.memberId || '',
     },
-    success_url: params.successUrl,
-    cancel_url: params.cancelUrl,
+    return_url: params.returnUrl,
   };
 
   if (useSubscription) {
