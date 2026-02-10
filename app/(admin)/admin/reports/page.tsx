@@ -421,20 +421,20 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           label="New Members"
           value={newMembersCurrent.toLocaleString()}
           icon={<UserPlus className="h-5 w-5 text-rlc-blue" />}
-          trend={{
+          trend={hasDateFilter ? {
             value: `${memberGrowth.value}% vs prior period`,
             direction: memberGrowth.direction,
-          }}
+          } : undefined}
           description="in date range"
         />
         <StatCard
           label="Total Contributions"
           value={formatCurrency(totalContributions)}
           icon={<CreditCard className="h-5 w-5 text-green-600" />}
-          trend={{
+          trend={hasDateFilter ? {
             value: `${contribGrowth.value}% vs prior period`,
             direction: contribGrowth.direction,
-          }}
+          } : undefined}
           description={`${totalContribCount} payments`}
         />
         <StatCard
