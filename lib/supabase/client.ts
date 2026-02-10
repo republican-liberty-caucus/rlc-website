@@ -526,5 +526,23 @@ export type Database = {
         Update: Partial<Database['public']['Tables']['rlc_candidate_audit_platforms']['Insert']>;
       };
     };
+    Functions: {
+      get_members_by_tier: {
+        Args: { p_charter_ids: string[] | null };
+        Returns: { membership_tier: string; count: number }[];
+      };
+      get_members_by_status: {
+        Args: { p_charter_ids: string[] | null };
+        Returns: { membership_status: string; count: number }[];
+      };
+      get_members_by_charter: {
+        Args: { p_charter_ids: string[] | null };
+        Returns: { charter_id: string; charter_name: string; count: number }[];
+      };
+      get_contribution_summary: {
+        Args: { p_start_date: string; p_end_date: string; p_charter_ids: string[] | null };
+        Returns: { contribution_type: string; count: number; total_amount: number }[];
+      };
+    };
   };
 };
