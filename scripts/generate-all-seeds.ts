@@ -120,6 +120,36 @@ const SCORECARDS: ScorecardConfig[] = [
   },
 ];
 
+// Vote result detection patterns
+const VOTE_OPEN_RE = /\((?:Passed|Failed|Cloture|Motion)/;
+const VOTE_COMPLETE_RE = /\((?:Passed|Failed|Cloture|Motion)[^)]*\)\.?\s*$/;
+const PAREN_CLOSE_RE = /\)\.?\s*$/;
+
+/**
+ * Find the index of the last line that closes a vote result in the given range.
+ * Vote results are parenthetical expressions (e.g., "(Passed House 226-188...)")
+ * that may span multiple lines. Returns -1 if no vote result found.
+ */
+function findVoteResultEnd(lines: string[], start: number, end: number, initialVoteOpen = false): number {
+  let lastVoteEnd = -1;
+  let voteOpen = initialVoteOpen;
+
+  for (let i = start; i < end; i++) {
+    const line = lines[i].trim();
+    if (VOTE_COMPLETE_RE.test(line)) {
+      lastVoteEnd = i;
+      voteOpen = false;
+    } else if (VOTE_OPEN_RE.test(line) && !VOTE_COMPLETE_RE.test(line)) {
+      voteOpen = true;
+    } else if (voteOpen && PAREN_CLOSE_RE.test(line)) {
+      lastVoteEnd = i;
+      voteOpen = false;
+    }
+  }
+
+  return lastVoteEnd;
+}
+
 /**
  * Extract just the left-column content from a line.
  * PDF text has two columns separated by 3+ spaces: bill identifier (left) and description (right).
@@ -324,29 +354,67 @@ function extractBills(text: string): Bill[] {
     // Text after position keyword on the same line
     if (afterPos) descParts.push(afterPos);
 
-    // Lines between previous position and this one that aren't bill numbers or qualifiers
-    // (these are description lines that appear before the position keyword, which happens
-    // when description text wraps to lines above the numbered position line)
-    for (let j = prevPosIdx + 1; j < idx; j++) {
-      const prevLine = sectionLines[j].trim();
-      // Skip if it's part of the bill identifier
-      if (findBillNumber(prevLine)) continue;
-      if (findQualifier(prevLine)) continue;
-      // Skip if it's just a number (the bill's sort number like "6", "8")
-      if (/^\d{1,2}$/.test(prevLine)) continue;
-      descParts.unshift(prevLine); // Prepend since these come before
-    }
-
-    // Lines after position until next bill entry
-    let qualifierLinesAfter = 0;
-    for (let j = idx + 1; j < nextPosIdx; j++) {
-      const nextLine = sectionLines[j].trim();
-      // Skip qualifier lines we already consumed
-      if (qualifierLinesAfter < qualifierParts.length && findQualifier(nextLine)) {
-        qualifierLinesAfter++;
-        continue;
+    // Lines between previous position and this one need to be split at the vote result
+    // boundary. Lines up to and including the previous bill's vote result belong to the
+    // PREVIOUS bill. Lines after the vote result belong to THIS bill.
+    // Vote results may span multiple lines, e.g. "(Passed House...\nPresident)".
+    // Check if the previous anchor's afterPos opened a multi-line vote result.
+    let prevAnchorOpensVote = false;
+    if (p > 0) {
+      const prevLine = sectionLines[positionLineIndices[p - 1]];
+      const prevPosMatch = prevLine.match(/\b(Support|Oppose)\b/);
+      if (prevPosMatch && prevPosMatch.index !== undefined) {
+        const prevAfterPos = prevLine.substring(prevPosMatch.index + prevPosMatch[0].length).trim();
+        prevAnchorOpensVote = VOTE_OPEN_RE.test(prevAfterPos) && !VOTE_COMPLETE_RE.test(prevAfterPos);
       }
-      descParts.push(nextLine);
+    }
+    const voteEnd = findVoteResultEnd(sectionLines, prevPosIdx + 1, idx, prevAnchorOpensVote);
+    const prevBillVoteResultIdx = voteEnd >= 0 ? voteEnd : prevPosIdx;
+
+    // Collect only lines AFTER the previous bill's vote result as this bill's pre-description.
+    // Use indentation to distinguish right-column description text (indent >= 15) from
+    // left-column identifier/qualifier lines (indent < 15). This avoids incorrectly
+    // skipping description lines that reference bill numbers (e.g., "H.R. 1 appropriates...").
+    const preDescLines: string[] = [];
+    for (let j = prevBillVoteResultIdx + 1; j < idx; j++) {
+      const rawLine = sectionLines[j];
+      const trimmed = rawLine.trim();
+      if (!trimmed) continue;
+      const indent = rawLine.match(/^(\s*)/)?.[1].length || 0;
+      if (indent >= 15) {
+        preDescLines.push(trimmed);
+      }
+    }
+    descParts.unshift(...preDescLines);
+
+    // Lines after position until this bill's vote result or next bill entry.
+    // If the anchor line itself already ends with a complete vote result, all post-lines
+    // belong to the next bill — don't collect any.
+    const anchorHasCompleteVoteResult = VOTE_COMPLETE_RE.test(afterPos);
+    if (!anchorHasCompleteVoteResult) {
+      // Track whether the anchor line opens a multi-line vote result
+      let voteOpen = VOTE_OPEN_RE.test(afterPos) && !VOTE_COMPLETE_RE.test(afterPos);
+      let qualifierLinesAfter = 0;
+      for (let j = idx + 1; j < nextPosIdx; j++) {
+        const nextLine = sectionLines[j].trim();
+        // Skip qualifier lines we already consumed
+        if (qualifierLinesAfter < qualifierParts.length && findQualifier(nextLine)) {
+          qualifierLinesAfter++;
+          continue;
+        }
+        descParts.push(nextLine);
+        // Stop after the vote result closes — remaining lines belong to the next bill
+        if (voteOpen && PAREN_CLOSE_RE.test(nextLine)) {
+          break;
+        }
+        if (VOTE_COMPLETE_RE.test(nextLine)) {
+          break;
+        }
+        // Track multi-line vote result opening
+        if (VOTE_OPEN_RE.test(nextLine) && !VOTE_COMPLETE_RE.test(nextLine)) {
+          voteOpen = true;
+        }
+      }
     }
 
     const fullDesc = descParts.join(' ').trim();
