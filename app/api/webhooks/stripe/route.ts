@@ -522,7 +522,7 @@ async function handleInvoicePaid(
       try {
         const stripe = getStripe();
         await stripe.paymentIntents.update(paymentIntentId, {
-          description: `RLC National Membership Renewal - ${tierConfig.name}`,
+          description: `RLC Website Membership Renewal - ${tierConfig.name}`,
         });
       } catch (descError) {
         logger.error('Failed to set renewal payment description (non-fatal):', descError);
