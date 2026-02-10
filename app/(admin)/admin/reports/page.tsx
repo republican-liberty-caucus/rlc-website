@@ -20,16 +20,10 @@ interface ReportsPageProps {
   searchParams: Promise<{ start?: string; end?: string }>;
 }
 
-function scopeByCharter<T extends { in: (col: string, vals: string[]) => T }>(
-  query: T,
-  visibleCharterIds: string[] | null,
-  column: string = 'primary_charter_id'
-): T {
-  if (visibleCharterIds !== null && visibleCharterIds.length > 0) {
-    return query.in(column, visibleCharterIds);
-  }
-  return query;
-}
+interface TierCount { membership_tier: string; count: number }
+interface StatusCount { membership_status: string; count: number }
+interface CharterCount { charter_id: string; charter_name: string; count: number }
+interface ContribSummary { contribution_type: string; count: number; total_amount: number }
 
 export default async function AdminReportsPage({ searchParams }: ReportsPageProps) {
   const { userId } = await auth();
@@ -49,109 +43,67 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
   const startISO = startDate.toISOString();
   const endISO = endDate.toISOString();
 
-  // Parallel queries for all report data
-  const [
-    membersByTierResult,
-    membersByStatusResult,
-    membersByCharterResult,
-    contributionsResult,
-    newMembersResult,
-    retentionResult,
-  ] = await Promise.all([
-    // Members by tier (current snapshot)
-    scopeByCharter(
-      supabase.from('rlc_members').select('membership_tier'),
-      ctx.visibleCharterIds
-    ),
-    // Members by status (current snapshot)
-    scopeByCharter(
-      supabase.from('rlc_members').select('membership_status'),
-      ctx.visibleCharterIds
-    ),
-    // Members by charter
-    ctx.isNational
-      ? supabase.from('rlc_members')
-          .select('primary_charter_id, charter:rlc_charters(name)')
-          .not('primary_charter_id', 'is', null)
-      : (ctx.visibleCharterIds && ctx.visibleCharterIds.length > 0
-        ? supabase.from('rlc_members')
-            .select('primary_charter_id, charter:rlc_charters(name)')
-            .in('primary_charter_id', ctx.visibleCharterIds)
-        : supabase.from('rlc_members')
-            .select('primary_charter_id, charter:rlc_charters(name)')
-            .not('primary_charter_id', 'is', null)),
-    // Contributions in date range
+  // Charter scoping: null = national (no filter), string[] = scoped admin
+  const charterIds = ctx.visibleCharterIds;
+
+  // Server-side aggregation via PostgreSQL RPC functions
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database type lacks Relationships on tables, so Schema resolves to never for .rpc()
+  const rpc = supabase.rpc.bind(supabase) as (fn: string, args?: Record<string, unknown>) => any;
+  const [tierResult, statusResult, charterResult, contribResult, newMembersResult] = await Promise.all([
+    rpc('get_members_by_tier', { p_charter_ids: charterIds }),
+    rpc('get_members_by_status', { p_charter_ids: charterIds }),
+    rpc('get_members_by_charter', { p_charter_ids: charterIds }),
+    rpc('get_contribution_summary', {
+      p_start_date: startISO,
+      p_end_date: endISO,
+      p_charter_ids: charterIds,
+    }),
+    // New member count — already correct (uses count header, not row fetching)
     (() => {
-      let q = supabase.from('rlc_contributions')
-        .select('amount, contribution_type, created_at, charter_id')
-        .eq('payment_status', 'completed')
+      let q = supabase.from('rlc_members')
+        .select('*', { count: 'exact', head: true })
         .gte('created_at', startISO)
         .lte('created_at', endISO);
-      if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
-        q = q.in('charter_id', ctx.visibleCharterIds);
+      if (charterIds !== null && charterIds.length > 0) {
+        q = q.in('primary_charter_id', charterIds);
       }
       return q;
     })(),
-    // New members in date range
-    scopeByCharter(
-      supabase.from('rlc_members')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', startISO)
-        .lte('created_at', endISO),
-      ctx.visibleCharterIds
-    ),
-    // Retention: current vs expired/cancelled
-    scopeByCharter(
-      supabase.from('rlc_members')
-        .select('membership_status')
-        .in('membership_status', ['current', 'expired', 'cancelled', 'grace']),
-      ctx.visibleCharterIds
-    ),
   ]);
 
-  // Process membership by tier
+  // Process RPC results into display-ready data
+  const tierData = (tierResult.data || []) as TierCount[];
   const membersByTier: Record<string, number> = {};
-  for (const row of (membersByTierResult.data || []) as { membership_tier: string }[]) {
-    membersByTier[row.membership_tier] = (membersByTier[row.membership_tier] || 0) + 1;
+  for (const row of tierData) {
+    membersByTier[row.membership_tier] = Number(row.count);
   }
 
-  // Process membership by status
+  const statusData = (statusResult.data || []) as StatusCount[];
   const membersByStatus: Record<string, number> = {};
-  for (const row of (membersByStatusResult.data || []) as { membership_status: string }[]) {
-    membersByStatus[row.membership_status] = (membersByStatus[row.membership_status] || 0) + 1;
+  for (const row of statusData) {
+    membersByStatus[row.membership_status] = Number(row.count);
   }
 
-  // Process members by charter
-  const membersByCharter: Record<string, { name: string; count: number }> = {};
-  for (const row of (membersByCharterResult.data || []) as { primary_charter_id: string; charter: { name: string } | null }[]) {
-    const chId = row.primary_charter_id;
-    if (!membersByCharter[chId]) {
-      membersByCharter[chId] = { name: row.charter?.name || 'Unknown', count: 0 };
-    }
-    membersByCharter[chId].count++;
-  }
+  const charterData = (charterResult.data || []) as CharterCount[];
+  const membersByCharter = charterData.map(row => ({
+    name: row.charter_name,
+    count: Number(row.count),
+  }));
 
-  // Process contributions
-  const contributions = (contributionsResult.data || []) as {
-    amount: number; contribution_type: string; created_at: string; charter_id: string | null;
-  }[];
-
-  const totalContributions = contributions.reduce((sum, c) => sum + Number(c.amount), 0);
+  const contribData = (contribResult.data || []) as ContribSummary[];
+  const totalContributions = contribData.reduce((sum, c) => sum + Number(c.total_amount), 0);
   const contribByType: Record<string, { count: number; total: number }> = {};
-  for (const c of contributions) {
-    if (!contribByType[c.contribution_type]) {
-      contribByType[c.contribution_type] = { count: 0, total: 0 };
-    }
-    contribByType[c.contribution_type].count++;
-    contribByType[c.contribution_type].total += Number(c.amount);
+  for (const c of contribData) {
+    contribByType[c.contribution_type] = { count: Number(c.count), total: Number(c.total_amount) };
   }
+  const totalContribCount = contribData.reduce((sum, c) => sum + Number(c.count), 0);
 
-  // Process retention
-  const retentionData = (retentionResult.data || []) as { membership_status: string }[];
-  const retainedCount = retentionData.filter(r => r.membership_status === 'current' || r.membership_status === 'grace').length;
-  const lapsedCount = retentionData.filter(r => r.membership_status === 'expired' || r.membership_status === 'cancelled').length;
-  const retentionRate = retentionData.length > 0
-    ? Math.round((retainedCount / retentionData.length) * 100)
+  // Retention: derived from status counts (no separate query needed)
+  const retainedCount = (membersByStatus['current'] || 0) + (membersByStatus['grace'] || 0);
+  const lapsedCount = (membersByStatus['expired'] || 0) + (membersByStatus['cancelled'] || 0);
+  const retentionDenom = retainedCount + lapsedCount;
+  const retentionRate = retentionDenom > 0
+    ? Math.round((retainedCount / retentionDenom) * 100)
     : 0;
 
   const TIER_LABELS: Record<string, string> = {
@@ -193,13 +145,13 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           label="Total Contributions"
           value={formatCurrency(totalContributions)}
           icon={<CreditCard className="h-5 w-5 text-green-600" />}
-          description={`${contributions.length} payments`}
+          description={`${totalContribCount.toLocaleString()} payments`}
         />
         <StatCard
           label="Retention Rate"
           value={`${retentionRate}%`}
           icon={<RefreshCw className="h-5 w-5 text-purple-600" />}
-          description={`${retainedCount} active / ${lapsedCount} lapsed`}
+          description={`${retainedCount.toLocaleString()} active / ${lapsedCount.toLocaleString()} lapsed`}
         />
       </div>
 
@@ -298,11 +250,10 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           <CardContent className="p-6">
             <h2 className="mb-4 font-heading text-lg font-semibold">Members by Charter</h2>
             {(() => {
-              const sortedCharters = Object.values(membersByCharter).sort((a, b) => b.count - a.count);
-              const topCount = sortedCharters[0]?.count || 1;
-              return sortedCharters.length > 0 ? (
+              const topCount = membersByCharter[0]?.count || 1;
+              return membersByCharter.length > 0 ? (
                 <div className="space-y-3">
-                  {sortedCharters.map((ch) => {
+                  {membersByCharter.map((ch) => {
                     const pct = (ch.count / topCount) * 100;
                     return (
                       <div key={ch.name}>
