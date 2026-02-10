@@ -303,8 +303,8 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
     : []);
 
   // --- Process per-charter declining data (multi-charter view) ---
-  let decliningCharters: { name: string; currentCount: number; prevCount: number }[] = [];
-  let zeroGrowthCharters: string[] = [];
+  const decliningCharters: { name: string; currentCount: number; prevCount: number }[] = [];
+  const zeroGrowthCharters: string[] = [];
   let totalExpiringCount = 0;
 
   if (viewMode === 'multi_charter' && perCharterResults.length >= 2) {
