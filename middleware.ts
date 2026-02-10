@@ -26,6 +26,8 @@ const isPublicRoute = createRouteMatcher([
   '/endorsements(.*)',
   '/candidate-surveys(.*)',
   '/data(.*)',
+  '/privacy(.*)',
+  '/terms(.*)',
 ]);
 
 // Define admin routes that require specific roles
@@ -34,11 +36,68 @@ const isAdminRoute = createRouteMatcher(['/admin(.*)']);
 // Admin roles that grant access to /admin routes
 const ADMIN_ROLES = ['super_admin', 'national_board', 'regional_coordinator', 'state_chair', 'charter_admin'];
 
+// Known top-level route prefixes — skip WP slug lookup for these
+const KNOWN_PREFIXES = new Set([
+  'about', 'admin', 'api', 'action-center', 'blog', 'candidate-surveys',
+  'charters', 'contact', 'dashboard', 'data', 'donate', 'endorsements',
+  'events', 'join', 'privacy', 'scorecards', 'sign-in', 'sign-up',
+  'terms', 'unauthorized', '_next',
+]);
+
+/**
+ * Check if a root-level slug matches a published WordPress post and redirect
+ * to /blog/[slug]. Uses Supabase REST API directly for edge compatibility.
+ */
+async function wpSlugRedirect(pathname: string, baseUrl: string): Promise<NextResponse | null> {
+  // Only handle single-segment root paths that look like slugs
+  const segments = pathname.split('/').filter(Boolean);
+  if (segments.length !== 1) return null;
+
+  const slug = segments[0];
+
+  // Skip known route prefixes and paths with dots (static files)
+  if (KNOWN_PREFIXES.has(slug) || slug.includes('.')) return null;
+
+  // Skip if it doesn't look like a WP slug (lowercase alphanumeric + hyphens)
+  if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug) && !/^[a-z0-9]{1,2}$/.test(slug)) return null;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !supabaseAnonKey) return null;
+
+  try {
+    const res = await fetch(
+      `${supabaseUrl}/rest/v1/rlc_posts?slug=eq.${encodeURIComponent(slug)}&content_type=eq.post&status=eq.published&select=slug&limit=1`,
+      {
+        headers: {
+          apikey: supabaseAnonKey,
+          Authorization: `Bearer ${supabaseAnonKey}`,
+        },
+      }
+    );
+
+    if (!res.ok) return null;
+
+    const rows = await res.json();
+    if (Array.isArray(rows) && rows.length > 0) {
+      return NextResponse.redirect(new URL(`/blog/${slug}`, baseUrl), 301);
+    }
+  } catch {
+    // Don't block the request if the lookup fails
+  }
+
+  return null;
+}
+
 export default clerkMiddleware(async (auth, req) => {
   // Allow public routes
   if (isPublicRoute(req)) {
     return;
   }
+
+  // WordPress backward-compatibility: redirect /[slug] → /blog/[slug] for published posts
+  const redirect = await wpSlugRedirect(req.nextUrl.pathname, req.url);
+  if (redirect) return redirect;
 
   const { userId, sessionClaims } = await auth();
 
