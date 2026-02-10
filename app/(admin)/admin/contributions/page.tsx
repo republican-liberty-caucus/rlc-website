@@ -45,7 +45,7 @@ async function getContributions(searchParams: SearchParams) {
     .select(`
       id, amount, currency, payment_status, contribution_type,
       created_at, civicrm_contribution_id,
-      member:rlc_members!member_id(id, first_name, last_name, email)
+      member:rlc_members!contact_id(id, first_name, last_name, email)
     `, { count: 'exact' })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
