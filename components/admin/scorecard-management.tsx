@@ -26,6 +26,8 @@ const billStatusColors: Record<string, string> = {
 export function ScorecardManagement({ session }: { session: ScorecardSession }) {
   const [bills, setBills] = useState<ScorecardBill[]>([]);
   const [status, setStatus] = useState(session.status);
+  const [description, setDescription] = useState(session.description || '');
+  const [descriptionSaving, setDescriptionSaving] = useState(false);
   const [loading, setLoading] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [analyzingBillId, setAnalyzingBillId] = useState<string | null>(null);
@@ -117,6 +119,47 @@ export function ScorecardManagement({ session }: { session: ScorecardSession }) 
             {status}
           </span>
         </div>
+      </div>
+
+      {/* Description */}
+      <div className="mb-8">
+        <h2 className="mb-2 text-xl font-semibold">Overview / Description</h2>
+        <p className="mb-3 text-sm text-muted-foreground">
+          Displayed on the public scorecard page. Supports plain text.
+        </p>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="Enter an overview of this scorecard session, scoring methodology, etc."
+          rows={5}
+          className="w-full rounded-md border bg-background px-3 py-2 text-sm"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          className="mt-2"
+          disabled={descriptionSaving}
+          onClick={async () => {
+            setDescriptionSaving(true);
+            try {
+              const res = await fetch(`/api/v1/admin/scorecards/${session.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ description: description || null }),
+              });
+              if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                alert(data.error || 'Failed to save description');
+              }
+            } catch {
+              alert('Network error saving description');
+            } finally {
+              setDescriptionSaving(false);
+            }
+          }}
+        >
+          {descriptionSaving ? 'Saving...' : 'Save Description'}
+        </Button>
       </div>
 
       {/* Bills Section */}

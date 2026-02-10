@@ -700,6 +700,7 @@ model ScorecardSession {
   charter       Charter?                @relation(fields: [charterId], references: [id])
   sessionYear   Int                     @map("session_year")
   status        ScorecardSessionStatus  @default(draft)
+  description   String?                 @db.Text
   chamber       LegislativeChamber?     @map("chamber")
   partyFilter   String?                 @map("party_filter")
   absencePenaltyThreshold Int           @default(3) @map("absence_penalty_threshold")

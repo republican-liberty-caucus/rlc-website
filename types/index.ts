@@ -266,6 +266,7 @@ export interface ScorecardSession {
   charter_id: string | null;
   session_year: number;
   status: ScorecardSessionStatus;
+  description: string | null;
   chamber: LegislativeChamber | null;
   party_filter: string | null;
   absence_penalty_threshold: number;
@@ -306,6 +307,8 @@ export interface ScorecardVote {
   sponsorship_role: SponsorshipRole | null;
   created_at: string;
 }
+
+export type ScoredLegislator = Legislator & { computed_score: number | null };
 
 export interface ScorecardLegislatorScore {
   id: string;
