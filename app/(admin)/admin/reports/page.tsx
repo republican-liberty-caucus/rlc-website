@@ -86,6 +86,10 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
       // Scoped user drilling into a charter — intersect with their visible set
       const visibleSet = new Set(ctx.visibleCharterIds);
       effectiveCharterIds = descendants.filter((id) => visibleSet.has(id));
+      // If intersection is empty, the charter is outside this user's scope — fall back to their full visible set
+      if (effectiveCharterIds.length === 0) {
+        effectiveCharterIds = ctx.visibleCharterIds;
+      }
     }
   }
 
