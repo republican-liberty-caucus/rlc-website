@@ -183,7 +183,7 @@ describe('Stripe webhook handler', () => {
 
       // Should NOT have tried to look up member (skipped early)
       const memberLookupCalls = mockSb.from.mock.calls.filter(
-        (call: [string]) => call[0] === 'rlc_members'
+        (call: string[]) => call[0] === 'rlc_members'
       );
       expect(memberLookupCalls).toHaveLength(0);
     });
@@ -236,7 +236,7 @@ describe('Stripe webhook handler', () => {
 
       // Should have looked up member
       const memberLookupCalls = mockSb.from.mock.calls.filter(
-        (call: [string]) => call[0] === 'rlc_members'
+        (call: string[]) => call[0] === 'rlc_members'
       );
       expect(memberLookupCalls.length).toBeGreaterThan(0);
     });
@@ -275,7 +275,7 @@ describe('Stripe webhook handler', () => {
 
       // Should NOT have looked up member (skipped before customer lookup)
       const memberLookupCalls = mockSb.from.mock.calls.filter(
-        (call: [string]) => call[0] === 'rlc_members'
+        (call: string[]) => call[0] === 'rlc_members'
       );
       expect(memberLookupCalls).toHaveLength(0);
     });
@@ -371,17 +371,17 @@ describe('Stripe webhook handler', () => {
 
       // Verify the expiry date was extended from existing expiry, not from now
       expect(capturedUpdate).not.toBeNull();
-      if (capturedUpdate) {
-        const newExpiry = new Date(capturedUpdate.membership_expiry_date as string);
-        // Should be approximately 2027-06-01 (existing 2026-06-01 + 1 year)
-        expect(newExpiry.getUTCFullYear()).toBe(2027);
-        expect(newExpiry.getUTCMonth()).toBe(5); // June = month 5 (0-indexed)
+      // TS can't trace assignment through mock callback, so it narrows to null/never
+      const update = capturedUpdate as unknown as Record<string, unknown>;
+      const newExpiry = new Date(update.membership_expiry_date as string);
+      // Should be approximately 2027-06-01 (existing 2026-06-01 + 1 year)
+      expect(newExpiry.getUTCFullYear()).toBe(2027);
+      expect(newExpiry.getUTCMonth()).toBe(5); // June = month 5 (0-indexed)
 
-        const newStart = new Date(capturedUpdate.membership_start_date as string);
-        // Start should be the existing expiry (2026-06-01), not today
-        expect(newStart.getUTCFullYear()).toBe(2026);
-        expect(newStart.getUTCMonth()).toBe(5);
-      }
+      const newStart = new Date(update.membership_start_date as string);
+      // Start should be the existing expiry (2026-06-01), not today
+      expect(newStart.getUTCFullYear()).toBe(2026);
+      expect(newStart.getUTCMonth()).toBe(5);
     });
   });
 
