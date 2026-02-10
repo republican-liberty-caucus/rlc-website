@@ -15,7 +15,7 @@ import * as path from 'path';
 
 dotenv.config({ path: '.env.local' });
 
-function cuid(): string {
+function generateId(): string {
   return crypto.randomUUID();
 }
 
@@ -101,7 +101,7 @@ async function main() {
     .eq('slug', seed.session.slug)
     .single();
 
-  const sessionId = existingSession?.id || cuid();
+  const sessionId = existingSession?.id || generateId();
 
   const { data: sessionData, error: sessionError } = await supabase
     .from('rlc_scorecard_sessions')
@@ -172,7 +172,7 @@ async function main() {
       const { data: newBill, error: billError } = await supabase
         .from('rlc_scorecard_bills')
         .insert({
-          id: cuid(),
+          id: generateId(),
           session_id: sessionId,
           bill_number: bill.bill_number,
           title: bill.title,
@@ -232,7 +232,7 @@ async function main() {
       const { data: newLeg, error: legError } = await supabase
         .from('rlc_legislators')
         .insert({
-          id: cuid(),
+          id: generateId(),
           name: leg.name,
           party: leg.party,
           state_code: leg.state_code,
@@ -291,7 +291,7 @@ async function main() {
         .from('rlc_scorecard_votes')
         .upsert(
           {
-            id: existingVote?.id || cuid(),
+            id: existingVote?.id || generateId(),
             bill_id: billId,
             legislator_id: legislatorId,
             vote: voteChoice,

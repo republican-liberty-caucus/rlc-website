@@ -12,14 +12,14 @@
     {
       "bill_number": "H.Con.Res. 11",
       "title": "President Biden's budget resolution",
-      "description": "President Biden's budget resolution. (Passed 218-212 on 2/3/21) For The People Act of 2021. This would have federalized elections, removing local control and cancelling many state election laws that are crucial for election integrity.",
+      "description": "President Biden's budget resolution.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 1,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed 218-212 on 2/3/21"
     },
     {
       "bill_number": "H.R. 1",
@@ -36,19 +36,19 @@
     {
       "bill_number": "H.R. 8",
       "title": "Imposes nationwide universal background checks on firearms transfers, which would essentially outlaw private firearm sales/transfers",
-      "description": "Imposes nationwide universal background checks on firearms transfers, which would essentially outlaw private firearm sales/transfers. (Passed 227-203 on 3/8/21) The Protecting the Right to Organize Act. This violates free market principles by imposing numerous federal regulations on private businesses. It pressures employees of private businesses to pay union fees even if they don't want to join a union, which conflicts with Right to Work laws in 27 states. It also violates worker privacy by",
+      "description": "Imposes nationwide universal background checks on firearms transfers, which would essentially outlaw private firearm sales/transfers.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 3,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed 227-203 on 3/8/21"
     },
     {
       "bill_number": "H.R. 842",
-      "title": "of private businesses to pay union fees even if they don't want to join a union, which conflicts with Right to Work laws in 27 states",
-      "description": "of private businesses to pay union fees even if they don't want to join a union, which conflicts with Right to Work laws in 27 states. It also violates worker privacy by The Protecting the Right to Organize Act. This violates free market principles by imposing numerous federal regulations on private businesses. It pressures employees mandating that businesses share their employee's personal information with unions.",
+      "title": "The Protecting the Right to Organize Act",
+      "description": "The Protecting the Right to Organize Act. This violates free market principles by imposing numerous federal regulations on private businesses. It pressures employees of private businesses to pay union fees even if they don't want to join a union, which conflicts with Right to Work laws in 27 states. It also violates worker privacy by mandating that businesses share their employee's personal information with unions.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
@@ -60,19 +60,19 @@
     {
       "bill_number": "H.R. 1319",
       "title": "The $1",
-      "description": "The $1.9 trillion American Rescue Plan Act of 2021. (Passed 220-211 on 3/10/21) PPP Extension Act of 2021. Extended the Paycheck Protection Program, which bails out businesses with taxpayer funded loans that aren't required to be paid back. Nowhere in the Constitution is the federal government granted this authority. PPP also incentivizes state and local governments to continue their draconian COVID-19",
+      "description": "The $1.9 trillion American Rescue Plan Act of 2021.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 5,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed 220-211 on 3/10/21"
     },
     {
       "bill_number": "H.R. 1799",
-      "title": "Nowhere in the Constitution is the federal government granted this authority",
-      "description": "Nowhere in the Constitution is the federal government granted this authority. PPP also incentivizes state and local governments to continue their draconian COVID-19 PPP Extension Act of 2021. Extended the Paycheck Protection Program, which bails out businesses with taxpayer funded loans that aren't required to be paid back. restrictions on businesses.",
+      "title": "PPP Extension Act of 2021",
+      "description": "PPP Extension Act of 2021. Extended the Paycheck Protection Program, which bails out businesses with taxpayer funded loans that aren't required to be paid back. Nowhere in the Constitution is the federal government granted this authority. PPP also incentivizes state and local governments to continue their draconian COVID-19 restrictions on businesses.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
@@ -120,19 +120,19 @@
     {
       "bill_number": "H.Res. 601",
       "title": "Providing for the consideration of H",
-      "description": "Providing for the consideration of H.R. 4, H.R. 3684, and S.Con.Res. 14, allowing the House to move forward with those three items. (Passed 220-212 on 8/24/21) The John R. Lewis Voting Rights Advancement Act of 2021. This would have federalized elections, removing local control and cancelling many state election laws that",
+      "description": "Providing for the consideration of H.R. 4, H.R. 3684, and S.Con.Res. 14, allowing the House to move forward with those three items.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 10,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed 220-212 on 8/24/21"
     },
     {
       "bill_number": "H.R. 4",
       "title": "The John R",
-      "description": "The John R. Lewis Voting Rights Advancement Act of 2021. This would have federalized elections, removing local control and cancelling many state election laws that are crucial for election integrity. (Passed 219-212 on 8/24/21). The original draft of the National Defense Authorization Act of 2022. Increases military spending to $778 billion, expands the draft by requiring women to register for selective service, permits red-flag gun confiscation for military servicemembers, and includes critical race theory training for military servicemembers.",
+      "description": "The John R. Lewis Voting Rights Advancement Act of 2021. This would have federalized elections, removing local control and cancelling many state election laws that are crucial for election integrity. (Passed 219-212 on 8/24/21).",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
@@ -143,8 +143,8 @@
     },
     {
       "bill_number": "H.R. 4350",
-      "title": "selective service, permits red-flag gun confiscation for military servicemembers, and includes critical race theory training for military servicemembers",
-      "description": "selective service, permits red-flag gun confiscation for military servicemembers, and includes critical race theory training for military servicemembers. The original draft of the National Defense Authorization Act of 2022. Increases military spending to $778 billion, expands the draft by requiring women to register for",
+      "title": "The original draft of the National Defense Authorization Act of 2022",
+      "description": "The original draft of the National Defense Authorization Act of 2022. Increases military spending to $778 billion, expands the draft by requiring women to register for selective service, permits red-flag gun confiscation for military servicemembers, and includes critical race theory training for military servicemembers.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
@@ -156,14 +156,14 @@
     {
       "bill_number": "S. 1301",
       "title": "Temporary extension of the debt limit until December 16, 2021",
-      "description": "Temporary extension of the debt limit until December 16, 2021. (Passed 219-212 on 9/29/21) Extending Government Funding and Delivering Emergency Assistance Act. Funded the federal government through December 3, 2021.",
+      "description": "Temporary extension of the debt limit until December 16, 2021.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 13,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed 219-212 on 9/29/21"
     },
     {
       "bill_number": "H.R. 5305",
@@ -192,38 +192,38 @@
     {
       "bill_number": "H.R. 5376",
       "title": "The $2",
-      "description": "The $2.2 trillion Build Back Better Act. (Passed 220-213 on 11/19/21) The Immunization Infrastructure Modernization Act of 2021. Expands the CDC and Public Health Department by appropriating an additional $400 million so these",
+      "description": "The $2.2 trillion Build Back Better Act.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 16,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed 220-213 on 11/19/21"
     },
     {
       "bill_number": "H.R. 550",
       "title": "The Immunization Infrastructure Modernization Act of 2021",
-      "description": "The Immunization Infrastructure Modernization Act of 2021. Expands the CDC and Public Health Department by appropriating an additional $400 million so these bureaucracies can collect additional personal information for their “immunization information systems.” (Passed 294-130 on 11/30/21) Further Extending Government Funding Act. Funds the federal government through February 18, 2022, which includes funding for Biden's OSHA vaccine mandate.",
+      "description": "The Immunization Infrastructure Modernization Act of 2021. Expands the CDC and Public Health Department by appropriating an additional $400 million so these bureaucracies can collect additional personal information for their “immunization information systems.”",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 17,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed 294-130 on 11/30/21"
     },
     {
       "bill_number": "H.R. 6119",
       "title": "Further Extending Government Funding Act",
-      "description": "Further Extending Government Funding Act. Funds the federal government through February 18, 2022, which includes funding for Biden's OSHA vaccine mandate. (Passed 221-212 on 12/2/21) The final draft of the National Defense Authorization Act of 2022. Increases military spending to $768 billion, while including a few poison pills such as critical race theory",
+      "description": "Further Extending Government Funding Act. Funds the federal government through February 18, 2022, which includes funding for Biden's OSHA vaccine mandate.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 18,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed 221-212 on 12/2/21"
     },
     {
       "bill_number": "S. 1605",

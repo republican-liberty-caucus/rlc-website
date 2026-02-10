@@ -23,15 +23,15 @@
     },
     {
       "bill_number": "H.Con.Res.21",
-      "title": "(Passed House 229-197 on 2/1/23, Passed Senate 68-23 on 3/29/23, Signed by President) This concurrent resolution directs the President to remove U",
-      "description": "(Passed House 229-197 on 2/1/23, Passed Senate 68-23 on 3/29/23, Signed by President) This concurrent resolution directs the President to remove U.S. Armed Forces from Syria within 180 days. (Failed House 103-321 on 3/8/23) H.R.5 Massie",
+      "title": "This concurrent resolution directs the President to remove U",
+      "description": "This concurrent resolution directs the President to remove U.S. Armed Forces from Syria within 180 days.",
       "liberty_position": "yea",
       "category": "other",
       "weight": 1,
       "sort_order": 2,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Failed House 103-321 on 3/8/23"
     },
     {
       "bill_number": "H.R.5 Massie Amendment #15",
@@ -48,67 +48,67 @@
     {
       "bill_number": "H.R.1",
       "title": "The Lower Energy Costs Act repeals numerous regulations and taxes on American energy production",
-      "description": "The Lower Energy Costs Act repeals numerous regulations and taxes on American energy production. The bill would expedite the permitting process for energy production on federal lands and waters, while also expediting hardrock mining, pipeline manufacturing, water infrastructure and natural gas. Overall, H.R.1 would make it easier and cheaper to produce American energy. (Passed House 225-204 on 3/30/23, but failed to advance in the Senate) The HALT Fentanyl Act expands the federal war on drugs by permanently placing fentanyl-related substances into Schedule I, while imposing a ten year mandatory minimum prison term for fentanyl-related offenses. The bill also expands federal bureaucracies by establishing a new registration process for Schedule I drug research.",
+      "description": "The Lower Energy Costs Act repeals numerous regulations and taxes on American energy production. The bill would expedite the permitting process for energy production on federal lands and waters, while also expediting hardrock mining, pipeline manufacturing, water infrastructure and natural gas. Overall, H.R.1 would make it easier and cheaper to produce American energy.",
       "liberty_position": "yea",
       "category": "other",
       "weight": 1,
       "sort_order": 4,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed House 225-204 on 3/30/23, but failed to advance in the Senate"
     },
     {
       "bill_number": "H.R.467",
-      "title": "minimum prison term for fentanyl-related offenses",
-      "description": "minimum prison term for fentanyl-related offenses. The bill also expands federal bureaucracies by establishing a new registration process for Schedule I drug research. The HALT Fentanyl Act expands the federal war on drugs by permanently placing fentanyl-related substances into Schedule I, while imposing a ten year mandatory it easier and cheaper to produce American energy. (Passed House 225-204 on 3/30/23, but failed to advance in the Senate) One-size-fits-all federal mandatory minimums are often redundant to state laws, forcing judges to issue excessive and duplicative sentences. Per the 10th Amendment, this issue should be left to the states. (Passed House 289-133 on 5/25/23, but failed to advance in the Senate) This joint resolution would repeal the unconstitutional rule issued by the ATF that currently bans pistol braces.",
+      "title": "The HALT Fentanyl Act expands the federal war on drugs by permanently placing fentanyl-related substances into Schedule I, while imposing a ten year mandatory minimum prison term for fentanyl-related ",
+      "description": "The HALT Fentanyl Act expands the federal war on drugs by permanently placing fentanyl-related substances into Schedule I, while imposing a ten year mandatory minimum prison term for fentanyl-related offenses. The bill also expands federal bureaucracies by establishing a new registration process for Schedule I drug research. One-size-fits-all federal mandatory minimums are often redundant to state laws, forcing judges to issue excessive and duplicative sentences. Per the 10th Amendment, this issue should be left to the states.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 5,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed House 289-133 on 5/25/23, but failed to advance in the Senate"
     },
     {
       "bill_number": "H.J.Res.44",
       "title": "This joint resolution would repeal the unconstitutional rule issued by the ATF that currently bans pistol braces",
-      "description": "This joint resolution would repeal the unconstitutional rule issued by the ATF that currently bans pistol braces. this issue should be left to the states. (Passed House 289-133 on 5/25/23, but failed to advance in the Senate) One-size-fits-all federal mandatory minimums are often redundant to state laws, forcing judges to issue excessive and duplicative sentences. Per the 10th Amendment, (Passed House 219-210 on 6/13/23, Failed Senate 49-50 on 6/22/23) The Reins Act of 2023 requires congressional approval before federal agencies issue any rule/regulation that will impact the economy. The REINS Act returns legislative",
+      "description": "This joint resolution would repeal the unconstitutional rule issued by the ATF that currently bans pistol braces.",
       "liberty_position": "yea",
       "category": "other",
       "weight": 1,
       "sort_order": 6,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed House 219-210 on 6/13/23, Failed Senate 49-50 on 6/22/23"
     },
     {
       "bill_number": "H.R.277",
       "title": "The Reins Act of 2023 requires congressional approval before federal agencies issue any rule/regulation that will impact the economy",
-      "description": "The Reins Act of 2023 requires congressional approval before federal agencies issue any rule/regulation that will impact the economy. The REINS Act returns legislative (Passed House 219-210 on 6/13/23, Failed Senate 49-50 on 6/22/23) authority to Congress, where it belongs. The Constitution grants legislative powers to Congress, not unelected bureaucrats. (Passed House 221-210 on 6/14/23, but failed to advance in the Senate) The Save Our Gas Stoves Act places limits on the Department of Energy to prevent the federal government from restricting the people’s freedom to use gas stoves.",
+      "description": "The Reins Act of 2023 requires congressional approval before federal agencies issue any rule/regulation that will impact the economy. The REINS Act returns legislative authority to Congress, where it belongs. The Constitution grants legislative powers to Congress, not unelected bureaucrats.",
       "liberty_position": "yea",
       "category": "other",
       "weight": 1,
       "sort_order": 7,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed House 221-210 on 6/14/23, but failed to advance in the Senate"
     },
     {
       "bill_number": "H.R.1640",
       "title": "The Save Our Gas Stoves Act places limits on the Department of Energy to prevent the federal government from restricting the people’s freedom to use gas stoves",
-      "description": "The Save Our Gas Stoves Act places limits on the Department of Energy to prevent the federal government from restricting the people’s freedom to use gas stoves. (Passed House 221-210 on 6/14/23, but failed to advance in the Senate) (Passed House 249-181 on 6/14/23, but failed to advance in the Senate) H.R.2670 Jackson             The Jackson #5 amendment to H.R.2670 prohibits the Secretary of Defense from paying for or reimbursing expenses relating to abortion services.",
+      "description": "The Save Our Gas Stoves Act places limits on the Department of Energy to prevent the federal government from restricting the people’s freedom to use gas stoves.",
       "liberty_position": "yea",
       "category": "other",
       "weight": 1,
       "sort_order": 8,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed House 249-181 on 6/14/23, but failed to advance in the Senate"
     },
     {
       "bill_number": "H.R.2670 Jackson Amendment #5",
-      "title": "(Passed House 249-181 on 6/14/23, but failed to advance in the Senate) H",
-      "description": "(Passed House 249-181 on 6/14/23, but failed to advance in the Senate) H.R.2670 Greene",
+      "title": "H",
+      "description": "H.R.2670 Greene",
       "liberty_position": "yea",
       "category": "other",
       "weight": 1,
@@ -144,19 +144,19 @@
     {
       "bill_number": "H.R.2670 (first version)",
       "title": "This was the House’s first version of 2023 NDAA, which appropriates $886 billion for military spending, a $23 billion increase from the prior year",
-      "description": "This was the House’s first version of 2023 NDAA, which appropriates $886 billion for military spending, a $23 billion increase from the prior year. Adjusted for inflation, this would be the largest military budget since World War II. With a $34 trillion national debt, this much spending is irresponsible. (Passed House 219-210 on 7/14/23, but was drastically amended in the Senate before its final passage in December) H.R.4368 Hageman             The Hageman amendment #83 to H.R.4368 would have prevented funds from being used to mandate electronic identification eartags for cattle and bison.",
+      "description": "This was the House’s first version of 2023 NDAA, which appropriates $886 billion for military spending, a $23 billion increase from the prior year. Adjusted for inflation, this would be the largest military budget since World War II. With a $34 trillion national debt, this much spending is irresponsible.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 12,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed House 219-210 on 7/14/23, but was drastically amended in the Senate before its final passage in December"
     },
     {
       "bill_number": "H.R.4368 Hageman Amendment #83",
-      "title": "(Passed House 219-210 on 7/14/23, but was drastically amended in the Senate before its final passage in December) This continuing resolution approved 45 days of federal funding",
-      "description": "(Passed House 219-210 on 7/14/23, but was drastically amended in the Senate before its final passage in December) This continuing resolution approved 45 days of federal funding. It bypassed the formal budgeting process without any significant spending cuts, kicking the can down the",
+      "title": "This continuing resolution approved 45 days of federal funding",
+      "description": "This continuing resolution approved 45 days of federal funding. It bypassed the formal budgeting process without any significant spending cuts, kicking the can down the",
       "liberty_position": "yea",
       "category": "other",
       "weight": 1,
@@ -168,19 +168,19 @@
     {
       "bill_number": "H.R.5860",
       "title": "This continuing resolution approved 45 days of federal funding",
-      "description": "This continuing resolution approved 45 days of federal funding. It bypassed the formal budgeting process without any significant spending cuts, kicking the can down the road for another 45 days. (Passed House 335-91 on 9/30/23, Passed Senate 88-9 on 9/30/23, Signed by President) Jim Jordan for               Jim Jordan’s bid for House Speaker provided the best opportunity to obtain principled, liberty-focused leadership in the House. Jordan earned 200 votes on 10/17/23,",
+      "description": "This continuing resolution approved 45 days of federal funding. It bypassed the formal budgeting process without any significant spending cuts, kicking the can down the road for another 45 days.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 14,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed House 335-91 on 9/30/23, Passed Senate 88-9 on 9/30/23, Signed by President"
     },
     {
       "bill_number": "Special Vote",
-      "title": "road for another 45 days",
-      "description": "road for another 45 days. (Passed House 335-91 on 9/30/23, Passed Senate 88-9 on 9/30/23, Signed by President) House Speaker                falling just 17 votes shy of the majority needed to win. H.R.4820 Massie              The Massie Amendment #60 to H.R.4820 would repeal a portion of statute that currently requires all new vehicles manufactured after 2026 to have a kill switch used to",
+      "title": "House Speaker                falling just 17 votes shy of the majority needed to win",
+      "description": "House Speaker                falling just 17 votes shy of the majority needed to win. H.R.4820 Massie              The Massie Amendment #60 to H.R.4820 would repeal a portion of statute that currently requires all new vehicles manufactured after 2026 to have a kill switch used to",
       "liberty_position": "yea",
       "category": "other",
       "weight": 1,
@@ -228,31 +228,31 @@
     {
       "bill_number": "H.R.6363",
       "title": "This continuing resolution approved another two and a half months of federal funding",
-      "description": "This continuing resolution approved another two and a half months of federal funding. It bypassed the formal budgeting process without any significant spending cuts, kicking the can down the road for another two and a half months. (Passed House 336-95 on 11/14/23, Passed Senate 87-11 on 11/15/23, Signed by President) The final version of the 2023 NDAA. This 3,000 page bill appropriated $886 billion for military spending, a $23 billion increase from the prior year. Adjusted for inflation, H.R.2670                     this is the largest military budget since World War II. With a $34 trillion national debt, this much spending is irresponsible.The bill also extended the unconstitutional",
+      "description": "This continuing resolution approved another two and a half months of federal funding. It bypassed the formal budgeting process without any significant spending cuts, kicking the can down the road for another two and a half months.",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 19,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed House 336-95 on 11/14/23, Passed Senate 87-11 on 11/15/23, Signed by President"
     },
     {
       "bill_number": "H.R.2670 (final version)",
-      "title": "kicking the can down the road for another two and a half months",
-      "description": "kicking the can down the road for another two and a half months. (Passed House 336-95 on 11/14/23, Passed Senate 87-11 on 11/15/23, Signed by President) (Passed Senate 87-13 on 12/13/23, Passed House 310-118 on 12/14/23, Signed by President) Andy Biggs for               The Republican Liberty Caucus endorsed Andy Biggs when he ran for House Speaker. The ten members of Congress who voted for Biggs on the first ballot on 1/3/23",
+      "title": "The final version of the 2023 NDAA",
+      "description": "The final version of the 2023 NDAA. This 3,000 page bill appropriated $886 billion for military spending, a $23 billion increase from the prior year. Adjusted for inflation,",
       "liberty_position": "nay",
       "category": "other",
       "weight": 1,
       "sort_order": 20,
       "is_bonus": false,
       "bonus_point_value": 0,
-      "vote_result_summary": ""
+      "vote_result_summary": "Passed Senate 87-13 on 12/13/23, Passed House 310-118 on 12/14/23, Signed by President"
     },
     {
       "bill_number": "Special Vote",
-      "title": "(Passed Senate 87-13 on 12/13/23, Passed House 310-118 on 12/14/23, Signed by President) House Speaker                were each awarded two bonus points",
-      "description": "(Passed Senate 87-13 on 12/13/23, Passed House 310-118 on 12/14/23, Signed by President) House Speaker                were each awarded two bonus points.",
+      "title": "House Speaker                were each awarded two bonus points",
+      "description": "House Speaker                were each awarded two bonus points.",
       "liberty_position": "yea",
       "category": "other",
       "weight": 0,
