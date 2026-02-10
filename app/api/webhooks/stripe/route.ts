@@ -98,8 +98,9 @@ export async function POST(req: Request) {
     if (idempotencyError && idempotencyError.code !== '42P01') {
       logger.error('Webhook idempotency check failed:', idempotencyError);
     }
-  } catch {
-    // Non-fatal — continue processing even if idempotency check fails
+  } catch (idempotencyErr) {
+    // Non-fatal — continue processing, but log so we know idempotency is broken
+    logger.error('Webhook idempotency check threw an unexpected error (processing will continue):', idempotencyErr);
   }
 
   try {
@@ -162,7 +163,12 @@ async function handleCheckoutComplete(
   supabase: ReturnType<typeof createServerClient>,
   session: Stripe.Checkout.Session
 ) {
-  const checkoutType = session.metadata?.type || 'membership';
+  // Source guard: skip events without metadata.type (likely HighLevel or external)
+  const checkoutType = session.metadata?.type;
+  if (!checkoutType) {
+    logger.info(`Checkout session ${session.id} has no metadata.type — likely external, skipping`);
+    return;
+  }
 
   if (checkoutType === 'donation') {
     await handleDonationCheckout(supabase, session);
@@ -170,9 +176,18 @@ async function handleCheckoutComplete(
   }
 
   const customerId = session.customer as string;
-  const memberEmail = session.customer_email;
   const tier = session.metadata?.tier;
   const memberId = session.metadata?.member_id;
+
+  // Resolve email: subscription mode uses customer (not customer_email), so fetch from Customer
+  let memberEmail = session.customer_email;
+  if (!memberEmail && customerId) {
+    const stripe = getStripe();
+    const customer = await stripe.customers.retrieve(customerId);
+    if (!customer.deleted && customer.email) {
+      memberEmail = customer.email;
+    }
+  }
 
   if (!memberEmail) {
     logger.error(`Checkout session ${session.id} has no customer_email`);
@@ -223,8 +238,19 @@ async function handleCheckoutComplete(
     throw new Error(`Member not found for checkout session ${session.id}`);
   }
 
-  // Idempotency: check if this payment was already processed
-  const paymentIntentId = (session.payment_intent as string | null) || null;
+  // Idempotency: check if this payment was already processed.
+  // For subscription checkouts, payment_intent may be null — resolve from the subscription's invoice.
+  let paymentIntentId = (session.payment_intent as string | null) || null;
+  if (!paymentIntentId && session.subscription) {
+    const stripe = getStripe();
+    const subscription = await stripe.subscriptions.retrieve(session.subscription as string, {
+      expand: ['latest_invoice'],
+    });
+    const latestInvoice = subscription.latest_invoice as Stripe.Invoice | null;
+    if (latestInvoice?.payment_intent) {
+      paymentIntentId = latestInvoice.payment_intent as string;
+    }
+  }
   if (paymentIntentId) {
     const { data: existing } = await supabase
       .from('rlc_contributions')
@@ -327,7 +353,9 @@ async function handleSubscriptionChange(
   const member = await findMemberByCustomerId(supabase, customerId, 'handleSubscriptionChange');
 
   if (!member) {
-    throw new Error(`Member not found for subscription ${subscription.id}, customer ${customerId}`);
+    // Unknown customer — likely a HighLevel-originated subscription. Skip gracefully.
+    logger.info(`handleSubscriptionChange: No member for customer ${customerId}, skipping (likely external)`);
+    return;
   }
 
   const membershipStatus = SUBSCRIPTION_STATUS_MAP[subscription.status] || 'pending';
@@ -357,7 +385,9 @@ async function handleSubscriptionCancelled(
   const member = await findMemberByCustomerId(supabase, customerId, 'handleSubscriptionCancelled');
 
   if (!member) {
-    throw new Error(`Member not found for cancelled subscription ${subscription.id}, customer ${customerId}`);
+    // Unknown customer — likely a HighLevel-originated subscription. Skip gracefully.
+    logger.info(`handleSubscriptionCancelled: No member for customer ${customerId}, skipping (likely external)`);
+    return;
   }
 
   const { error: updateError } = await supabase
@@ -377,11 +407,20 @@ async function handleInvoicePaid(
   supabase: ReturnType<typeof createServerClient>,
   invoice: Stripe.Invoice
 ) {
+  // Skip the first invoice of a subscription — handleCheckoutComplete already handled it.
+  // This prevents double-counting the initial payment.
+  if (invoice.billing_reason === 'subscription_create') {
+    logger.info(`Invoice ${invoice.id} is subscription_create — skipping (handled by checkout)`);
+    return;
+  }
+
   const customerId = invoice.customer as string;
   const member = await findMemberByCustomerId(supabase, customerId, 'handleInvoicePaid');
 
   if (!member) {
-    throw new Error(`Member not found for paid invoice ${invoice.id}, customer ${customerId}`);
+    // Unknown customer — likely a HighLevel-originated subscription. Skip gracefully.
+    logger.info(`handleInvoicePaid: No member for customer ${customerId}, skipping (likely external)`);
+    return;
   }
 
   // Idempotency check
@@ -397,6 +436,28 @@ async function handleInvoicePaid(
       logger.info(`Invoice already processed for payment_intent ${paymentIntentId}, skipping`);
       return;
     }
+  }
+
+  // Calculate renewal dates: extend from existing expiry (not now) to avoid penalizing early renewals
+  const now = new Date();
+  const existingExpiry = member.membership_expiry_date ? new Date(member.membership_expiry_date) : now;
+  const renewalStart = existingExpiry > now ? existingExpiry : now; // If already expired, start from now
+  const expiryDate = new Date(renewalStart);
+  expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+
+  // Update member expiry dates for renewal
+  const { error: memberUpdateError } = await supabase
+    .from('rlc_members')
+    .update({
+      membership_status: 'current',
+      membership_start_date: renewalStart.toISOString(),
+      membership_expiry_date: expiryDate.toISOString(),
+    } as never)
+    .eq('id', member.id);
+
+  if (memberUpdateError) {
+    logger.error(`Failed to update renewal dates for member ${member.id}:`, memberUpdateError);
+    throw memberUpdateError;
   }
 
   // Attribute renewal to member's current charter (at time of renewal)
@@ -429,7 +490,29 @@ async function handleInvoicePaid(
     }
   }
 
-  logger.info(`Invoice paid for member ${member.id}`);
+  // Sync renewal to HighLevel (non-fatal)
+  try {
+    await syncMemberToHighLevel({
+      id: member.id,
+      email: member.email,
+      firstName: member.first_name,
+      lastName: member.last_name,
+      phone: member.phone,
+      addressLine1: member.address_line1,
+      city: member.city,
+      state: member.state,
+      postalCode: member.postal_code,
+      membershipTier: member.membership_tier,
+      membershipStatus: 'current',
+      membershipStartDate: renewalStart.toISOString(),
+      membershipExpiryDate: expiryDate.toISOString(),
+      membershipJoinDate: member.membership_join_date || undefined,
+    });
+  } catch (hlError) {
+    logger.error('HighLevel renewal sync failed (non-fatal):', hlError);
+  }
+
+  logger.info(`Invoice paid (renewal) for member ${member.id}`);
 }
 
 async function handleInvoiceFailed(
@@ -440,7 +523,9 @@ async function handleInvoiceFailed(
   const member = await findMemberByCustomerId(supabase, customerId, 'handleInvoiceFailed');
 
   if (!member) {
-    throw new Error(`Member not found for failed invoice ${invoice.id}, customer ${customerId}`);
+    // Unknown customer — likely a HighLevel-originated subscription. Skip gracefully.
+    logger.info(`handleInvoiceFailed: No member for customer ${customerId}, skipping (likely external)`);
+    return;
   }
 
   const { error: insertError } = await supabase.from('rlc_contributions').insert({
@@ -550,8 +635,15 @@ async function handleAccountUpdated(
     .eq('stripe_account_id', stripeAccountId)
     .single();
 
-  if (lookupError || !charterAccount) {
-    // Not one of our connected accounts — ignore
+  if (lookupError) {
+    if (lookupError.code === 'PGRST116') {
+      logger.info(`account.updated for unknown account ${stripeAccountId}, ignoring`);
+      return;
+    }
+    logger.error(`account.updated: DB error looking up account ${stripeAccountId}:`, lookupError);
+    throw new Error(`Database error in handleAccountUpdated: ${lookupError.message}`);
+  }
+  if (!charterAccount) {
     logger.info(`account.updated for unknown account ${stripeAccountId}, ignoring`);
     return;
   }
@@ -618,7 +710,11 @@ async function drainPendingLedgerEntries(
     .select('id, amount, stripe_transfer_group_id')
     .limit(50);
 
-  if (error || !pendingEntries || pendingEntries.length === 0) return;
+  if (error) {
+    logger.error(`drainPendingLedgerEntries: Failed to claim pending entries for charter ${charterId}:`, error);
+    throw new Error(`Database error draining pending entries: ${error.message}`);
+  }
+  if (!pendingEntries || pendingEntries.length === 0) return;
 
   if (pendingEntries.length === 50) {
     logger.warn(`drainPendingLedgerEntries: Batch limit reached for charter ${charterId}, more entries may remain`);
@@ -663,7 +759,15 @@ async function handleChargeRefunded(
     .eq('stripe_payment_intent_id', paymentIntentId)
     .single();
 
-  if (contribError || !contribution) {
+  if (contribError) {
+    if (contribError.code === 'PGRST116') {
+      logger.info(`charge.refunded: No contribution found for pi=${paymentIntentId}`);
+      return;
+    }
+    logger.error(`charge.refunded: DB error looking up contribution for pi=${paymentIntentId}:`, contribError);
+    throw new Error(`Database error in handleChargeRefunded: ${contribError.message}`);
+  }
+  if (!contribution) {
     logger.info(`charge.refunded: No contribution found for pi=${paymentIntentId}`);
     return;
   }

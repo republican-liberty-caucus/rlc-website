@@ -81,16 +81,25 @@ export async function executeTransfersForContribution(contributionId: string): P
     .eq('status', 'pending')
     .select('id, amount, recipient_charter_id, stripe_transfer_group_id');
 
-  if (error || !entries || entries.length === 0) return;
+  if (error) {
+    logger.error(`executeTransfersForContribution: Failed to claim entries for contribution ${contributionId}:`, error);
+    throw new Error(`Database error claiming entries: ${error.message}`);
+  }
+  if (!entries || entries.length === 0) return;
 
   // Get Stripe accounts for all recipient charters
   const charterIds = [...new Set((entries as { recipient_charter_id: string }[]).map((e) => e.recipient_charter_id))];
 
-  const { data: stripeAccounts } = await supabase
+  const { data: stripeAccounts, error: accountsError } = await supabase
     .from('rlc_charter_stripe_accounts')
     .select('charter_id, stripe_account_id')
     .in('charter_id', charterIds)
     .eq('status', 'active');
+
+  if (accountsError) {
+    logger.error(`executeTransfersForContribution: Failed to fetch Stripe accounts:`, accountsError);
+    throw new Error(`Database error fetching Stripe accounts: ${accountsError.message}`);
+  }
 
   const accountMap = new Map<string, string>();
   if (stripeAccounts) {
