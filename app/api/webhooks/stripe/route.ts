@@ -181,11 +181,12 @@ async function handleCheckoutComplete(
 
   // Resolve email: subscription mode uses customer (not customer_email), so fetch from Customer
   let memberEmail = session.customer_email;
+  let stripeCustomer: Stripe.Customer | Stripe.DeletedCustomer | null = null;
   if (!memberEmail && customerId) {
     const stripe = getStripe();
-    const customer = await stripe.customers.retrieve(customerId);
-    if (!customer.deleted && customer.email) {
-      memberEmail = customer.email;
+    stripeCustomer = await stripe.customers.retrieve(customerId);
+    if (!stripeCustomer.deleted && stripeCustomer.email) {
+      memberEmail = stripeCustomer.email;
     }
   }
 
@@ -232,10 +233,71 @@ async function handleCheckoutComplete(
   }
 
   if (!member) {
-    logger.error(
-      `Member not found for checkout session ${session.id}: email=${memberEmail}, member_id=${memberId}`
-    );
-    throw new Error(`Member not found for checkout session ${session.id}`);
+    // New member from email-only checkout — create record from Stripe data
+    if (!customerId) {
+      logger.error(
+        `Checkout session ${session.id}: No member found and no customer ID to create one. ` +
+        `email=${memberEmail}, member_id=${memberId}`
+      );
+      throw new Error(`Cannot create member for checkout ${session.id}: no Stripe customer ID`);
+    }
+
+    // Use session.customer_details.name (collected on the Stripe Checkout page)
+    // then fall back to Stripe Customer record, then fall back to empty
+    const checkoutName = session.customer_details?.name || '';
+    let customerName = checkoutName;
+    if (!customerName) {
+      if (!stripeCustomer) {
+        const stripe = getStripe();
+        stripeCustomer = await stripe.customers.retrieve(customerId);
+      }
+      customerName = (!stripeCustomer.deleted && stripeCustomer.name) || '';
+    }
+    const [firstName, ...lastParts] = customerName.split(' ');
+    const resolvedFirst = firstName || '';
+    const resolvedLast = lastParts.join(' ') || '';
+
+    if (!resolvedFirst && !resolvedLast) {
+      logger.warn(
+        `Auto-creating member for checkout ${session.id} with no name data. ` +
+        `Stripe customer ${customerId}. Email: ${memberEmail}`
+      );
+    }
+
+    const { data: newMember, error: createError } = await supabase
+      .from('rlc_members')
+      .insert({
+        email: memberEmail,
+        first_name: resolvedFirst || null,
+        last_name: resolvedLast || null,
+        stripe_customer_id: customerId,
+      } as never)
+      .select('*')
+      .single();
+
+    if (createError) {
+      // Handle race condition: concurrent webhook created the member already
+      if (createError.code === '23505') {
+        const { data: existingMember } = await supabase
+          .from('rlc_members')
+          .select('*')
+          .eq('email', memberEmail)
+          .single();
+        if (existingMember) {
+          member = existingMember as Contact;
+          logger.info(`Concurrent creation resolved: found existing member for ${memberEmail}`);
+        } else {
+          logger.error(`Race condition: 23505 on insert but member not found for ${memberEmail}`);
+          throw createError;
+        }
+      } else {
+        logger.error(`Failed to create member for checkout ${session.id}:`, createError);
+        throw createError;
+      }
+    } else {
+      member = newMember as Contact;
+      logger.info(`Created new member ${member.id} from checkout (email=${memberEmail})`);
+    }
   }
 
   // Idempotency: check if this payment was already processed.

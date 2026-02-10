@@ -15,22 +15,34 @@ export function JoinTierCard({ tier }: TierCardProps) {
   const { isSignedIn } = useUser();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [emailValue, setEmailValue] = useState('');
 
   async function handleJoin() {
-    // Unauthenticated users must sign up first — redirect with tier so we can
-    // resume checkout after sign-up completes.
-    if (!isSignedIn) {
-      window.location.href = `/sign-up?redirect_url=/join&tier=${tier.tier}`;
+    // Unauthenticated users: show email input first
+    if (!isSignedIn && !showEmailInput) {
+      setShowEmailInput(true);
+      return;
+    }
+
+    // Validate email for unauthenticated users
+    if (!isSignedIn && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailValue.trim())) {
+      setError('Please enter a valid email address.');
       return;
     }
 
     setLoading(true);
     setError(null);
     try {
+      const payload: { tier: string; email?: string } = { tier: tier.tier };
+      if (!isSignedIn) {
+        payload.email = emailValue;
+      }
+
       const res = await fetch('/api/v1/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tier: tier.tier }),
+        body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
@@ -42,6 +54,8 @@ export function JoinTierCard({ tier }: TierCardProps) {
 
       if (data.url) {
         window.location.href = data.url;
+      } else {
+        throw new Error('No checkout URL returned. Please try again.');
       }
     } catch (err) {
       console.error('Failed to start checkout:', err);
@@ -94,6 +108,20 @@ export function JoinTierCard({ tier }: TierCardProps) {
         <p className="mb-2 text-center text-sm text-red-600">{error}</p>
       )}
 
+      {showEmailInput && !isSignedIn && (
+        <div className="mb-3">
+          <input
+            type="email"
+            placeholder="Enter your email"
+            value={emailValue}
+            onChange={(e) => setEmailValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleJoin()}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-rlc-red"
+            autoFocus
+          />
+        </div>
+      )}
+
       <Button
         onClick={handleJoin}
         disabled={loading}
@@ -103,7 +131,11 @@ export function JoinTierCard({ tier }: TierCardProps) {
             : 'bg-rlc-blue hover:bg-rlc-blue/90'
         }`}
       >
-        {loading ? 'Loading...' : `Join — ${formatPrice(tier.price)}/yr`}
+        {loading
+          ? 'Loading...'
+          : showEmailInput && !isSignedIn
+            ? 'Continue to Payment'
+            : `Join — ${formatPrice(tier.price)}/yr`}
       </Button>
     </div>
   );
