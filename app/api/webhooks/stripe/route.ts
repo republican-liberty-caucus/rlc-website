@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getStripe, MEMBERSHIP_TIERS, getTierConfig, getMembershipPaymentDescription } from '@/lib/stripe/client';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import { triggerWelcomeSequence } from '@/lib/highlevel/notifications';
-import { processDuesSplit } from '@/lib/dues-sharing/split-engine';
+import { processDuesSplit, resolveCharterByState } from '@/lib/dues-sharing/split-engine';
 import type { Contact, MembershipTier, MembershipStatus } from '@/types';
 import { logger } from '@/lib/logger';
 
@@ -341,12 +341,31 @@ async function handleCheckoutComplete(
     }
   }
 
+  // Auto-assign state charter if not already set
+  let assignedCharterId = member.primary_charter_id;
+  if (!assignedCharterId) {
+    const stateCode = member.state || session.customer_details?.address?.state || null;
+    if (stateCode) {
+      try {
+        assignedCharterId = await resolveCharterByState(stateCode);
+        if (assignedCharterId) {
+          logger.info(`Auto-assigned charter for member ${member.id}: state=${stateCode}, charter=${assignedCharterId}`);
+        }
+      } catch (charterError) {
+        logger.error(`Failed to resolve charter for state="${stateCode}" (non-fatal):`, charterError);
+      }
+    }
+  }
+
+  // Backfill member state from Stripe billing address if missing
+  const resolvedState = member.state || session.customer_details?.address?.state || null;
+
   // Calculate membership dates: 1 year from now
   const now = new Date();
   const expiryDate = new Date(now);
   expiryDate.setFullYear(expiryDate.getFullYear() + 1);
 
-  // Update member with Stripe info, tier, and dates
+  // Update member with Stripe info, tier, dates, and charter assignment
   const { error: updateError } = await supabase
     .from('rlc_members')
     .update({
@@ -356,6 +375,8 @@ async function handleCheckoutComplete(
       membership_start_date: now.toISOString(),
       membership_expiry_date: expiryDate.toISOString(),
       membership_join_date: member.membership_join_date || now.toISOString(),
+      ...(assignedCharterId && !member.primary_charter_id ? { primary_charter_id: assignedCharterId } : {}),
+      ...(resolvedState && !member.state ? { state: resolvedState } : {}),
     } as never)
     .eq('id', member.id);
 
@@ -375,7 +396,7 @@ async function handleCheckoutComplete(
       stripe_payment_intent_id: paymentIntentId,
       payment_status: 'completed',
       is_recurring: session.mode === 'subscription',
-      charter_id: member.primary_charter_id || null,
+      charter_id: assignedCharterId || null,
     } as never)
     .select('id')
     .single();
