@@ -54,11 +54,14 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
   const { start, end, charter: charterParam } = await searchParams;
   const supabase = createServerClient();
 
-  // Default to last 12 months
+  // When no dates provided, show all time; otherwise use the provided range
+  const hasDateFilter = !!(start || end);
   const endDate = end ? new Date(end) : new Date();
   const startDate = start
     ? new Date(start)
-    : new Date(new Date().setFullYear(endDate.getFullYear() - 1));
+    : hasDateFilter
+      ? new Date(new Date().setFullYear(endDate.getFullYear() - 1))
+      : new Date('2000-01-01');
 
   const startISO = startDate.toISOString();
   const endISO = endDate.toISOString();
