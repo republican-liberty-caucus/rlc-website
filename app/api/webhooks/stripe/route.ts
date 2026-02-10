@@ -98,8 +98,9 @@ export async function POST(req: Request) {
     if (idempotencyError && idempotencyError.code !== '42P01') {
       logger.error('Webhook idempotency check failed:', idempotencyError);
     }
-  } catch {
-    // Non-fatal — continue processing even if idempotency check fails
+  } catch (idempotencyErr) {
+    // Non-fatal — continue processing, but log so we know idempotency is broken
+    logger.error('Webhook idempotency check threw an unexpected error (processing will continue):', idempotencyErr);
   }
 
   try {
@@ -634,8 +635,15 @@ async function handleAccountUpdated(
     .eq('stripe_account_id', stripeAccountId)
     .single();
 
-  if (lookupError || !charterAccount) {
-    // Not one of our connected accounts — ignore
+  if (lookupError) {
+    if (lookupError.code === 'PGRST116') {
+      logger.info(`account.updated for unknown account ${stripeAccountId}, ignoring`);
+      return;
+    }
+    logger.error(`account.updated: DB error looking up account ${stripeAccountId}:`, lookupError);
+    throw new Error(`Database error in handleAccountUpdated: ${lookupError.message}`);
+  }
+  if (!charterAccount) {
     logger.info(`account.updated for unknown account ${stripeAccountId}, ignoring`);
     return;
   }
@@ -702,7 +710,11 @@ async function drainPendingLedgerEntries(
     .select('id, amount, stripe_transfer_group_id')
     .limit(50);
 
-  if (error || !pendingEntries || pendingEntries.length === 0) return;
+  if (error) {
+    logger.error(`drainPendingLedgerEntries: Failed to claim pending entries for charter ${charterId}:`, error);
+    throw new Error(`Database error draining pending entries: ${error.message}`);
+  }
+  if (!pendingEntries || pendingEntries.length === 0) return;
 
   if (pendingEntries.length === 50) {
     logger.warn(`drainPendingLedgerEntries: Batch limit reached for charter ${charterId}, more entries may remain`);
@@ -747,7 +759,15 @@ async function handleChargeRefunded(
     .eq('stripe_payment_intent_id', paymentIntentId)
     .single();
 
-  if (contribError || !contribution) {
+  if (contribError) {
+    if (contribError.code === 'PGRST116') {
+      logger.info(`charge.refunded: No contribution found for pi=${paymentIntentId}`);
+      return;
+    }
+    logger.error(`charge.refunded: DB error looking up contribution for pi=${paymentIntentId}:`, contribError);
+    throw new Error(`Database error in handleChargeRefunded: ${contribError.message}`);
+  }
+  if (!contribution) {
     logger.info(`charge.refunded: No contribution found for pi=${paymentIntentId}`);
     return;
   }

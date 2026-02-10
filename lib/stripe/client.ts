@@ -204,8 +204,16 @@ async function findOrCreateWebsiteCustomer(
         if (!existing.deleted) {
           return existing as Stripe.Customer;
         }
-      } catch {
-        // Customer doesn't exist in Stripe — create a new one below
+      } catch (retrieveErr: unknown) {
+        // Only fall through if the customer genuinely doesn't exist in Stripe
+        const isNotFound =
+          retrieveErr instanceof Error &&
+          'code' in retrieveErr &&
+          (retrieveErr as { code?: string }).code === 'resource_missing';
+        if (!isNotFound) {
+          throw retrieveErr; // Stripe outage, rate limit, auth error — let caller handle
+        }
+        // Customer deleted/missing in Stripe — create new below
       }
     }
   }
@@ -220,10 +228,20 @@ async function findOrCreateWebsiteCustomer(
   if (memberId) {
     const { createServerClient: createClient } = await import('@/lib/supabase/server');
     const sb = createClient();
-    await sb
+    const { error: saveError } = await sb
       .from('rlc_members')
       .update({ stripe_customer_id: newCustomer.id } as never)
       .eq('id', memberId);
+
+    if (saveError) {
+      const { logger } = await import('@/lib/logger');
+      logger.error(
+        `findOrCreateWebsiteCustomer: Failed to save stripe_customer_id ${newCustomer.id} for member ${memberId}:`,
+        saveError
+      );
+      // Don't throw — the Customer was created and checkout can proceed.
+      // But this MUST be investigated to prevent duplicate Customers.
+    }
   }
 
   return newCustomer;
