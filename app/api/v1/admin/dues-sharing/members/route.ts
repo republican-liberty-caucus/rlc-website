@@ -26,8 +26,8 @@ export async function GET(request: Request) {
   let query = supabase
     .from('rlc_contributions')
     .select(`
-      id, member_id, amount, contribution_type, payment_status, created_at,
-      rlc_members!inner(id, first_name, last_name, email, primary_charter_id)
+      id, contact_id, amount, contribution_type, payment_status, created_at,
+      rlc_members!contact_id!inner(id, first_name, last_name, email, primary_charter_id)
     `, { count: 'exact' })
     .eq('contribution_type', 'membership')
     .eq('payment_status', 'completed')
