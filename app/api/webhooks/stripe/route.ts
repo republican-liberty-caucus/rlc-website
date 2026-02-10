@@ -268,8 +268,8 @@ async function handleCheckoutComplete(
       .from('rlc_members')
       .insert({
         email: memberEmail,
-        first_name: resolvedFirst || null,
-        last_name: resolvedLast || null,
+        first_name: resolvedFirst || memberEmail.split('@')[0],
+        last_name: resolvedLast || '',
         stripe_customer_id: customerId,
       } as never)
       .select('*')
