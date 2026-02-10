@@ -260,6 +260,11 @@ model Charter {
   status           CharterStatus @default(active)
   websiteUrl       String?       @map("website_url")
   contactEmail     String?       @map("contact_email")
+  description      String?       @db.Text
+  contactPhone     String?       @map("contact_phone") @db.VarChar(20)
+  facebookUrl      String?       @map("facebook_url")
+  twitterUrl       String?       @map("twitter_url")
+  bylawsUrl        String?       @map("bylaws_url")
   leadership       Json          @default("{}")
   metadata         Json          @default("{}")
   createdAt        DateTime      @default(now()) @map("created_at")

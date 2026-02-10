@@ -33,6 +33,11 @@ export function CharterDetailForm({ charter }: CharterDetailFormProps) {
       contactEmail: (formData.get('contactEmail') as string) || null,
       websiteUrl: (formData.get('websiteUrl') as string) || null,
       status: formData.get('status') as string,
+      description: (formData.get('description') as string) || null,
+      contactPhone: (formData.get('contactPhone') as string) || null,
+      facebookUrl: (formData.get('facebookUrl') as string) || null,
+      twitterUrl: (formData.get('twitterUrl') as string) || null,
+      bylawsUrl: (formData.get('bylawsUrl') as string) || null,
     };
 
     try {
@@ -78,13 +83,33 @@ export function CharterDetailForm({ charter }: CharterDetailFormProps) {
             <label className={ADMIN_LABEL_CLASS}>Charter Name</label>
             <input name="name" defaultValue={charter.name} required className={ADMIN_INPUT_CLASS} />
           </div>
+          <div className="md:col-span-2">
+            <label className={ADMIN_LABEL_CLASS}>Description</label>
+            <textarea name="description" rows={4} defaultValue={charter.description || ''} className={ADMIN_INPUT_CLASS} placeholder="About this charter..." />
+          </div>
           <div>
             <label className={ADMIN_LABEL_CLASS}>Contact Email</label>
             <input name="contactEmail" type="email" defaultValue={charter.contact_email || ''} className={ADMIN_INPUT_CLASS} />
           </div>
           <div>
+            <label className={ADMIN_LABEL_CLASS}>Contact Phone</label>
+            <input name="contactPhone" type="tel" defaultValue={charter.contact_phone || ''} className={ADMIN_INPUT_CLASS} placeholder="(555) 123-4567" />
+          </div>
+          <div>
             <label className={ADMIN_LABEL_CLASS}>Website URL</label>
             <input name="websiteUrl" type="url" defaultValue={charter.website_url || ''} className={ADMIN_INPUT_CLASS} />
+          </div>
+          <div>
+            <label className={ADMIN_LABEL_CLASS}>Facebook URL</label>
+            <input name="facebookUrl" type="url" defaultValue={charter.facebook_url || ''} className={ADMIN_INPUT_CLASS} placeholder="https://facebook.com/..." />
+          </div>
+          <div>
+            <label className={ADMIN_LABEL_CLASS}>Twitter/X URL</label>
+            <input name="twitterUrl" type="url" defaultValue={charter.twitter_url || ''} className={ADMIN_INPUT_CLASS} placeholder="https://x.com/..." />
+          </div>
+          <div>
+            <label className={ADMIN_LABEL_CLASS}>Bylaws URL</label>
+            <input name="bylawsUrl" type="url" defaultValue={charter.bylaws_url || ''} className={ADMIN_INPUT_CLASS} placeholder="https://..." />
           </div>
           <div>
             <label className={ADMIN_LABEL_CLASS}>Status</label>

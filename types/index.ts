@@ -90,6 +90,11 @@ export interface Charter {
   status: CharterStatus;
   website_url: string | null;
   contact_email: string | null;
+  description: string | null;
+  contact_phone: string | null;
+  facebook_url: string | null;
+  twitter_url: string | null;
+  bylaws_url: string | null;
   leadership: Record<string, unknown>;
   metadata: Record<string, unknown>;
   created_at: string;
