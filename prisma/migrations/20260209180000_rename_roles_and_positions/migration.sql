@@ -29,11 +29,11 @@ EXCEPTION WHEN undefined_table THEN NULL;
           WHEN undefined_object THEN NULL;
 END $$;
 
--- Rename unique index
+-- Rename unique index (indexes are "relations" in PG, so undefined_table not undefined_object)
 DO $$ BEGIN
   ALTER INDEX "rlc_officer_positions_contact_id_charter_id_title_committee_nam"
     RENAME TO "rlc_org_positions_contact_charter_title_committee";
-EXCEPTION WHEN undefined_object THEN NULL;
+EXCEPTION WHEN undefined_table THEN NULL;
 END $$;
 
 -- Rename UserRole enum values (idempotent — safe to re-run)
