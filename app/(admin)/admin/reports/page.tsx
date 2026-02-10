@@ -40,6 +40,11 @@ function scopeByCharter<T extends { in: (col: string, vals: string[]) => T }>(
   return query;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database type doesn't include RPC function signatures
+function rpc(supabase: any, fn: string, args: Record<string, unknown>) {
+  return supabase.rpc(fn, args);
+}
+
 export default async function AdminReportsPage({ searchParams }: ReportsPageProps) {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
@@ -105,88 +110,59 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
     ? allCharters.find((ch) => ch.id === charterParam)
     : null;
 
-  // --- Parallel queries ---
+  // --- Parallel queries using RPC functions (no 1000-row limit) ---
+  // Convert null (national admin) to undefined so RPC uses SQL DEFAULT NULL
+  const rpcCharterIds = effectiveCharterIds ?? undefined;
+
   const [
     membersByTierResult,
     membersByStatusResult,
     membersByCharterResult,
     contributionsResult,
     newMembersResult,
-    retentionResult,
     prevNewMembersResult,
     prevContributionsResult,
     expiringMembersResult,
     // Per-charter new members for current + previous period (multi-charter only)
     ...perCharterResults
   ] = await Promise.all([
-    // 1. Members by tier
-    scopeByCharter(
-      supabase.from('rlc_members').select('membership_tier'),
-      effectiveCharterIds
-    ),
-    // 2. Members by status
-    scopeByCharter(
-      supabase.from('rlc_members').select('membership_status'),
-      effectiveCharterIds
-    ),
-    // 3. Members by charter
-    (() => {
-      let q = supabase.from('rlc_members')
-        .select('primary_charter_id, charter:rlc_charters(name)')
-        .not('primary_charter_id', 'is', null);
-      if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
-        q = q.in('primary_charter_id', effectiveCharterIds);
-      }
-      return q;
-    })(),
-    // 4. Contributions in date range
-    (() => {
-      let q = supabase.from('rlc_contributions')
-        .select('amount, contribution_type, created_at, charter_id')
-        .eq('payment_status', 'completed')
-        .gte('created_at', startISO)
-        .lte('created_at', endISO);
-      if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
-        q = q.in('charter_id', effectiveCharterIds);
-      }
-      return q;
-    })(),
-    // 5. New members count in date range
-    scopeByCharter(
-      supabase.from('rlc_members')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', startISO)
-        .lte('created_at', endISO),
-      effectiveCharterIds
-    ),
-    // 6. Retention data
-    scopeByCharter(
-      supabase.from('rlc_members')
-        .select('membership_status')
-        .in('membership_status', ['current', 'expired', 'cancelled', 'grace']),
-      effectiveCharterIds
-    ),
-    // 7 (8a). Previous-period new members count
-    scopeByCharter(
-      supabase.from('rlc_members')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', prevStartISO)
-        .lte('created_at', prevEndISO),
-      effectiveCharterIds
-    ),
-    // 8 (9). Previous-period contributions total
-    (() => {
-      let q = supabase.from('rlc_contributions')
-        .select('amount')
-        .eq('payment_status', 'completed')
-        .gte('created_at', prevStartISO)
-        .lte('created_at', prevEndISO);
-      if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
-        q = q.in('charter_id', effectiveCharterIds);
-      }
-      return q;
-    })(),
-    // 9 (10). Expiring members (next 30 days) — only for single-charter view
+    // 1. Members by tier (current members only — aggregated in PostgreSQL)
+    rpc(supabase, 'get_members_by_tier', {
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 2. Members by status (all statuses — aggregated in PostgreSQL)
+    rpc(supabase, 'get_members_by_status', {
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 3. Members by charter (current members only — aggregated in PostgreSQL)
+    rpc(supabase, 'get_members_by_charter', {
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 4. Contributions in date range (aggregated in PostgreSQL)
+    rpc(supabase, 'get_contribution_summary', {
+      p_start_date: startISO,
+      p_end_date: endISO,
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 5. New members count using membership_join_date (not created_at)
+    rpc(supabase, 'get_new_members_count', {
+      p_start_date: startISO,
+      p_end_date: endISO,
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 6. Previous-period new members count
+    rpc(supabase, 'get_new_members_count', {
+      p_start_date: prevStartISO,
+      p_end_date: prevEndISO,
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 7. Previous-period contributions
+    rpc(supabase, 'get_contribution_summary', {
+      p_start_date: prevStartISO,
+      p_end_date: prevEndISO,
+      p_charter_ids: rpcCharterIds,
+    }),
+    // 8. Expiring members (next 30 days) — only for single-charter view
     ...(viewMode === 'single_charter'
       ? [
           (() => {
@@ -210,7 +186,8 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           // Placeholder so destructuring works
           Promise.resolve({ data: null, count: null, error: null }),
         ]),
-    // 10 (8b). Per-charter new members current period (multi-charter only)
+    // 9. Per-charter new members current period (multi-charter only)
+    // Uses membership_join_date, with high limit to avoid 1000-row cap
     ...(viewMode === 'multi_charter'
       ? [
           // Current period per-charter
@@ -218,8 +195,10 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             let q = supabase.from('rlc_members')
               .select('primary_charter_id')
               .not('primary_charter_id', 'is', null)
-              .gte('created_at', startISO)
-              .lte('created_at', endISO);
+              .not('membership_join_date', 'is', null)
+              .gte('membership_join_date', startISO)
+              .lte('membership_join_date', endISO)
+              .limit(50000);
             if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
               q = q.in('primary_charter_id', effectiveCharterIds);
             }
@@ -230,8 +209,10 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             let q = supabase.from('rlc_members')
               .select('primary_charter_id')
               .not('primary_charter_id', 'is', null)
-              .gte('created_at', prevStartISO)
-              .lte('created_at', prevEndISO);
+              .not('membership_join_date', 'is', null)
+              .gte('membership_join_date', prevStartISO)
+              .lte('membership_join_date', prevEndISO)
+              .limit(50000);
             if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
               q = q.in('primary_charter_id', effectiveCharterIds);
             }
@@ -241,57 +222,51 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
       : []),
   ]);
 
-  // --- Process membership by tier ---
+  // --- Process membership by tier (RPC returns pre-aggregated rows) ---
   const membersByTier: Record<string, number> = {};
-  for (const row of (membersByTierResult.data || []) as { membership_tier: string }[]) {
-    membersByTier[row.membership_tier] = (membersByTier[row.membership_tier] || 0) + 1;
+  for (const row of (membersByTierResult.data || []) as { membership_tier: string; count: number }[]) {
+    membersByTier[row.membership_tier] = Number(row.count);
   }
 
-  // --- Process membership by status ---
+  // --- Process membership by status (RPC returns pre-aggregated rows) ---
   const membersByStatus: Record<string, number> = {};
-  for (const row of (membersByStatusResult.data || []) as { membership_status: string }[]) {
-    membersByStatus[row.membership_status] = (membersByStatus[row.membership_status] || 0) + 1;
+  for (const row of (membersByStatusResult.data || []) as { membership_status: string; count: number }[]) {
+    membersByStatus[row.membership_status] = Number(row.count);
   }
 
-  // --- Process members by charter ---
+  // --- Process members by charter (RPC returns pre-aggregated rows) ---
   const membersByCharter: Record<string, { name: string; count: number }> = {};
-  for (const row of (membersByCharterResult.data || []) as { primary_charter_id: string; charter: { name: string } | null }[]) {
-    const chId = row.primary_charter_id;
-    if (!membersByCharter[chId]) {
-      membersByCharter[chId] = { name: row.charter?.name || 'Unknown', count: 0 };
-    }
-    membersByCharter[chId].count++;
+  for (const row of (membersByCharterResult.data || []) as { charter_id: string; charter_name: string; count: number }[]) {
+    membersByCharter[row.charter_id] = { name: row.charter_name, count: Number(row.count) };
   }
 
-  // --- Process contributions ---
-  const contributions = (contributionsResult.data || []) as {
-    amount: number; contribution_type: string; created_at: string; charter_id: string | null;
+  // --- Process contributions (RPC returns pre-aggregated rows by type) ---
+  const contribRows = (contributionsResult.data || []) as {
+    contribution_type: string; count: number; total_amount: number;
   }[];
-  const totalContributions = contributions.reduce((sum, c) => sum + Number(c.amount), 0);
+  const totalContributions = contribRows.reduce((sum, c) => sum + Number(c.total_amount), 0);
+  const totalContribCount = contribRows.reduce((sum, c) => sum + Number(c.count), 0);
   const contribByType: Record<string, { count: number; total: number }> = {};
-  for (const c of contributions) {
-    if (!contribByType[c.contribution_type]) {
-      contribByType[c.contribution_type] = { count: 0, total: 0 };
-    }
-    contribByType[c.contribution_type].count++;
-    contribByType[c.contribution_type].total += Number(c.amount);
+  for (const c of contribRows) {
+    contribByType[c.contribution_type] = { count: Number(c.count), total: Number(c.total_amount) };
   }
 
-  // --- Process retention ---
-  const retentionData = (retentionResult.data || []) as { membership_status: string }[];
-  const retainedCount = retentionData.filter(r => r.membership_status === 'current' || r.membership_status === 'grace').length;
-  const lapsedCount = retentionData.filter(r => r.membership_status === 'expired' || r.membership_status === 'cancelled').length;
-  const retentionRate = retentionData.length > 0
-    ? Math.round((retainedCount / retentionData.length) * 100)
+  // --- Process retention (from status breakdown — no separate query needed) ---
+  const retainedCount = (membersByStatus['current'] || 0) + (membersByStatus['grace'] || 0);
+  const lapsedCount = (membersByStatus['expired'] || 0) + (membersByStatus['cancelled'] || 0);
+  const retentionTotal = retainedCount + lapsedCount;
+  const retentionRate = retentionTotal > 0
+    ? Math.round((retainedCount / retentionTotal) * 100)
     : 0;
 
-  // --- Process previous-period data for trends ---
-  const newMembersCurrent = newMembersResult.count || 0;
-  const newMembersPrevious = prevNewMembersResult.count || 0;
+  // --- Process new members (RPC returns a single BIGINT) ---
+  const newMembersCurrent = Number(newMembersResult.data) || 0;
+  const newMembersPrevious = Number(prevNewMembersResult.data) || 0;
   const memberGrowth = computeGrowthPercent(newMembersCurrent, newMembersPrevious);
 
-  const prevContributions = (prevContributionsResult.data || []) as { amount: number }[];
-  const prevContribTotal = prevContributions.reduce((sum, c) => sum + Number(c.amount), 0);
+  // --- Process previous-period contributions ---
+  const prevContribRows = (prevContributionsResult.data || []) as { total_amount: number }[];
+  const prevContribTotal = prevContribRows.reduce((sum, c) => sum + Number(c.total_amount), 0);
   const contribGrowth = computeGrowthPercent(totalContributions, prevContribTotal);
 
   // --- Process expiring members (single-charter view) ---
@@ -416,7 +391,8 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
     roundtable: 'Roundtable',
   };
 
-  const totalMembers = Object.values(membersByTier).reduce((a, b) => a + b, 0) || 1;
+  const totalMembers = Object.values(membersByTier).reduce((a, b) => a + b, 0);
+  const totalAllStatuses = Object.values(membersByStatus).reduce((a, b) => a + b, 0);
 
   return (
     <div>
@@ -456,7 +432,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             value: `${contribGrowth.value}% vs prior period`,
             direction: contribGrowth.direction,
           }}
-          description={`${contributions.length} payments`}
+          description={`${totalContribCount} payments`}
         />
         <StatCard
           label="Retention Rate"
@@ -473,7 +449,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             <h2 className="mb-4 font-heading text-lg font-semibold">Members by State</h2>
             <div className="space-y-3">
               {stateAggregates.map((s) => {
-                const pct = (s.count / totalMembers) * 100;
+                const pct = totalMembers > 0 ? (s.count / totalMembers) * 100 : 0;
                 return (
                   <div key={s.stateCode}>
                     <div className="mb-1 flex items-center justify-between text-sm">
@@ -584,7 +560,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
               {Object.entries(membersByStatus)
                 .sort(([, a], [, b]) => b - a)
                 .map(([status, count]) => {
-                  const pct = totalMembers > 0 ? (count / totalMembers) * 100 : 0;
+                  const pct = totalAllStatuses > 0 ? (count / totalAllStatuses) * 100 : 0;
                   return (
                     <div key={status}>
                       <div className="mb-1 flex items-center justify-between text-sm">
