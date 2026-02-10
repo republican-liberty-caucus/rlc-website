@@ -14,7 +14,6 @@ import {
 } from '@/lib/admin/report-helpers';
 import { StatCard } from '@/components/ui/stat-card';
 import { PageHeader } from '@/components/ui/page-header';
-import { StatusBadge } from '@/components/ui/status-badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Users, UserPlus, CreditCard, RefreshCw, AlertTriangle } from 'lucide-react';
 import { ReportFilters } from '@/components/admin/report-filters';
@@ -385,6 +384,28 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
   // --- Build charter dropdown options ---
   const charterOptions = buildCharterOptions(allCharters, ctx.visibleCharterIds);
 
+  const STATUS_LABELS: Record<string, string> = {
+    new_member: 'New',
+    current: 'Current',
+    expiring: 'Expiring',
+    grace: 'Grace',
+    expired: 'Expired',
+    cancelled: 'Cancelled',
+    deceased: 'Deceased',
+    pending: 'Pending',
+  };
+
+  const STATUS_COLORS: Record<string, string> = {
+    new_member: 'bg-blue-500',
+    current: 'bg-green-500',
+    expiring: 'bg-orange-500',
+    grace: 'bg-yellow-500',
+    expired: 'bg-red-500',
+    cancelled: 'bg-gray-400',
+    deceased: 'bg-gray-300',
+    pending: 'bg-yellow-400',
+  };
+
   const TIER_LABELS: Record<string, string> = {
     student_military: 'Student/Military',
     individual: 'Individual',
@@ -579,20 +600,18 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           <CardContent className="p-6">
             <h2 className="mb-4 font-heading text-lg font-semibold">Members by Status</h2>
             <div className="space-y-3">
-              {['new_member', 'current', 'expiring', 'grace', 'expired', 'cancelled', 'deceased', 'pending']
-                .filter((s) => membersByStatus[s] != null)
-                .map((status) => {
-                  const count = membersByStatus[status] || 0;
+              {Object.entries(STATUS_LABELS).map(([key, label]) => {
+                  const count = membersByStatus[key] || 0;
                   const pct = totalAllStatuses > 0 ? (count / totalAllStatuses) * 100 : 0;
                   return (
-                    <div key={status}>
+                    <div key={key}>
                       <div className="mb-1 flex items-center justify-between text-sm">
-                        <StatusBadge status={status} type="membership" />
-                        <span className="font-medium">{count} <span className="text-muted-foreground">({Math.round(pct)}%)</span></span>
+                        <span>{label}</span>
+                        <span className="font-medium">{count}</span>
                       </div>
                       <div className="h-2 rounded-full bg-muted">
                         <div
-                          className="h-2 rounded-full bg-rlc-blue transition-all"
+                          className={`h-2 rounded-full transition-all ${STATUS_COLORS[key] || 'bg-gray-400'}`}
                           style={{ width: `${Math.max(pct, count > 0 ? 2 : 0)}%` }}
                         />
                       </div>
