@@ -32,10 +32,7 @@ const isPublicRoute = createRouteMatcher([
 const isAdminRoute = createRouteMatcher(['/admin(.*)']);
 
 // Admin roles that grant access to /admin routes
-// Accept both old (chapter_*) and new (charter_*) values during transition period.
-// Clerk publicMetadata still contains the old enum names until each user's role is
-// re-synced. Once all Clerk users have been migrated, remove the chapter_* entries.
-const ADMIN_ROLES = ['super_admin', 'national_board', 'regional_coordinator', 'state_chair', 'charter_admin', 'chapter_admin'];
+const ADMIN_ROLES = ['super_admin', 'national_board', 'regional_coordinator', 'state_chair', 'charter_admin'];
 
 export default clerkMiddleware(async (auth, req) => {
   // Allow public routes
