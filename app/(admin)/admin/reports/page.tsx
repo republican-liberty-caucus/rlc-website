@@ -344,6 +344,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
   const stateAggregates = ctx.isNational && viewMode === 'multi_charter'
     ? aggregateByState(memberCountByCharterId, allCharters)
     : [];
+  const stateAssignedTotal = stateAggregates.reduce((s, a) => s + a.count, 0);
 
   // --- Build header ---
   const LEVEL_LABELS: Record<string, string> = {
@@ -395,6 +396,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
   };
 
   const totalMembers = Object.values(membersByTier).reduce((a, b) => a + b, 0);
+  const unassignedCount = totalMembers - stateAssignedTotal;
   const totalAllStatuses = Object.values(membersByStatus).reduce((a, b) => a + b, 0);
 
   return (
@@ -468,6 +470,23 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
                   </div>
                 );
               })}
+              {unassignedCount > 0 && (() => {
+                const pct = totalMembers > 0 ? (unassignedCount / totalMembers) * 100 : 0;
+                return (
+                  <div>
+                    <div className="mb-1 flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">No Charter Assigned</span>
+                      <span className="font-medium">{unassignedCount} <span className="text-muted-foreground">({Math.round(pct)}%)</span></span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div
+                        className="h-2 rounded-full bg-muted-foreground/30 transition-all"
+                        style={{ width: `${Math.max(pct, 2)}%` }}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </CardContent>
         </Card>
