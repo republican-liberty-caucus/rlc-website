@@ -3,6 +3,11 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database type doesn't include RPC function signatures
+function rpc(supabase: any, fn: string, args: Record<string, unknown>) {
+  return supabase.rpc(fn, args);
+}
+
 export async function GET(request: Request) {
   const { userId } = await auth();
   if (!userId) {
@@ -28,43 +33,59 @@ export async function GET(request: Request) {
 
   const supabase = createServerClient();
 
-  let query = supabase
+  // Build the charter_ids filter for RPC
+  const charterIds = charterId
+    ? [charterId]
+    : ctx.visibleCharterIds;
+
+  // Fetch page of data and accurate count in parallel
+  let dataQuery = supabase
     .from('rlc_split_ledger_entries')
-    .select('*', { count: 'exact' })
+    .select('*')
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1);
 
-  // Filters
+  // Filters on data query
   if (charterId) {
-    query = query.eq('recipient_charter_id', charterId);
+    dataQuery = dataQuery.eq('recipient_charter_id', charterId);
   } else if (ctx.visibleCharterIds !== null) {
-    query = query.in('recipient_charter_id', ctx.visibleCharterIds);
+    dataQuery = dataQuery.in('recipient_charter_id', ctx.visibleCharterIds);
   }
 
   if (status) {
-    query = query.eq('status', status);
+    dataQuery = dataQuery.eq('status', status);
   }
 
   if (contributionId) {
-    query = query.eq('contribution_id', contributionId);
+    dataQuery = dataQuery.eq('contribution_id', contributionId);
   }
 
-  const { data: entries, count, error } = await query;
+  const [dataRes, countRes] = await Promise.all([
+    dataQuery,
+    rpc(supabase, 'get_ledger_entry_count', {
+      p_charter_ids: charterIds,
+      p_status: status || null,
+      p_contribution_id: contributionId || null,
+    }),
+  ]);
 
-  if (error) {
+  if (dataRes.error) {
     return NextResponse.json({ error: 'Failed to fetch audit trail' }, { status: 500 });
   }
 
+  const entries = dataRes.data;
+  const count = countRes.data as number ?? 0;
+
   // Enrich with charter names
   const rows = (entries || []) as Record<string, unknown>[];
-  const charterIds = [...new Set(rows.map((r) => r.recipient_charter_id as string))];
+  const enrichCharterIds = [...new Set(rows.map((r) => r.recipient_charter_id as string))];
 
   let charterNameMap = new Map<string, string>();
-  if (charterIds.length > 0) {
+  if (enrichCharterIds.length > 0) {
     const { data: charters } = await supabase
       .from('rlc_charters')
       .select('id, name')
-      .in('id', charterIds);
+      .in('id', enrichCharterIds);
 
     charterNameMap = new Map((charters || []).map((c: { id: string; name: string }) => [c.id, c.name]));
   }
