@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
+import { BASE_URL } from '@/lib/constants';
 import { createServerClient } from '@/lib/supabase/server';
+import { logger } from '@/lib/logger';
 import { formatDate } from '@/lib/utils';
 import { sanitizeWPContent, rewriteWPImageUrl } from '@/lib/wordpress/content';
 
@@ -28,7 +30,7 @@ interface PostRow {
   charter: { name: string; slug: string } | null;
 }
 
-async function getPost(slug: string) {
+async function getPost(slug: string): Promise<PostRow | null> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('rlc_posts')
@@ -42,7 +44,12 @@ async function getPost(slug: string) {
     .eq('content_type', 'post')
     .single();
 
-  if (error || !data) return null;
+  if (error) {
+    if (error.code === 'PGRST116') return null;
+    logger.error(`Error fetching blog post slug="${slug}":`, error);
+    throw new Error(`Failed to fetch blog post: ${error.message}`);
+  }
+
   return data as PostRow;
 }
 
@@ -62,9 +69,34 @@ export default async function BlogPostPage({ params }: BlogPostProps) {
   const post = await getPost(slug);
   if (!post) notFound();
 
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Article',
+    headline: post.title,
+    datePublished: post.published_at || undefined,
+    ...(post.featured_image_url && { image: rewriteWPImageUrl(post.featured_image_url) }),
+    ...(post.author && {
+      author: {
+        '@type': 'Person',
+        name: `${post.author.first_name} ${post.author.last_name}`,
+      },
+    }),
+    publisher: {
+      '@type': 'Organization',
+      name: 'Republican Liberty Caucus',
+      logo: { '@type': 'ImageObject', url: `${BASE_URL}/images/rlc-logo-200.png` },
+    },
+    url: `${BASE_URL}/blog/${post.slug}`,
+    description: post.seo_description || post.excerpt || undefined,
+  };
+
   return (
     <div className="flex min-h-screen flex-col">
       <MainNav />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }}
+      />
 
       <article className="py-16">
         <div className="container mx-auto px-4">
