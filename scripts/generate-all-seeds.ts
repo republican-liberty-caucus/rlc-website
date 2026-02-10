@@ -111,12 +111,12 @@ const SCORECARDS: ScorecardConfig[] = [
     description: 'Created by the Republican Liberty Caucus, the 2024 Liberty Index is a liberty-focused legislative scorecard for the U.S. House. The Liberty Index scores Republican members of Congress on 20 pivotal bills/votes from 2024 that either advance liberty or diminish liberty.',
   },
   {
-    textFile: '/tmp/2026-us-house.txt',
-    slug: '2026-us-house',
-    name: 'Liberty Index 2026 - U.S. House',
-    session_year: 2026,
+    textFile: '/tmp/2025-us-house.txt',
+    slug: '2025-us-house',
+    name: 'Liberty Index 2025 - U.S. House',
+    session_year: 2025,
     chamber: 'us_house',
-    description: 'Created by the Republican Liberty Caucus, the 2026 Liberty Index is a liberty-focused legislative scorecard for the U.S. House. The Liberty Index scores Republican members of Congress on 20 pivotal bills/votes from the 119th Congress that either advance liberty or diminish liberty.',
+    description: 'Created by the Republican Liberty Caucus, the 2025 Liberty Index is a liberty-focused legislative scorecard for the U.S. House. The Liberty Index scores Republican members of Congress on 20 pivotal bills/votes from the 119th Congress that either advance liberty or diminish liberty.',
   },
 ];
 
