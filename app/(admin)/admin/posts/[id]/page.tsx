@@ -5,6 +5,7 @@ import { redirect, notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { PostEditorForm } from '@/components/admin/post-editor-form';
+import { wpautop, promoteHeadings } from '@/lib/wordpress/content';
 import type { Post } from '@/types';
 
 interface PostDetailPageProps {
@@ -34,6 +35,11 @@ export default async function AdminPostDetailPage({ params }: PostDetailPageProp
   if (postError || !postData) notFound();
 
   const post = postData as Post;
+
+  // Pre-process legacy WordPress content so the editor gets structured HTML
+  if (post.content && !/<(?:p|h[1-6]|div|ul|ol|blockquote)[\s>]/i.test(post.content)) {
+    post.content = wpautop(promoteHeadings(post.content));
+  }
 
   // Check charter visibility
   if (post.charter_id && ctx.visibleCharterIds !== null) {

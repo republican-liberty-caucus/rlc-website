@@ -27,7 +27,7 @@ const SANITIZE_OPTIONS: sanitizeHtml.IOptions = {
  * Rule, topic names) instead of proper <h2>/<h3>. This runs BEFORE wpautop()
  * so the block-level headings get proper paragraph separation.
  */
-function promoteHeadings(html: string): string {
+export function promoteHeadings(html: string): string {
   if (!html) return '';
   try {
     let output = html;
@@ -93,7 +93,7 @@ function promoteHeadings(html: string): string {
  * and single newlines to <br>. Skips content already wrapped in block-level
  * HTML elements.
  */
-function wpautop(text: string): string {
+export function wpautop(text: string): string {
   if (!text || !text.trim()) return '';
 
   let output = text;
