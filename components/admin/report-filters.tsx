@@ -96,24 +96,6 @@ export function ReportFilters({ charters, isNational }: ReportFiltersProps) {
           </div>
         )}
 
-        <div>
-          <label className="mb-1 block text-sm font-medium">Start Date</label>
-          <input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-            className="rounded-md border bg-background px-3 py-2 text-sm"
-          />
-        </div>
-        <div>
-          <label className="mb-1 block text-sm font-medium">End Date</label>
-          <input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-            className="rounded-md border bg-background px-3 py-2 text-sm"
-          />
-        </div>
         <div className="flex gap-2">
           <Button variant="outline" size="sm" onClick={() => setPreset(30)}>
             30 days
@@ -135,6 +117,24 @@ export function ReportFilters({ charters, isNational }: ReportFiltersProps) {
           >
             All
           </Button>
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">Start Date</label>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="rounded-md border bg-background px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="mb-1 block text-sm font-medium">End Date</label>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="rounded-md border bg-background px-3 py-2 text-sm"
+          />
         </div>
         <Button size="sm" onClick={applyCustomDates}>
           Apply
