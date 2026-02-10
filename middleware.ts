@@ -19,6 +19,8 @@ const isPublicRoute = createRouteMatcher([
   '/api/v1/events(.*)',
   '/api/v1/posts(.*)',
   '/api/v1/civic(.*)',
+  '/api/v1/checkout(.*)',
+  '/api/v1/donate(.*)',
   '/scorecards(.*)',
   '/action-center(.*)',
   '/endorsements(.*)',
