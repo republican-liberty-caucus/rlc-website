@@ -11,6 +11,11 @@ import { DollarSign, Building2, Clock, FileText } from 'lucide-react';
 
 export const metadata = { title: 'Dues Sharing - Admin' };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database type doesn't include RPC function signatures
+function rpc(supabase: any, fn: string, args: Record<string, unknown>) {
+  return supabase.rpc(fn, args);
+}
+
 function formatCurrency(amount: number): string {
   return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
@@ -22,64 +27,32 @@ export default async function DuesSharingDashboard() {
   if (!ctx) redirect('/dashboard?error=unauthorized');
 
   const supabase = createServerClient();
+  const charterIds = ctx.visibleCharterIds;
 
-  // Fetch dashboard data (capped at 1000 entries for performance)
-  // TODO(matt): Replace with server-side aggregation RPC for production scale
-  let baseQuery = supabase.from('rlc_split_ledger_entries').select('amount, status, recipient_charter_id, created_at').limit(1000);
-  if (ctx.visibleCharterIds !== null) {
-    baseQuery = baseQuery.in('recipient_charter_id', ctx.visibleCharterIds);
-  }
-
-  const [entriesRes, accountsRes] = await Promise.all([
-    baseQuery,
-    ctx.visibleCharterIds !== null
-      ? supabase.from('rlc_charter_stripe_accounts').select('charter_id, status').in('charter_id', ctx.visibleCharterIds)
+  const [summaryRes, topChartersRes, accountsRes] = await Promise.all([
+    rpc(supabase, 'get_ledger_summary', { p_charter_ids: charterIds }),
+    rpc(supabase, 'get_top_receiving_charters', { p_charter_ids: charterIds, p_limit: 10 }),
+    charterIds !== null
+      ? supabase.from('rlc_charter_stripe_accounts').select('charter_id, status').in('charter_id', charterIds)
       : supabase.from('rlc_charter_stripe_accounts').select('charter_id, status'),
   ]);
 
-  const rows = (entriesRes.data || []) as { amount: number; status: string; recipient_charter_id: string; created_at: string }[];
+  const summary = (summaryRes.data?.[0] ?? {
+    total_distributed: 0,
+    total_pending: 0,
+    monthly_distributed: 0,
+    entry_count: 0,
+  }) as { total_distributed: number; total_pending: number; monthly_distributed: number; entry_count: number };
+
+  const topCharters = ((topChartersRes.data ?? []) as { charter_id: string; charter_name: string; total_amount: number }[])
+    .map((r) => ({ id: r.charter_id, name: r.charter_name, total: Number(r.total_amount) }));
+
   const accounts = (accountsRes.data || []) as { charter_id: string; status: string }[];
-
-  const now = new Date();
-  const thisMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-
-  let totalDistributed = 0;
-  let totalPending = 0;
-  let monthlyDistributed = 0;
-  const charterTotals = new Map<string, number>();
-
-  for (const row of rows) {
-    const amount = Number(row.amount);
-    if (amount < 0) continue;
-
-    if (row.status === 'transferred') {
-      totalDistributed += amount;
-      if (row.created_at >= thisMonth) {
-        monthlyDistributed += amount;
-      }
-    } else if (row.status === 'pending') {
-      totalPending += amount;
-    }
-
-    const current = charterTotals.get(row.recipient_charter_id) || 0;
-    charterTotals.set(row.recipient_charter_id, current + amount);
-  }
-
   const activeAccounts = accounts.filter((a) => a.status === 'active').length;
 
-  // Get charter names for top recipients
-  const topCharterIds = [...charterTotals.entries()]
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 10)
-    .map(([id]) => id);
-
-  let topCharters: { id: string; name: string; total: number }[] = [];
-  if (topCharterIds.length > 0) {
-    const { data: charters } = await supabase.from('rlc_charters').select('id, name').in('id', topCharterIds);
-    topCharters = (charters || [])
-      .map((c: { id: string; name: string }) => ({ ...c, total: charterTotals.get(c.id) || 0 }))
-      .sort((a: { total: number }, b: { total: number }) => b.total - a.total);
-  }
+  const totalDistributed = Number(summary.total_distributed);
+  const totalPending = Number(summary.total_pending);
+  const monthlyDistributed = Number(summary.monthly_distributed);
 
   return (
     <div className="space-y-6">
