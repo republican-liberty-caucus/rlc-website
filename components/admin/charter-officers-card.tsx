@@ -1,10 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Search, Loader2 } from 'lucide-react';
 import { ADMIN_INPUT_CLASS } from '@/components/admin/form-styles';
 import { OFFICER_TITLE_LABELS, OFFICER_TITLES } from '@/lib/validations/officer-position';
 import { formatDate } from '@/lib/utils';
@@ -25,26 +25,157 @@ interface OfficerRow {
 interface CharterOfficersCardProps {
   charterId: string;
   officers: OfficerRow[];
-  members: { id: string; first_name: string; last_name: string }[];
 }
 
-export function CharterOfficersCard({ charterId, officers, members }: CharterOfficersCardProps) {
+interface SearchResult {
+  id: string;
+  name: string;
+}
+
+function MemberSearchInput({
+  charterId,
+  selectedMember,
+  onSelect,
+}: {
+  charterId: string;
+  selectedMember: SearchResult | null;
+  onSelect: (member: SearchResult | null) => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [results, setResults] = useState<SearchResult[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [open, setOpen] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  function handleSearch(value: string) {
+    setQuery(value);
+    onSelect(null);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+
+    if (value.length < 2) {
+      setResults([]);
+      setOpen(false);
+      return;
+    }
+
+    debounceRef.current = setTimeout(async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(
+          `/api/v1/admin/members/search?q=${encodeURIComponent(value)}&charter_id=${charterId}`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          setResults(data.members);
+          setOpen(true);
+        }
+      } finally {
+        setLoading(false);
+      }
+    }, 300);
+  }
+
+  if (selectedMember) {
+    return (
+      <div className="flex items-center gap-2">
+        <span className="flex-1 rounded-md border bg-muted/50 px-3 py-2 text-sm">
+          {selectedMember.name}
+        </span>
+        <button
+          type="button"
+          onClick={() => {
+            onSelect(null);
+            setQuery('');
+          }}
+          className="text-muted-foreground hover:text-foreground"
+        >
+          <X className="h-4 w-4" />
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="relative">
+        <Search className="absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+        <input
+          type="text"
+          value={query}
+          onChange={(e) => handleSearch(e.target.value)}
+          onFocus={() => results.length > 0 && setOpen(true)}
+          placeholder="Search by name or email..."
+          className={`${ADMIN_INPUT_CLASS} pl-8`}
+          autoComplete="off"
+        />
+        {loading && (
+          <Loader2 className="absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 animate-spin text-muted-foreground" />
+        )}
+      </div>
+      {open && results.length > 0 && (
+        <ul className="absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border bg-popover shadow-md">
+          {results.map((m) => (
+            <li key={m.id}>
+              <button
+                type="button"
+                className="w-full px-3 py-2 text-left text-sm hover:bg-muted"
+                onClick={() => {
+                  onSelect(m);
+                  setOpen(false);
+                  setQuery(m.name);
+                }}
+              >
+                {m.name}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {open && query.length >= 2 && results.length === 0 && !loading && (
+        <div className="absolute z-10 mt-1 w-full rounded-md border bg-popover p-3 text-center text-sm text-muted-foreground shadow-md">
+          No members found
+        </div>
+      )}
+    </div>
+  );
+}
+
+export function CharterOfficersCard({ charterId, officers }: CharterOfficersCardProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [endingId, setEndingId] = useState<string | null>(null);
+  const [selectedMember, setSelectedMember] = useState<SearchResult | null>(null);
 
   const activeOfficers = officers.filter((o) => o.is_active);
   const pastOfficers = officers.filter((o) => !o.is_active);
 
   async function handleAssign(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+
+    if (!selectedMember) {
+      toast({ title: 'Error', description: 'Please select a member', variant: 'destructive' });
+      return;
+    }
+
     setSubmitting(true);
 
     const fd = new FormData(e.currentTarget);
     const body = {
-      memberId: fd.get('memberId') as string,
+      memberId: selectedMember.id,
       title: fd.get('title') as string,
       committeeName: (fd.get('committeeName') as string) || null,
       notes: (fd.get('notes') as string) || null,
@@ -64,6 +195,7 @@ export function CharterOfficersCard({ charterId, officers, members }: CharterOff
 
       toast({ title: 'Officer assigned' });
       setShowForm(false);
+      setSelectedMember(null);
       router.refresh();
     } catch (error) {
       toast({
@@ -117,14 +249,11 @@ export function CharterOfficersCard({ charterId, officers, members }: CharterOff
         <form onSubmit={handleAssign} className="mb-4 space-y-3 rounded border bg-muted/30 p-3">
           <div>
             <label className="block text-xs font-medium mb-1">Member</label>
-            <select name="memberId" required className={ADMIN_INPUT_CLASS}>
-              <option value="">Select member...</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.first_name} {m.last_name}
-                </option>
-              ))}
-            </select>
+            <MemberSearchInput
+              charterId={charterId}
+              selectedMember={selectedMember}
+              onSelect={setSelectedMember}
+            />
           </div>
           <div>
             <label className="block text-xs font-medium mb-1">Title</label>
@@ -143,10 +272,10 @@ export function CharterOfficersCard({ charterId, officers, members }: CharterOff
             <input name="notes" className={ADMIN_INPUT_CLASS} />
           </div>
           <div className="flex gap-2">
-            <Button type="submit" size="sm" disabled={submitting} className="bg-rlc-red hover:bg-rlc-red/90">
+            <Button type="submit" size="sm" disabled={submitting || !selectedMember} className="bg-rlc-red hover:bg-rlc-red/90">
               {submitting ? 'Assigning...' : 'Assign'}
             </Button>
-            <Button type="button" variant="outline" size="sm" onClick={() => setShowForm(false)}>
+            <Button type="button" variant="outline" size="sm" onClick={() => { setShowForm(false); setSelectedMember(null); }}>
               Cancel
             </Button>
           </div>

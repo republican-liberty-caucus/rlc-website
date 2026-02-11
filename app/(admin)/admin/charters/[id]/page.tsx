@@ -227,7 +227,6 @@ export default async function AdminCharterDetailPage({
             <CharterOfficersCard
               charterId={id}
               officers={officers}
-              members={members.map((m) => ({ id: m.id, first_name: m.first_name, last_name: m.last_name }))}
             />
           )}
 
