@@ -34,6 +34,7 @@ export function Testimonials() {
               key={t.name}
               className="relative rounded-lg border-t-4 border-t-rlc-red bg-card p-8 shadow-sm"
             >
+              <Quote className="absolute right-6 top-6 h-10 w-10 fill-rlc-red/5 text-rlc-red/20" />
               <div className="mb-5 flex items-center gap-4">
                 <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full ring-2 ring-rlc-red/20">
                   <Image
@@ -48,7 +49,6 @@ export function Testimonials() {
                   <p className="text-sm text-muted-foreground">{t.title}</p>
                 </div>
               </div>
-              <Quote className="mb-3 h-7 w-7 fill-rlc-red/10 text-rlc-red" />
               <blockquote className="text-lg leading-relaxed text-muted-foreground">
                 &ldquo;{t.quote}&rdquo;
               </blockquote>
