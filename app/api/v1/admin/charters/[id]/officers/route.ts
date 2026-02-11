@@ -95,7 +95,10 @@ export async function POST(
       return NextResponse.json({ error: 'This position is already assigned' }, { status: 409 });
     }
     logger.error('Error assigning officer:', error);
-    return NextResponse.json({ error: 'Failed to assign officer' }, { status: 500 });
+    return NextResponse.json(
+      { error: `Failed to assign officer: ${error.message || error.code || 'unknown error'}` },
+      { status: 500 }
+    );
   }
 
   return NextResponse.json({ position: data }, { status: 201 });

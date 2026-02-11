@@ -27,7 +27,7 @@ export const OFFICER_TITLE_LABELS: Record<OfficerTitle, string> = {
 
 export const assignOfficerPositionSchema = z
   .object({
-    memberId: z.string().uuid(),
+    memberId: z.string().min(1),
     title: z.enum(OFFICER_TITLES as [OfficerTitle, ...OfficerTitle[]]),
     committeeName: z.string().max(100).optional().nullable(),
     startedAt: z.string().datetime().optional(),
