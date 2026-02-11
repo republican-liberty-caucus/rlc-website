@@ -15,6 +15,7 @@ interface CharterRow {
   slug: string;
   name: string;
   state_code: string | null;
+  charter_level: string;
   status: string;
   contact_email: string | null;
   leadership: Record<string, string> | null;
@@ -24,7 +25,7 @@ async function getCharters(): Promise<CharterRow[]> {
   const supabase = createServerClient();
   const { data, error } = await supabase
     .from('rlc_charters')
-    .select('slug, name, state_code, status, contact_email, leadership')
+    .select('slug, name, state_code, charter_level, status, contact_email, leadership')
     .in('status', ['active', 'forming'])
     .order('name');
 
@@ -39,11 +40,17 @@ async function getCharters(): Promise<CharterRow[]> {
 export default async function ChartersPage() {
   const charters = await getCharters();
 
-  const activeCharters = charters.filter((ch) => ch.status === 'active');
+  const activeCharters = charters.filter((ch) => ch.status === 'active' && ch.charter_level === 'state');
 
-  // Build map data: only state-level charters with a state_code
+  // Build map data: only state-level charters with a state_code, deduplicated per state
+  const seenStates = new Set<string>();
   const mapCharters: CharterMapData[] = charters
-    .filter((ch): ch is CharterRow & { state_code: string } => ch.state_code !== null)
+    .filter((ch): ch is CharterRow & { state_code: string } => {
+      if (ch.state_code === null || ch.charter_level !== 'state') return false;
+      if (seenStates.has(ch.state_code)) return false;
+      seenStates.add(ch.state_code);
+      return true;
+    })
     .map((ch) => ({
       slug: ch.slug,
       name: ch.name,
