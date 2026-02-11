@@ -45,7 +45,6 @@ interface LegislatorSummary {
 interface HomePageData {
   memberCount: number;
   charterCount: number;
-  endorsedCandidateCount: number;
   legislatorsScoredCount: number;
   events: HomeEvent[];
   posts: HomePost[];
@@ -61,7 +60,6 @@ async function getHomePageData(): Promise<HomePageData> {
   const [
     membersResult,
     chartersResult,
-    endorsedCandidateResult,
     legislatorsScoredResult,
     eventsResult,
     postsResult,
@@ -77,12 +75,6 @@ async function getHomePageData(): Promise<HomePageData> {
       .from('rlc_charters')
       .select('id', { count: 'exact', head: true })
       .eq('status', 'active'),
-
-    // Endorsed candidate count
-    supabase
-      .from('rlc_candidate_responses')
-      .select('id', { count: 'exact', head: true })
-      .eq('endorsement_status', 'endorsed'),
 
     // All-time legislators scored (all legislators in the system have been scored)
     supabase
@@ -121,7 +113,6 @@ async function getHomePageData(): Promise<HomePageData> {
   // Log any Supabase query errors (non-fatal — we fall back to empty data)
   if (membersResult.error) logger.error('[homepage] members query failed:', membersResult.error);
   if (chartersResult.error) logger.error('[homepage] charters query failed:', chartersResult.error);
-  if (endorsedCandidateResult.error) logger.error('[homepage] endorsed candidate count query failed:', endorsedCandidateResult.error);
   if (legislatorsScoredResult.error) logger.error('[homepage] legislators scored count query failed:', legislatorsScoredResult.error);
   if (eventsResult.error) logger.error('[homepage] events query failed:', eventsResult.error);
   if (postsResult.error) logger.error('[homepage] posts query failed:', postsResult.error);
@@ -166,7 +157,6 @@ async function getHomePageData(): Promise<HomePageData> {
   return {
     memberCount: membersResult.count || 0,
     charterCount: chartersResult.count || 0,
-    endorsedCandidateCount: endorsedCandidateResult.count || 0,
     legislatorsScoredCount: legislatorsScoredResult.count || 0,
     events: (eventsResult.data || []) as HomeEvent[],
     posts: (postsResult.data || []) as HomePost[],
@@ -210,7 +200,6 @@ export default async function HomePage() {
     data = {
       memberCount: 0,
       charterCount: 0,
-      endorsedCandidateCount: 0,
       legislatorsScoredCount: 0,
       events: [],
       posts: [],
@@ -333,8 +322,8 @@ export default async function HomePage() {
         stats={[
           { value: data.memberCount, label: 'Members', suffix: '+' },
           { value: data.charterCount, label: 'State Charters' },
-          { value: data.endorsedCandidateCount, label: 'Endorsed Candidates' },
-          { value: data.legislatorsScoredCount, label: 'Legislators Scored' },
+          { value: data.legislatorsScoredCount, label: 'Legislators Scored', suffix: '+' },
+          { value: new Date().getFullYear() - 1991, label: 'Years Fighting', suffix: '+' },
         ]}
       />
 

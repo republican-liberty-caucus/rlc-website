@@ -34,12 +34,8 @@ export function Testimonials() {
               key={t.name}
               className="relative rounded-lg border-t-4 border-t-rlc-red bg-card p-8 shadow-sm"
             >
-              <Quote className="mb-4 h-8 w-8 fill-rlc-red/10 text-rlc-red" />
-              <blockquote className="mb-6 text-lg leading-relaxed text-muted-foreground">
-                &ldquo;{t.quote}&rdquo;
-              </blockquote>
-              <div className="flex items-center gap-3 border-t pt-4">
-                <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full">
+              <div className="mb-5 flex items-center gap-4">
+                <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-full ring-2 ring-rlc-red/20">
                   <Image
                     src={t.image}
                     alt={t.name}
@@ -48,10 +44,14 @@ export function Testimonials() {
                   />
                 </div>
                 <div>
-                  <p className="font-semibold leading-tight">{t.name}</p>
+                  <p className="text-lg font-bold leading-tight">{t.name}</p>
                   <p className="text-sm text-muted-foreground">{t.title}</p>
                 </div>
               </div>
+              <Quote className="mb-3 h-7 w-7 fill-rlc-red/10 text-rlc-red" />
+              <blockquote className="text-lg leading-relaxed text-muted-foreground">
+                &ldquo;{t.quote}&rdquo;
+              </blockquote>
             </div>
           ))}
         </div>
