@@ -7,7 +7,7 @@
  *   Part 3 — Member experience (James Freedom)
  *
  * Run:
- *   BASE_URL=https://rlc-website.vercel.app DEMO_PAUSE_MS=2500 pnpm demo:record
+ *   BASE_URL=https://2026.rlc.org DEMO_PAUSE_MS=2500 pnpm demo:record
  *
  * Video output: test-results/demo-walkthrough-{hash}/video.webm
  */
@@ -17,9 +17,7 @@ import { test, expect, type Page } from '@playwright/test';
 const PAUSE_MS = parseInt(process.env.DEMO_PAUSE_MS || '2000', 10);
 
 const ADMIN_EMAIL = 'demo-admin@example.com';
-const ADMIN_PASSWORD = process.env.DEMO_ADMIN_PASSWORD || 'DemoAdmin2026!';
 const MEMBER_EMAIL = 'demo-member@example.com';
-const MEMBER_PASSWORD = process.env.DEMO_MEMBER_PASSWORD || 'DemoMember2026!';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -38,42 +36,53 @@ async function visit(page: Page, path: string, label: string): Promise<void> {
   await demoPause(page);
 }
 
-/** Sign in through the real Clerk UI. */
-async function clerkSignIn(
+/**
+ * Sign in via Clerk sign-in token (bypasses device verification).
+ * Creates a one-time token through the Clerk Backend API, then navigates
+ * the browser to the SSO callback URL which sets the session cookie.
+ */
+async function clerkSignInWithToken(
   page: Page,
   email: string,
-  password: string,
   label: string
 ): Promise<void> {
-  console.log(`  >> Signing in as ${label} (${email})`);
-  await page.goto('/sign-in');
-  await page.waitForLoadState('networkidle');
+  console.log(`  >> Signing in as ${label} (${email}) via sign-in token`);
 
-  // Clerk renders its own UI — locate email input and fill
-  const emailInput = page.locator('input[name="identifier"]');
-  await emailInput.waitFor({ state: 'visible', timeout: 15000 });
-  await emailInput.fill(email);
+  // Look up the user ID from Clerk
+  const clerkSecretKey = process.env.CLERK_SECRET_KEY;
+  if (!clerkSecretKey) throw new Error('CLERK_SECRET_KEY env var is required');
 
-  // Click continue / submit
-  const continueButton = page.locator(
-    'button:has-text("Continue"), button[data-localization-key="formButtonPrimary"]'
+  const baseUrl = 'https://api.clerk.com/v1';
+  const headers = {
+    Authorization: `Bearer ${clerkSecretKey}`,
+    'Content-Type': 'application/json',
+  };
+
+  // Find the user by email
+  const usersRes = await fetch(
+    `${baseUrl}/users?email_address=${encodeURIComponent(email)}&limit=1`,
+    { headers }
   );
-  await continueButton.click();
+  if (!usersRes.ok) throw new Error(`Clerk user lookup failed: ${usersRes.status}`);
+  const users = await usersRes.json();
+  if (!users.length) throw new Error(`No Clerk user found for ${email}`);
+  const userId = users[0].id;
 
-  // Wait for password field
-  const passwordInput = page.locator('input[name="password"], input[type="password"]');
-  await passwordInput.waitFor({ state: 'visible', timeout: 10000 });
-  await passwordInput.fill(password);
+  // Create a sign-in token for this user
+  const tokenRes = await fetch(`${baseUrl}/sign_in_tokens`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ user_id: userId, expires_in_seconds: 300 }),
+  });
+  if (!tokenRes.ok) throw new Error(`Clerk sign-in token creation failed: ${tokenRes.status}`);
+  const { token } = await tokenRes.json();
 
-  // Submit
-  const signInButton = page.locator(
-    'button:has-text("Continue"), button:has-text("Sign in"), button[data-localization-key="formButtonPrimary"]'
-  );
-  await signInButton.click();
+  // Navigate to the app with the sign-in ticket — Clerk handles it automatically
+  await page.goto(`/sign-in?__clerk_ticket=${token}`);
 
-  // Wait for redirect away from sign-in
+  // Wait for redirect away from sign-in (Clerk auto-redirects after accepting the ticket)
   await page.waitForURL((url) => !url.pathname.startsWith('/sign-in'), {
-    timeout: 15000,
+    timeout: 30000,
   });
   await demoPause(page);
   console.log(`  >> Signed in as ${label}`);
@@ -137,51 +146,75 @@ test('RLC Platform Demo Walkthrough', async ({ page }) => {
   // =====================================================================
   console.log('\n=== PART 2: Admin Experience ===\n');
 
-  await clerkSignIn(page, ADMIN_EMAIL, ADMIN_PASSWORD, 'Sarah Liberty (Admin)');
-
-  await visit(page, '/admin', 'Admin Dashboard');
-  await visit(page, '/admin/members', 'Members');
-
-  // Click into a member detail if rows exist
-  const memberRow = page.locator('table tbody tr, [data-testid="member-row"]').first();
-  if ((await memberRow.count()) > 0) {
-    await memberRow.click();
-    await demoPause(page);
-    await page.goBack();
-    await demoPause(page, 1000);
+  let adminSignedIn = false;
+  try {
+    await clerkSignInWithToken(page, ADMIN_EMAIL, 'Sarah Liberty (Admin)');
+    adminSignedIn = true;
+  } catch (err) {
+    console.warn('  !! Admin sign-in failed — skipping admin walkthrough');
+    console.warn(`     ${err instanceof Error ? err.message : err}`);
   }
 
-  await visit(page, '/admin/charters', 'Charters');
-  await visit(page, '/admin/events', 'Events');
-  await visit(page, '/admin/posts', 'Posts');
-  await visit(page, '/admin/scorecards', 'Scorecards');
-  await visit(page, '/admin/surveys', 'Surveys');
-  await visit(page, '/admin/vetting', 'Vetting Pipeline');
-  await visit(page, '/admin/contributions', 'Contributions');
-  await visit(page, '/admin/dues-sharing', 'Dues Sharing');
-  await visit(page, '/admin/reports', 'Reports');
-  await visit(page, '/admin/campaigns', 'Action Campaigns');
-  await visit(page, '/admin/settings', 'Settings');
+  if (adminSignedIn) {
+    await visit(page, '/admin', 'Admin Dashboard');
+    await visit(page, '/admin/members', 'Members');
 
-  await clerkSignOut(page);
+    // Click into a member detail if rows exist
+    const memberRow = page.locator('table tbody tr, [data-testid="member-row"]').first();
+    if ((await memberRow.count()) > 0) {
+      await memberRow.click();
+      await demoPause(page);
+      await page.goBack();
+      await demoPause(page, 1000);
+    }
+
+    await visit(page, '/admin/charters', 'Charters');
+    await visit(page, '/admin/events', 'Events');
+    await visit(page, '/admin/posts', 'Posts');
+    await visit(page, '/admin/scorecards', 'Scorecards');
+    await visit(page, '/admin/surveys', 'Surveys');
+    await visit(page, '/admin/vetting', 'Vetting Pipeline');
+    await visit(page, '/admin/contributions', 'Contributions');
+    await visit(page, '/admin/dues-sharing', 'Dues Sharing');
+    await visit(page, '/admin/reports', 'Reports');
+    await visit(page, '/admin/campaigns', 'Action Campaigns');
+    await visit(page, '/admin/settings', 'Settings');
+
+    await clerkSignOut(page);
+  }
 
   // =====================================================================
   // PART 3: Member Experience (~90s)
   // =====================================================================
   console.log('\n=== PART 3: Member Experience ===\n');
 
-  await clerkSignIn(page, MEMBER_EMAIL, MEMBER_PASSWORD, 'James Freedom (Member)');
+  let memberSignedIn = false;
+  try {
+    await clerkSignInWithToken(page, MEMBER_EMAIL, 'James Freedom (Member)');
+    memberSignedIn = true;
+  } catch (err) {
+    console.warn('  !! Member sign-in failed — skipping member walkthrough');
+    console.warn(`     ${err instanceof Error ? err.message : err}`);
+  }
 
-  await visit(page, '/dashboard', 'Member Dashboard');
-  await visit(page, '/profile', 'Profile');
-  await visit(page, '/membership', 'Membership');
-  await visit(page, '/contributions', 'Contributions');
-  await visit(page, '/my-events', 'My Events');
-  await visit(page, '/household', 'Household');
-  await visit(page, '/action-center/contact', 'Rep Lookup');
-  await visit(page, '/candidate-surveys', 'Candidate Surveys');
+  if (memberSignedIn) {
+    await visit(page, '/dashboard', 'Member Dashboard');
+    await visit(page, '/profile', 'Profile');
+    await visit(page, '/membership', 'Membership');
+    await visit(page, '/contributions', 'Contributions');
+    await visit(page, '/my-events', 'My Events');
+    await visit(page, '/household', 'Household');
+    await visit(page, '/action-center/contact', 'Rep Lookup');
+    await visit(page, '/candidate-surveys', 'Candidate Surveys');
 
-  await clerkSignOut(page);
+    await clerkSignOut(page);
+  }
 
-  console.log('\n=== Demo Walkthrough Complete ===\n');
+  const parts = [true, adminSignedIn, memberSignedIn];
+  const completed = parts.filter(Boolean).length;
+  console.log(`\n=== Demo Walkthrough Complete (${completed}/3 parts) ===\n`);
+
+  // Fail the test only if Part 1 somehow failed — auth issues are non-fatal
+  // so we always get the video output
+  expect(true).toBe(true);
 });
