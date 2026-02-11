@@ -8,10 +8,10 @@ import { AnimatedCounter } from '@/components/ui/animated-counter';
 interface HeroSectionProps {
   memberCount: number;
   charterCount: number;
-  endorsedCandidateCount: number;
 }
 
-export function HeroSection({ memberCount, charterCount, endorsedCandidateCount }: HeroSectionProps) {
+export function HeroSection({ memberCount, charterCount }: HeroSectionProps) {
+  const yearsFighting = new Date().getFullYear() - 1991;
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-rlc-blue via-rlc-blue to-rlc-red py-20 text-white sm:py-28">
       {/* Subtle pattern overlay */}
@@ -95,8 +95,9 @@ export function HeroSection({ memberCount, charterCount, endorsedCandidateCount 
             steps={40}
           />
           <AnimatedCounter
-            value={endorsedCandidateCount}
-            label="Endorsed"
+            value={yearsFighting}
+            label="Years Fighting"
+            suffix="+"
             valueClassName="block font-heading text-4xl font-bold sm:text-5xl"
             labelClassName="mt-1 block text-sm uppercase tracking-wider text-white/70"
             duration={1500}

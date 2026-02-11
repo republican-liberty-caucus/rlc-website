@@ -229,7 +229,6 @@ export default async function HomePage() {
       <HeroSection
         memberCount={data.memberCount}
         charterCount={data.charterCount}
-        endorsedCandidateCount={data.endorsedCandidateCount}
       />
 
       {/* Three CTA Cards */}
