@@ -4,7 +4,7 @@ import * as React from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { SignedIn, SignedOut, UserButton } from '@clerk/nextjs';
+import { SignedIn, SignedOut, UserButton, useUser } from '@clerk/nextjs';
 import {
   BookOpen,
   ChevronDown,
@@ -195,10 +195,15 @@ function NavDropdown({
   );
 }
 
+const ADMIN_ROLES = ['super_admin', 'national_board', 'regional_coordinator', 'state_chair', 'charter_admin'];
+
 export function MainNav() {
   const pathname = usePathname();
+  const { user } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
   const [mobileExpanded, setMobileExpanded] = React.useState<string | null>(null);
+  const userRole = (user?.publicMetadata as { role?: string } | undefined)?.role;
+  const isAdmin = !!userRole && ADMIN_ROLES.includes(userRole);
 
   function isActive(href: string) {
     return pathname === href || pathname.startsWith(href + '/');
@@ -289,6 +294,11 @@ export function MainNav() {
             </Button>
           </SignedOut>
           <SignedIn>
+            {isAdmin && (
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/admin">Admin</Link>
+              </Button>
+            )}
             <Button asChild variant="ghost" size="sm">
               <Link href="/dashboard">Dashboard</Link>
             </Button>
@@ -420,8 +430,13 @@ export function MainNav() {
                 </Button>
               </SignedOut>
               <SignedIn>
+                {isAdmin && (
+                  <Button asChild variant="outline" size="sm">
+                    <Link href="/admin">Admin Dashboard</Link>
+                  </Button>
+                )}
                 <Button asChild variant="outline" size="sm">
-                  <Link href="/dashboard">Dashboard</Link>
+                  <Link href="/dashboard">My Dashboard</Link>
                 </Button>
               </SignedIn>
             </div>

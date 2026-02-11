@@ -147,14 +147,24 @@ export function AdminNav({ onNavigate }: AdminNavProps) {
 
       {/* Footer */}
       <div className="border-t p-4">
-        <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Back to Site
-          </Link>
-          <UserButton afterSignOutUrl="/" />
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <div className="flex gap-3">
+              <Link
+                href="/dashboard"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                My Dashboard
+              </Link>
+              <Link
+                href="/"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                Back to Site
+              </Link>
+            </div>
+            <UserButton afterSignOutUrl="/" />
+          </div>
         </div>
       </div>
     </aside>

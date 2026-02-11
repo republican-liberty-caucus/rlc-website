@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
-import { UserButton } from '@clerk/nextjs';
+import { UserButton, useUser } from '@clerk/nextjs';
 import {
   LayoutDashboard,
   User,
@@ -12,6 +12,7 @@ import {
   Menu,
   X,
   Shield,
+  ShieldCheck,
   Users,
   Megaphone,
   Target,
@@ -34,9 +35,14 @@ const navItems = [
   { href: '/my-events', label: 'My Events', icon: Calendar },
 ];
 
+const ADMIN_ROLES = ['super_admin', 'national_board', 'regional_coordinator', 'state_chair', 'charter_admin'];
+
 export function MemberNav() {
   const pathname = usePathname();
+  const { user } = useUser();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const userRole = (user?.publicMetadata as { role?: string } | undefined)?.role;
+  const isAdmin = !!userRole && ADMIN_ROLES.includes(userRole);
 
   function isActive(href: string) {
     return pathname === href || (href !== '/dashboard' && pathname.startsWith(href + '/'));
@@ -46,7 +52,7 @@ export function MemberNav() {
     <header className="sticky top-0 z-50 w-full border-b bg-background">
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2">
+        <Link href="/dashboard" className="flex items-center space-x-2">
           <Image
             src="/images/rlc-logo-100.png"
             alt="RLC"
@@ -55,7 +61,7 @@ export function MemberNav() {
             className="h-8 w-auto"
           />
           <span className="hidden text-sm font-medium text-muted-foreground sm:inline-block">
-            Member Portal
+            My Dashboard
           </span>
         </Link>
 
@@ -108,7 +114,15 @@ export function MemberNav() {
 
         {/* Right side */}
         <div className="flex items-center gap-4">
-          <Button asChild variant="outline" size="sm" className="hidden md:inline-flex">
+          {isAdmin && (
+            <Button asChild variant="outline" size="sm" className="hidden md:inline-flex gap-1.5">
+              <Link href="/admin">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Admin
+              </Link>
+            </Button>
+          )}
+          <Button asChild variant="ghost" size="sm" className="hidden md:inline-flex">
             <Link href="/">Back to Site</Link>
           </Button>
           <div className="hidden md:block">
@@ -176,7 +190,15 @@ export function MemberNav() {
                 </Link>
               );
             })}
-            <div className="pt-2">
+            <div className="flex flex-col gap-2 pt-2">
+              {isAdmin && (
+                <Button asChild variant="outline" size="sm" className="w-full gap-1.5">
+                  <Link href="/admin">
+                    <ShieldCheck className="h-3.5 w-3.5" />
+                    Admin Dashboard
+                  </Link>
+                </Button>
+              )}
               <Button asChild variant="outline" size="sm" className="w-full">
                 <Link href="/">Back to Site</Link>
               </Button>
