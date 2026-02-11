@@ -8,9 +8,10 @@ import { AnimatedCounter } from '@/components/ui/animated-counter';
 interface HeroSectionProps {
   memberCount: number;
   charterCount: number;
+  legislatorsScoredCount: number;
 }
 
-export function HeroSection({ memberCount, charterCount }: HeroSectionProps) {
+export function HeroSection({ memberCount, charterCount, legislatorsScoredCount }: HeroSectionProps) {
   const yearsFighting = new Date().getFullYear() - 1991;
   return (
     <section className="relative overflow-hidden bg-gradient-to-br from-rlc-blue via-rlc-blue to-rlc-red py-20 text-white sm:py-28">
@@ -72,7 +73,7 @@ export function HeroSection({ memberCount, charterCount }: HeroSectionProps) {
 
         {/* Live stat counters */}
         <motion.div
-          className="mx-auto mt-16 grid max-w-2xl grid-cols-3 gap-8"
+          className="mx-auto mt-16 grid max-w-3xl grid-cols-2 gap-8 sm:grid-cols-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.6 }}
@@ -89,6 +90,15 @@ export function HeroSection({ memberCount, charterCount }: HeroSectionProps) {
           <AnimatedCounter
             value={charterCount}
             label="State Charters"
+            valueClassName="block font-heading text-4xl font-bold sm:text-5xl"
+            labelClassName="mt-1 block text-sm uppercase tracking-wider text-white/70"
+            duration={1500}
+            steps={40}
+          />
+          <AnimatedCounter
+            value={legislatorsScoredCount}
+            label="Legislators Scored"
+            suffix="+"
             valueClassName="block font-heading text-4xl font-bold sm:text-5xl"
             labelClassName="mt-1 block text-sm uppercase tracking-wider text-white/70"
             duration={1500}

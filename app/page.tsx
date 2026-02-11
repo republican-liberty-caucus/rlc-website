@@ -84,11 +84,10 @@ async function getHomePageData(): Promise<HomePageData> {
       .select('id', { count: 'exact', head: true })
       .eq('endorsement_status', 'endorsed'),
 
-    // Legislators scored count
+    // All-time legislators scored (all legislators in the system have been scored)
     supabase
       .from('rlc_legislators')
-      .select('id', { count: 'exact', head: true })
-      .not('current_score', 'is', null),
+      .select('id', { count: 'exact', head: true }),
 
     // Next 3 upcoming events
     supabase
@@ -229,6 +228,7 @@ export default async function HomePage() {
       <HeroSection
         memberCount={data.memberCount}
         charterCount={data.charterCount}
+        legislatorsScoredCount={data.legislatorsScoredCount}
       />
 
       {/* Three CTA Cards */}
