@@ -16,9 +16,9 @@ import { test, expect, type Page } from '@playwright/test';
 
 const PAUSE_MS = parseInt(process.env.DEMO_PAUSE_MS || '2000', 10);
 
-const ADMIN_EMAIL = 'demo-admin@rlc-demo.test';
+const ADMIN_EMAIL = 'demo-admin@example.com';
 const ADMIN_PASSWORD = process.env.DEMO_ADMIN_PASSWORD || 'DemoAdmin2026!';
-const MEMBER_EMAIL = 'demo-member@rlc-demo.test';
+const MEMBER_EMAIL = 'demo-member@example.com';
 const MEMBER_PASSWORD = process.env.DEMO_MEMBER_PASSWORD || 'DemoMember2026!';
 
 // ---------------------------------------------------------------------------
