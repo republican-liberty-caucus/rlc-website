@@ -15,7 +15,21 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
+      testIgnore: /demo-walkthrough/,
       use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'demo',
+      testMatch: /demo-walkthrough/,
+      use: {
+        ...devices['Desktop Chrome'],
+        viewport: { width: 1920, height: 1080 },
+        video: {
+          mode: 'on',
+          size: { width: 1920, height: 1080 },
+        },
+        launchOptions: { slowMo: 50 },
+      },
     },
   ],
   webServer: process.env.BASE_URL

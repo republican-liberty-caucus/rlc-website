@@ -47,7 +47,10 @@
     "migrate:wordpress": "tsx scripts/wordpress/migrate-wordpress.ts",
     "migrate:wordpress:dry-run": "tsx scripts/wordpress/migrate-wordpress.ts --dry-run",
     "migrate:wordpress:media": "tsx scripts/wordpress/migrate-media.ts",
-    "migrate:wordpress:media:dry-run": "tsx scripts/wordpress/migrate-media.ts --dry-run"
+    "migrate:wordpress:media:dry-run": "tsx scripts/wordpress/migrate-media.ts --dry-run",
+    "seed:demo": "tsx --env-file=.env.local scripts/seed-demo.ts",
+    "seed:demo:teardown": "tsx --env-file=.env.local scripts/seed-demo.ts --teardown",
+    "demo:record": "playwright test --project=demo"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^3.0.38",
