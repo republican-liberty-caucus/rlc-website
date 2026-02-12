@@ -20,13 +20,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       {/* Desktop sidebar */}
-      <div className="hidden md:block">
+      <div className="hidden md:block print:hidden">
         <AdminNav />
       </div>
 
       {/* Mobile header + content */}
       <div className="flex flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-card px-4 md:hidden">
+        <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b bg-card px-4 md:hidden print:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger asChild>
               <button
@@ -54,8 +54,8 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
           </Link>
         </header>
 
-        <main className="flex-1 bg-muted/30">
-          <div className="p-4 md:p-8">{children}</div>
+        <main className="flex-1 bg-muted/30 print:bg-white">
+          <div className="p-4 md:p-8 print:p-0">{children}</div>
         </main>
       </div>
     </div>
