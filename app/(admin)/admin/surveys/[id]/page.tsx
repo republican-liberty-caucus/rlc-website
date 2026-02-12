@@ -66,6 +66,19 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
     submitted_at: string | null; created_at: string;
   }[];
 
+  // Fetch existing vettings for these candidates to show Start Vetting / View Pipeline
+  const candidateIds = candidates.map((c) => c.id);
+  const vettingMap: Record<string, string> = {};
+  if (candidateIds.length > 0) {
+    const { data: vettings } = await supabase
+      .from('rlc_candidate_vettings')
+      .select('id, candidate_response_id')
+      .in('candidate_response_id', candidateIds);
+    for (const v of (vettings ?? []) as { id: string; candidate_response_id: string }[]) {
+      vettingMap[v.candidate_response_id] = v.id;
+    }
+  }
+
   return (
     <div>
       <div className="mb-8">
@@ -97,6 +110,7 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
         surveyStatus={survey.status}
         charterId={survey.charter_id}
         candidates={candidates}
+        vettingMap={vettingMap}
       />
     </div>
   );

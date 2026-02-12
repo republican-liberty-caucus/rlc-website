@@ -1,10 +1,11 @@
 'use client';
 
 import * as React from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Plus, Copy, ExternalLink } from 'lucide-react';
+import { Plus, Copy, ExternalLink, Eye, Play } from 'lucide-react';
 import type { OfficeType } from '@/types';
 
 const US_STATES = [
@@ -51,17 +52,19 @@ interface SurveyManagementProps {
   surveyStatus: string;
   charterId: string | null;
   candidates: Candidate[];
+  vettingMap: Record<string, string>;
 }
 
 const inputClass = 'rounded-md border bg-background px-3 py-2 text-sm';
 const selectClass = 'rounded-md border bg-background px-3 py-2 text-sm';
 
-export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates }: SurveyManagementProps) {
+export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates, vettingMap }: SurveyManagementProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
+  const [startingVetting, setStartingVetting] = React.useState<string | null>(null);
 
   // Form fields
   const [candidateName, setCandidateName] = React.useState('');
@@ -166,6 +169,35 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
     const url = `${window.location.origin}/candidate-surveys/respond?token=${token}`;
     navigator.clipboard.writeText(url);
     toast({ title: 'Copied', description: 'Survey link copied to clipboard' });
+  }
+
+  async function startVetting(candidateResponseId: string) {
+    setStartingVetting(candidateResponseId);
+    try {
+      const res = await fetch('/api/v1/admin/vetting', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ candidateResponseId }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409) {
+          toast({ title: 'Already exists', description: 'A vetting already exists for this candidate.' });
+          router.refresh();
+          return;
+        }
+        toast({ title: 'Error', description: data.error, variant: 'destructive' });
+        return;
+      }
+      toast({ title: 'Vetting started', description: 'Candidate moved to the vetting pipeline.' });
+      router.refresh();
+      router.push(`/admin/vetting/${data.vetting.id}`);
+    } catch (error) {
+      console.error('Failed to start vetting:', error);
+      toast({ title: 'Error', description: 'Failed to start vetting', variant: 'destructive' });
+    } finally {
+      setStartingVetting(null);
+    }
   }
 
   function formatOfficeDisplay(c: Candidate): string {
@@ -346,37 +378,83 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
               </tr>
             </thead>
             <tbody>
-              {candidates.map((c) => (
-                <tr key={c.id} className="border-b last:border-0">
-                  <td className="px-4 py-3">
-                    <p className="text-sm font-medium">{c.candidate_name}</p>
-                    {c.candidate_email && (
-                      <p className="text-xs text-muted-foreground">{c.candidate_email}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {formatOfficeDisplay(c)}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${statusColors[c.status] || 'bg-gray-100'}`}>
-                      {c.status.replace(/_/g, ' ')}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm font-medium">
-                    {c.total_score !== null ? `${c.total_score}%` : '-'}
-                  </td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => copySurveyLink(c.access_token)}
-                      className="inline-flex items-center gap-1 text-sm text-rlc-red hover:underline"
-                      title="Copy survey link"
-                    >
-                      <Copy className="h-3 w-3" />
-                      Copy Link
-                    </button>
-                  </td>
-                </tr>
-              ))}
+              {candidates.map((c) => {
+                const existingVettingId = vettingMap[c.id];
+                return (
+                  <tr key={c.id} className="border-b last:border-0">
+                    <td className="px-4 py-3">
+                      {c.status === 'submitted' ? (
+                        <Link
+                          href={`/admin/surveys/${surveyId}/candidates/${c.id}`}
+                          className="text-sm font-medium text-rlc-red hover:underline"
+                        >
+                          {c.candidate_name}
+                        </Link>
+                      ) : (
+                        <p className="text-sm font-medium">{c.candidate_name}</p>
+                      )}
+                      {c.candidate_email && (
+                        <p className="text-xs text-muted-foreground">{c.candidate_email}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {formatOfficeDisplay(c)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${statusColors[c.status] || 'bg-gray-100'}`}>
+                        {c.status.replace(/_/g, ' ')}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium">
+                      {c.total_score !== null ? `${c.total_score}%` : '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => copySurveyLink(c.access_token)}
+                          className="inline-flex items-center gap-1 text-sm text-rlc-red hover:underline"
+                          title="Copy survey link"
+                        >
+                          <Copy className="h-3 w-3" />
+                          Copy Link
+                        </button>
+                        {c.status === 'submitted' && (
+                          <>
+                            <Link
+                              href={`/admin/surveys/${surveyId}/candidates/${c.id}`}
+                              className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+                              title="View survey answers"
+                            >
+                              <Eye className="h-3 w-3" />
+                              View
+                            </Link>
+                            {existingVettingId ? (
+                              <Link
+                                href={`/admin/vetting/${existingVettingId}`}
+                                className="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline"
+                                title="View in vetting pipeline"
+                              >
+                                <Play className="h-3 w-3" />
+                                Pipeline
+                              </Link>
+                            ) : (
+                              <button
+                                onClick={() => startVetting(c.id)}
+                                disabled={startingVetting === c.id}
+                                className="inline-flex items-center gap-1 text-sm text-green-600 hover:underline disabled:opacity-50"
+                                title="Start vetting process"
+                              >
+                                <Play className="h-3 w-3" />
+                                {startingVetting === c.id ? 'Starting...' : 'Start Vetting'}
+                              </button>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
               {candidates.length === 0 && (
                 <tr>
                   <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
