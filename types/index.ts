@@ -510,6 +510,24 @@ export type VettingSectionStatus = 'section_not_started' | 'section_assigned' | 
 export type BoardVoteChoice = 'vote_endorse' | 'vote_do_not_endorse' | 'vote_no_position' | 'vote_abstain';
 export type CommitteeRole = 'chair' | 'committee_member';
 
+export type OfficeLevel = 'federal' | 'state' | 'county' | 'municipal' | 'judicial' | 'special_district';
+
+export interface OfficeType {
+  id: string;
+  level: OfficeLevel;
+  name: string;
+  slug: string;
+  endorsing_charter_level: CharterLevel;
+  requires_state: boolean;
+  requires_district: boolean;
+  requires_county: boolean;
+  district_label: string | null;
+  sort_order: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface CandidateVettingCommittee {
   id: string;
   name: string;
@@ -539,6 +557,8 @@ export interface CandidateVetting {
   candidate_district: string | null;
   candidate_state: string | null;
   candidate_party: string | null;
+  office_type_id: string | null;
+  charter_id: string | null;
   election_deadline_id: string | null;
   district_data_id: string | null;
   interview_date: string | null;

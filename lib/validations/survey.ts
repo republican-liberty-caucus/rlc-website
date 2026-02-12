@@ -35,6 +35,9 @@ export const candidateCreateSchema = z.object({
   candidateParty: z.string().optional(),
   candidateOffice: z.string().optional(),
   candidateDistrict: z.string().optional(),
+  officeTypeId: z.string().uuid().optional(),
+  candidateState: z.string().length(2).optional(),
+  candidateCounty: z.string().max(100).optional(),
 });
 
 export const surveySubmissionSchema = z.object({

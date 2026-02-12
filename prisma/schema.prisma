@@ -242,6 +242,16 @@ enum CommitteeRole {
   committee_member
 }
 
+// Office type classification
+enum OfficeLevel {
+  federal
+  state
+  county
+  municipal
+  judicial
+  special_district
+}
+
 // ===========================================
 // Core Tables
 // ===========================================
@@ -633,6 +643,28 @@ model SurveyQuestion {
   @@map("rlc_survey_questions")
 }
 
+/// Reference table of structured office/race types
+model OfficeType {
+  id                    String       @id @default(uuid())
+  level                 OfficeLevel
+  name                  String       // "US Senate", "State House / Assembly"
+  slug                  String       @unique
+  endorsingCharterLevel CharterLevel @map("endorsing_charter_level")
+  requiresState         Boolean      @default(true) @map("requires_state")
+  requiresDistrict      Boolean      @default(false) @map("requires_district")
+  requiresCounty        Boolean      @default(false) @map("requires_county")
+  districtLabel         String?      @map("district_label") // "District", "Ward", "Seat", "Precinct", "Circuit"
+  sortOrder             Int          @default(0) @map("sort_order")
+  isActive              Boolean      @default(true) @map("is_active")
+  createdAt             DateTime     @default(now()) @map("created_at")
+  updatedAt             DateTime     @updatedAt @map("updated_at")
+
+  candidateResponses CandidateResponse[]
+  candidateVettings  CandidateVetting[]
+
+  @@map("rlc_office_types")
+}
+
 /// Candidate survey responses
 model CandidateResponse {
   id                String                  @id @default(uuid())
@@ -643,6 +675,10 @@ model CandidateResponse {
   candidateParty    String?                 @map("candidate_party")
   candidateOffice   String?                 @map("candidate_office")
   candidateDistrict String?                 @map("candidate_district")
+  officeTypeId      String?                 @map("office_type_id")
+  officeType        OfficeType?             @relation(fields: [officeTypeId], references: [id])
+  candidateState    String?                 @map("candidate_state") @db.Char(2)
+  candidateCounty   String?                 @map("candidate_county")
   accessToken       String                  @map("access_token")
   status            CandidateResponseStatus @default(pending)
   totalScore        Decimal?                @map("total_score") @db.Decimal(5, 2)
@@ -963,6 +999,9 @@ model CandidateVetting {
   candidateDistrict   String?              @map("candidate_district")
   candidateState      String?              @map("candidate_state")
   candidateParty      String?              @map("candidate_party")
+  officeTypeId        String?              @map("office_type_id")
+  officeType          OfficeType?          @relation(fields: [officeTypeId], references: [id])
+  charterId           String?              @map("charter_id") // denormalized from survey for pipeline scoping
 
   // Deadline reference
   electionDeadlineId  String?              @map("election_deadline_id")

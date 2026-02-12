@@ -39,6 +39,7 @@ interface VettingReportData {
   candidate_office: string | null;
   candidate_district: string | null;
   candidate_party: string | null;
+  office_type: { name: string; district_label: string | null } | null;
   stage: string;
   recommendation: VettingRecommendation | null;
   recommendation_notes: string | null;
@@ -305,7 +306,13 @@ export function VettingReportView({ data }: VettingReportViewProps) {
           {data.candidate_party && ` (${data.candidate_party})`}
         </p>
         <p className="text-sm text-muted-foreground">
-          {[data.candidate_office, data.candidate_district, data.candidate_state]
+          {[
+            data.office_type?.name ?? data.candidate_office,
+            data.candidate_district
+              ? `${data.office_type?.district_label ?? 'District'} ${data.candidate_district}`
+              : null,
+            data.candidate_state,
+          ]
             .filter(Boolean)
             .join(' \u2014 ')}
         </p>

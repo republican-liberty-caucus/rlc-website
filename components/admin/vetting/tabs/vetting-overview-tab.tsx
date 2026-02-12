@@ -34,7 +34,13 @@ export function VettingOverviewTab({ vetting }: VettingOverviewTabProps) {
           <div>
             <h2 className="text-lg font-semibold">{vetting.candidate_name}</h2>
             <p className="text-sm text-muted-foreground">
-              {[vetting.candidate_party, vetting.candidate_office, vetting.candidate_district]
+              {[
+                vetting.candidate_party,
+                vetting.office_type?.name ?? vetting.candidate_office,
+                vetting.candidate_district
+                  ? `${vetting.office_type?.district_label ?? 'District'} ${vetting.candidate_district}`
+                  : null,
+              ]
                 .filter(Boolean)
                 .join(' \u2022 ') || 'No details yet'}
             </p>
