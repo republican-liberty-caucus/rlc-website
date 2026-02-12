@@ -680,6 +680,7 @@ model CandidateResponse {
   candidateState    String?                 @map("candidate_state") @db.Char(2)
   candidateCounty   String?                 @map("candidate_county")
   accessToken       String                  @map("access_token")
+  tokenExpiresAt    DateTime?               @map("token_expires_at")
   status            CandidateResponseStatus @default(pending)
   totalScore        Decimal?                @map("total_score") @db.Decimal(5, 2)
   submittedAt       DateTime?               @map("submitted_at")
