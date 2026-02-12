@@ -1,4 +1,4 @@
-import type { VettingStage, VettingSectionStatus, VettingReportSectionType } from '@/types';
+import type { VettingStage, VettingSectionStatus, VettingReportSectionType, BoardVoteChoice, VettingRecommendation } from '@/types';
 import { VETTING_STAGES, VETTING_REPORT_SECTION_TYPES } from '@/lib/validations/vetting';
 
 // Ordered stage list (index = progression order)
@@ -135,4 +135,51 @@ export function calculateUrgency(primaryDate: string | null): 'normal' | 'amber'
   if (diffDays < 14) return 'red';
   if (diffDays < 30) return 'amber';
   return 'normal';
+}
+
+// ============================================
+// Board vote tally functions
+// ============================================
+
+export interface VoteTally {
+  vote_endorse: number;
+  vote_do_not_endorse: number;
+  vote_no_position: number;
+  vote_abstain: number;
+  total: number;
+}
+
+/** Count votes by choice */
+export function tallyVotes(votes: { vote: BoardVoteChoice }[]): VoteTally {
+  const tally: VoteTally = {
+    vote_endorse: 0,
+    vote_do_not_endorse: 0,
+    vote_no_position: 0,
+    vote_abstain: 0,
+    total: votes.length,
+  };
+  for (const v of votes) {
+    tally[v.vote]++;
+  }
+  return tally;
+}
+
+/** Determine endorsement result from vote tally. Plurality wins; ties default to no_position. */
+export function getEndorsementResult(tally: VoteTally): VettingRecommendation {
+  // Only count substantive votes (exclude abstentions)
+  const counts: [VettingRecommendation, number][] = [
+    ['endorse', tally.vote_endorse],
+    ['do_not_endorse', tally.vote_do_not_endorse],
+    ['no_position', tally.vote_no_position],
+  ];
+
+  counts.sort((a, b) => b[1] - a[1]);
+
+  // If all votes are abstentions or no substantive votes cast, default to no_position
+  if (counts[0][1] === 0) return 'no_position';
+
+  // If there's a tie between the top two, default to no_position
+  if (counts[0][1] === counts[1][1]) return 'no_position';
+
+  return counts[0][0];
 }
