@@ -185,6 +185,13 @@ export interface Post {
 export type SurveyStatus = 'draft' | 'active' | 'closed';
 export type CandidateResponseStatus = 'pending' | 'in_progress' | 'submitted' | 'endorsed' | 'not_endorsed';
 export type QuestionType = 'scale' | 'yes_no' | 'text' | 'multiple_choice';
+export type ElectionType = 'primary' | 'general' | 'special' | 'runoff' | 'primary_runoff';
+
+export type QuestionCategory =
+  | 'fiscal_policy' | 'constitutional_rights' | 'second_amendment'
+  | 'judicial_philosophy' | 'immigration' | 'healthcare' | 'education'
+  | 'foreign_policy' | 'criminal_justice' | 'regulatory_reform'
+  | 'property_rights' | 'other';
 
 export interface Survey {
   id: string;
@@ -192,11 +199,29 @@ export interface Survey {
   slug: string;
   description: string | null;
   status: SurveyStatus;
-  election_type: string | null;
-  election_date: string | null;
+  office_type_id: string | null;
+  election_type: ElectionType | null;
+  primary_date: string | null;
+  general_date: string | null;
   state: string | null;
   charter_id: string | null;
+  election_deadline_id: string | null;
   created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface QuestionTemplate {
+  id: string;
+  question_text: string;
+  question_type: QuestionType;
+  options: string[];
+  weight: number;
+  ideal_answer: string | null;
+  sort_order: number;
+  office_levels: OfficeLevel[];
+  category: QuestionCategory;
+  is_active: boolean;
   created_at: string;
   updated_at: string;
 }

@@ -55,9 +55,12 @@ export async function PATCH(
   if (input.description !== undefined) updatePayload.description = input.description || null;
   if (input.status !== undefined) updatePayload.status = input.status;
   if (input.electionType !== undefined) updatePayload.election_type = input.electionType || null;
-  if (input.electionDate !== undefined) updatePayload.election_date = input.electionDate || null;
+  if (input.primaryDate !== undefined) updatePayload.primary_date = input.primaryDate || null;
+  if (input.generalDate !== undefined) updatePayload.general_date = input.generalDate || null;
   if (input.state !== undefined) updatePayload.state = input.state || null;
   if (input.charterId !== undefined) updatePayload.charter_id = input.charterId || null;
+  if (input.officeTypeId !== undefined) updatePayload.office_type_id = input.officeTypeId || null;
+  if (input.electionDeadlineId !== undefined) updatePayload.election_deadline_id = input.electionDeadlineId || null;
 
   const { data, error } = await supabase
     .from('rlc_surveys')
