@@ -3,6 +3,7 @@ import type {
   VettingReportSectionType,
   VettingSectionStatus,
   VettingRecommendation,
+  BoardVoteChoice,
 } from '@/types';
 
 export interface VettingPermissions {
@@ -11,6 +12,7 @@ export interface VettingPermissions {
   canEditAnySection: boolean;
   canRecordInterview: boolean;
   canMakeRecommendation: boolean;
+  canCastBoardVote: boolean;
   isCommitteeMember: boolean;
   isChair: boolean;
   isNational: boolean;
@@ -80,6 +82,26 @@ export interface OpponentData {
   updated_at: string;
 }
 
+export interface BoardVoteData {
+  id: string;
+  vetting_id: string;
+  voter_id: string;
+  vote: BoardVoteChoice;
+  notes: string | null;
+  voted_at: string;
+  voter: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+}
+
+export interface EligibleVoter {
+  id: string;
+  first_name: string;
+  last_name: string;
+}
+
 export interface VettingFullData {
   id: string;
   candidate_response_id: string;
@@ -92,6 +114,8 @@ export interface VettingFullData {
   recommendation: VettingRecommendation | null;
   recommendation_notes: string | null;
   recommended_at: string | null;
+  endorsement_result: VettingRecommendation | null;
+  endorsed_at: string | null;
   interview_date: string | null;
   interview_notes: string | null;
   interviewers: string[] | null;

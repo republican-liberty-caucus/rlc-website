@@ -11,6 +11,7 @@ import {
   canAssignSections,
   canRecordInterview,
   canMakeRecommendation,
+  canCastBoardVote,
 } from '@/lib/vetting/permissions';
 import { calculateVettingProgress } from '@/lib/vetting/engine';
 import { PageHeader } from '@/components/ui/page-header';
@@ -117,6 +118,7 @@ export default async function VettingDetailPage({
     canEditAnySection: ctx.isChair || ctx.isNational,
     canRecordInterview: canRecordInterview(ctx),
     canMakeRecommendation: canMakeRecommendation(ctx),
+    canCastBoardVote: canCastBoardVote(ctx),
     isCommitteeMember: ctx.isCommitteeMember,
     isChair: ctx.isChair,
     isNational: ctx.isNational,

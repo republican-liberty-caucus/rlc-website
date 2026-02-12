@@ -5,6 +5,7 @@ import { VettingOverviewTab } from './tabs/vetting-overview-tab';
 import { VettingSectionsTab } from './tabs/vetting-sections-tab';
 import { VettingOpponentsTab } from './tabs/vetting-opponents-tab';
 import { VettingStageActionsTab } from './tabs/vetting-stage-actions-tab';
+import { VettingBoardVoteTab } from './tabs/vetting-board-vote-tab';
 import type { VettingFullData, VettingPermissions, CommitteeMemberOption } from './types';
 
 interface VettingDetailTabsProps {
@@ -14,6 +15,8 @@ interface VettingDetailTabsProps {
 }
 
 export function VettingDetailTabs({ vetting, permissions, committeeMembers }: VettingDetailTabsProps) {
+  const showBoardVote = vetting.stage === 'board_vote' || !!vetting.endorsed_at;
+
   return (
     <Tabs defaultValue="overview">
       <TabsList className="w-full justify-start">
@@ -21,6 +24,7 @@ export function VettingDetailTabs({ vetting, permissions, committeeMembers }: Ve
         <TabsTrigger value="sections">Report Sections</TabsTrigger>
         <TabsTrigger value="opponents">Opponents</TabsTrigger>
         <TabsTrigger value="actions">Stage Actions</TabsTrigger>
+        {showBoardVote && <TabsTrigger value="board-vote">Board Vote</TabsTrigger>}
       </TabsList>
 
       <TabsContent value="overview">
@@ -50,6 +54,15 @@ export function VettingDetailTabs({ vetting, permissions, committeeMembers }: Ve
           permissions={permissions}
         />
       </TabsContent>
+
+      {showBoardVote && (
+        <TabsContent value="board-vote">
+          <VettingBoardVoteTab
+            vetting={vetting}
+            permissions={permissions}
+          />
+        </TabsContent>
+      )}
     </Tabs>
   );
 }
