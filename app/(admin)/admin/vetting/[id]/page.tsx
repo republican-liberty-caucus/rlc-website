@@ -185,6 +185,13 @@ export default async function VettingDetailPage({
           </div>
 
           <Link
+            href={`/admin/vetting/${id}/report`}
+            className="block rounded-lg border bg-rlc-red text-white text-center text-sm font-medium py-2 px-4 hover:bg-rlc-red/90 transition-colors"
+          >
+            View Full Report
+          </Link>
+
+          <Link
             href="/admin/vetting"
             className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
