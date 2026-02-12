@@ -38,8 +38,9 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
 
   const survey = surveyData as {
     id: string; title: string; slug: string; description: string | null;
-    status: string; election_type: string | null; election_date: string | null;
-    state: string | null; charter_id: string | null; created_at: string;
+    status: string; election_type: string | null; primary_date: string | null;
+    general_date: string | null; state: string | null; charter_id: string | null;
+    created_at: string;
   };
 
   const [questionsResult, candidatesResult] = await Promise.all([
@@ -91,7 +92,8 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
             <p className="mt-1 text-muted-foreground">
               {survey.election_type && <span className="capitalize">{survey.election_type} </span>}
               {survey.state && <span>{survey.state} </span>}
-              {survey.election_date && <span>| {formatDate(survey.election_date)} </span>}
+              {survey.primary_date && <span>| Primary: {formatDate(survey.primary_date)} </span>}
+              {survey.general_date && <span>| General: {formatDate(survey.general_date)} </span>}
               | {questions.length} questions | {candidates.length} candidates
             </p>
           </div>

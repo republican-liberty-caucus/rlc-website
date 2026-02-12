@@ -252,6 +252,29 @@ enum OfficeLevel {
   special_district
 }
 
+enum ElectionType {
+  primary
+  general
+  special
+  runoff
+  primary_runoff
+}
+
+enum QuestionCategory {
+  fiscal_policy
+  constitutional_rights
+  second_amendment
+  judicial_philosophy
+  immigration
+  healthcare
+  education
+  foreign_policy
+  criminal_justice
+  regulatory_reform
+  property_rights
+  other
+}
+
 // ===========================================
 // Core Tables
 // ===========================================
@@ -604,20 +627,25 @@ model CiviCRMMigrationLog {
 
 /// Candidate Endorsement Surveys
 model Survey {
-  id            String       @id @default(uuid())
-  title         String
-  slug          String       @unique
-  description   String?      @db.Text
-  status        SurveyStatus @default(draft)
-  electionType  String?      @map("election_type")
-  electionDate  String?      @map("election_date")
-  state         String?
-  charterId     String?      @map("charter_id")
-  charter       Charter?     @relation(fields: [charterId], references: [id])
-  createdBy     String?      @map("created_by")
-  creator          Contact?      @relation("SurveyCreator", fields: [createdBy], references: [id])
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  id                  String        @id @default(uuid())
+  title               String
+  slug                String        @unique
+  description         String?       @db.Text
+  status              SurveyStatus  @default(draft)
+  officeTypeId        String?       @map("office_type_id")
+  officeType          OfficeType?   @relation(fields: [officeTypeId], references: [id])
+  electionType        ElectionType? @map("election_type")
+  primaryDate         DateTime?     @map("primary_date") @db.Date
+  generalDate         DateTime?     @map("general_date") @db.Date
+  state               String?
+  charterId           String?       @map("charter_id")
+  charter             Charter?      @relation(fields: [charterId], references: [id])
+  electionDeadlineId  String?       @map("election_deadline_id")
+  electionDeadline    CandidateElectionDeadline? @relation(fields: [electionDeadlineId], references: [id])
+  createdBy           String?       @map("created_by")
+  creator             Contact?      @relation("SurveyCreator", fields: [createdBy], references: [id])
+  createdAt           DateTime      @default(now()) @map("created_at")
+  updatedAt           DateTime      @updatedAt @map("updated_at")
 
   questions     SurveyQuestion[]
   candidates    CandidateResponse[]
@@ -659,6 +687,7 @@ model OfficeType {
   createdAt             DateTime     @default(now()) @map("created_at")
   updatedAt             DateTime     @updatedAt @map("updated_at")
 
+  surveys            Survey[]
   candidateResponses CandidateResponse[]
   candidateVettings  CandidateVetting[]
 
@@ -704,6 +733,24 @@ model SurveyAnswer {
   score               Decimal?          @db.Decimal(5, 2)
 
   @@map("rlc_survey_answers")
+}
+
+/// Reusable question templates for populating new surveys
+model QuestionTemplate {
+  id            String           @id @default(uuid())
+  questionText  String           @map("question_text")
+  questionType  QuestionType     @map("question_type")
+  options       String[]         @default([])
+  weight        Decimal          @default(1) @db.Decimal(3, 1)
+  idealAnswer   String?          @map("ideal_answer")
+  sortOrder     Int              @default(0) @map("sort_order")
+  officeLevels  OfficeLevel[]    @map("office_levels")
+  category      QuestionCategory @default(other)
+  isActive      Boolean          @default(true) @map("is_active")
+  createdAt     DateTime         @default(now()) @map("created_at")
+  updatedAt     DateTime         @updatedAt @map("updated_at")
+
+  @@map("rlc_question_templates")
 }
 
 // ===========================================
@@ -1126,6 +1173,7 @@ model CandidateElectionDeadline {
   createdAt              DateTime  @default(now()) @map("created_at")
   updatedAt              DateTime  @updatedAt @map("updated_at")
 
+  surveys  Survey[]
   vettings CandidateVetting[]
 
   @@unique([stateCode, cycleYear, officeType])

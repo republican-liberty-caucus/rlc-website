@@ -4,7 +4,8 @@ import * as React from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Download } from 'lucide-react';
+import { US_STATES } from '@/lib/constants/us-states';
 
 const ADMIN_INPUT_CLASS = 'w-full rounded-md border bg-background px-3 py-2 text-sm';
 const ADMIN_LABEL_CLASS = 'mb-1 block text-sm font-medium';
@@ -16,25 +17,73 @@ interface QuestionInput {
   idealAnswer: string;
 }
 
+interface OfficeType {
+  id: string;
+  level: string;
+  name: string;
+}
+
 interface SurveyFormProps {
   charters: { id: string; name: string }[];
 }
+
+const ELECTION_TYPES = [
+  { value: 'primary', label: 'Primary' },
+  { value: 'general', label: 'General' },
+  { value: 'special', label: 'Special Election' },
+  { value: 'runoff', label: 'Runoff' },
+  { value: 'primary_runoff', label: 'Primary Runoff' },
+] as const;
+
+// Group office types by level for <optgroup>
+function groupByLevel(types: OfficeType[]): Record<string, OfficeType[]> {
+  const groups: Record<string, OfficeType[]> = {};
+  for (const ot of types) {
+    if (!groups[ot.level]) groups[ot.level] = [];
+    groups[ot.level].push(ot);
+  }
+  return groups;
+}
+
+const LEVEL_LABELS: Record<string, string> = {
+  federal: 'Federal',
+  state: 'State',
+  county: 'County',
+  municipal: 'Municipal',
+  judicial: 'Judicial',
+  special_district: 'Special District',
+};
 
 export function SurveyForm({ charters }: SurveyFormProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [saving, setSaving] = React.useState(false);
 
+  // Survey details state
   const [title, setTitle] = React.useState('');
   const [slug, setSlug] = React.useState('');
   const [description, setDescription] = React.useState('');
   const [electionType, setElectionType] = React.useState('');
-  const [electionDate, setElectionDate] = React.useState('');
+  const [primaryDate, setPrimaryDate] = React.useState('');
+  const [generalDate, setGeneralDate] = React.useState('');
   const [state, setState] = React.useState('');
   const [charterId, setCharterId] = React.useState('');
+  const [officeTypeId, setOfficeTypeId] = React.useState('');
+  const [electionDeadlineId, setElectionDeadlineId] = React.useState('');
+  const [datesAutoPopulated, setDatesAutoPopulated] = React.useState(false);
+
+  // Office types fetched client-side based on charter selection
+  const [officeTypes, setOfficeTypes] = React.useState<OfficeType[]>([]);
+  const [loadingOfficeTypes, setLoadingOfficeTypes] = React.useState(false);
+
+  // Questions
   const [questions, setQuestions] = React.useState<QuestionInput[]>([
     { questionText: '', questionType: 'scale', weight: 1, idealAnswer: '5' },
   ]);
+  const [loadingTemplates, setLoadingTemplates] = React.useState(false);
+
+  // Derive selected office type's level for template loading
+  const selectedOfficeType = officeTypes.find(ot => ot.id === officeTypeId);
 
   function generateSlug(t: string) {
     return t
@@ -43,6 +92,123 @@ export function SurveyForm({ charters }: SurveyFormProps) {
       .replace(/\s+/g, '-')
       .replace(/-+/g, '-')
       .substring(0, 200);
+  }
+
+  // Fetch office types when charter changes
+  React.useEffect(() => {
+    if (!charterId) {
+      setOfficeTypes([]);
+      setOfficeTypeId('');
+      return;
+    }
+
+    setLoadingOfficeTypes(true);
+    fetch(`/api/v1/office-types?charterId=${charterId}`)
+      .then(res => res.json())
+      .then(data => {
+        setOfficeTypes(data.officeTypes || []);
+        // Reset office type if it's no longer in the list
+        setOfficeTypeId(prev => {
+          const still = (data.officeTypes || []).some((ot: OfficeType) => ot.id === prev);
+          return still ? prev : '';
+        });
+      })
+      .catch(() => setOfficeTypes([]))
+      .finally(() => setLoadingOfficeTypes(false));
+  }, [charterId]);
+
+  // Auto-lookup election dates when state + office type are both selected
+  React.useEffect(() => {
+    if (!state || !selectedOfficeType) {
+      setElectionDeadlineId('');
+      setDatesAutoPopulated(false);
+      return;
+    }
+
+    const abortController = new AbortController();
+    const cycleYear = new Date().getFullYear();
+    const params = new URLSearchParams({
+      stateCode: state,
+      cycleYear: String(cycleYear),
+      officeType: selectedOfficeType.name,
+    });
+
+    fetch(`/api/v1/admin/election-deadlines/lookup?${params}`, {
+      signal: abortController.signal,
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (data.deadline) {
+          setElectionDeadlineId(data.deadline.id);
+          if (data.deadline.primary_date) setPrimaryDate(data.deadline.primary_date.split('T')[0]);
+          if (data.deadline.general_date) setGeneralDate(data.deadline.general_date.split('T')[0]);
+          setDatesAutoPopulated(true);
+        } else {
+          setElectionDeadlineId('');
+          setDatesAutoPopulated(false);
+        }
+      })
+      .catch((err) => {
+        if (err.name !== 'AbortError') {
+          setElectionDeadlineId('');
+          setDatesAutoPopulated(false);
+        }
+      });
+
+    return () => abortController.abort();
+  }, [state, selectedOfficeType]);
+
+  async function loadStandardQuestions() {
+    if (!selectedOfficeType) return;
+
+    const hasExistingContent = questions.some(q => q.questionText.trim());
+    if (hasExistingContent) {
+      const ok = window.confirm(
+        'This will replace all current questions with standard templates. Continue?'
+      );
+      if (!ok) return;
+    }
+
+    setLoadingTemplates(true);
+    try {
+      const res = await fetch(
+        `/api/v1/admin/question-templates?officeLevel=${selectedOfficeType.level}`
+      );
+
+      if (!res.ok) {
+        toast({ title: 'Error', description: `Failed to load templates (${res.status})`, variant: 'destructive' });
+        return;
+      }
+
+      const data = await res.json();
+      const templates = data.templates || [];
+
+      if (templates.length === 0) {
+        toast({
+          title: 'No templates',
+          description: `No standard questions for ${LEVEL_LABELS[selectedOfficeType.level] || selectedOfficeType.level} races yet`,
+        });
+        return;
+      }
+
+      setQuestions(
+        templates.map((t: { question_text: string; question_type: string; weight: number; ideal_answer: string | null }) => ({
+          questionText: t.question_text,
+          questionType: t.question_type as QuestionInput['questionType'],
+          weight: t.weight,
+          idealAnswer: t.ideal_answer || '',
+        }))
+      );
+
+      toast({
+        title: 'Templates loaded',
+        description: `Loaded ${templates.length} standard questions for ${selectedOfficeType.name}`,
+      });
+    } catch {
+      toast({ title: 'Error', description: 'Failed to load templates', variant: 'destructive' });
+    } finally {
+      setLoadingTemplates(false);
+    }
   }
 
   function addQuestion() {
@@ -82,9 +248,12 @@ export function SurveyForm({ charters }: SurveyFormProps) {
           slug: slug || generateSlug(title),
           description: description || undefined,
           electionType: electionType || undefined,
-          electionDate: electionDate || undefined,
+          primaryDate: primaryDate || undefined,
+          generalDate: generalDate || undefined,
           state: state || undefined,
           charterId: charterId || undefined,
+          officeTypeId: officeTypeId || undefined,
+          electionDeadlineId: electionDeadlineId || undefined,
           questions: validQuestions.map((q, i) => ({
             questionText: q.questionText,
             questionType: q.questionType,
@@ -109,6 +278,8 @@ export function SurveyForm({ charters }: SurveyFormProps) {
       setSaving(false);
     }
   }
+
+  const officeTypeGroups = groupByLevel(officeTypes);
 
   return (
     <div className="space-y-8">
@@ -148,38 +319,8 @@ export function SurveyForm({ charters }: SurveyFormProps) {
               rows={3}
             />
           </div>
-          <div>
-            <label className={ADMIN_LABEL_CLASS}>Election Type</label>
-            <select
-              value={electionType}
-              onChange={(e) => setElectionType(e.target.value)}
-              className={ADMIN_INPUT_CLASS}
-            >
-              <option value="">Select type</option>
-              <option value="primary">Primary</option>
-              <option value="general">General</option>
-              <option value="special">Special Election</option>
-            </select>
-          </div>
-          <div>
-            <label className={ADMIN_LABEL_CLASS}>Election Date</label>
-            <input
-              type="date"
-              value={electionDate}
-              onChange={(e) => setElectionDate(e.target.value)}
-              className={ADMIN_INPUT_CLASS}
-            />
-          </div>
-          <div>
-            <label className={ADMIN_LABEL_CLASS}>State</label>
-            <input
-              type="text"
-              value={state}
-              onChange={(e) => setState(e.target.value)}
-              className={ADMIN_INPUT_CLASS}
-              placeholder="e.g., TX"
-            />
-          </div>
+
+          {/* Charter → Office Type cascading */}
           <div>
             <label className={ADMIN_LABEL_CLASS}>Charter</label>
             <select
@@ -193,6 +334,87 @@ export function SurveyForm({ charters }: SurveyFormProps) {
               ))}
             </select>
           </div>
+          <div>
+            <label className={ADMIN_LABEL_CLASS}>Office Type</label>
+            <select
+              value={officeTypeId}
+              onChange={(e) => setOfficeTypeId(e.target.value)}
+              className={ADMIN_INPUT_CLASS}
+              disabled={!charterId || loadingOfficeTypes}
+            >
+              <option value="">
+                {!charterId ? 'Select a charter first' : loadingOfficeTypes ? 'Loading...' : 'Select office type'}
+              </option>
+              {Object.entries(officeTypeGroups).map(([level, types]) => (
+                <optgroup key={level} label={LEVEL_LABELS[level] || level}>
+                  {types.map(ot => (
+                    <option key={ot.id} value={ot.id}>{ot.name}</option>
+                  ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+
+          {/* Election Type + State */}
+          <div>
+            <label className={ADMIN_LABEL_CLASS}>Election Type</label>
+            <select
+              value={electionType}
+              onChange={(e) => setElectionType(e.target.value)}
+              className={ADMIN_INPUT_CLASS}
+            >
+              <option value="">Select type</option>
+              {ELECTION_TYPES.map(et => (
+                <option key={et.value} value={et.value}>{et.label}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={ADMIN_LABEL_CLASS}>State</label>
+            <select
+              value={state}
+              onChange={(e) => setState(e.target.value)}
+              className={ADMIN_INPUT_CLASS}
+            >
+              <option value="">Select state</option>
+              {US_STATES.map(s => (
+                <option key={s.code} value={s.code}>{s.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Primary Date + General Date */}
+          <div>
+            <label className={ADMIN_LABEL_CLASS}>Primary Date</label>
+            <input
+              type="date"
+              value={primaryDate}
+              onChange={(e) => {
+                setPrimaryDate(e.target.value);
+                if (datesAutoPopulated) setDatesAutoPopulated(false);
+              }}
+              className={ADMIN_INPUT_CLASS}
+            />
+          </div>
+          <div>
+            <label className={ADMIN_LABEL_CLASS}>General Date</label>
+            <input
+              type="date"
+              value={generalDate}
+              onChange={(e) => {
+                setGeneralDate(e.target.value);
+                if (datesAutoPopulated) setDatesAutoPopulated(false);
+              }}
+              className={ADMIN_INPUT_CLASS}
+            />
+          </div>
+          {datesAutoPopulated && (
+            <div className="md:col-span-2">
+              <p className="text-xs text-muted-foreground">
+                Dates loaded from election calendar. Edit above to override.
+              </p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -200,10 +422,21 @@ export function SurveyForm({ charters }: SurveyFormProps) {
       <div className="rounded-lg border bg-card p-6">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-lg font-semibold">Questions</h2>
-          <Button variant="outline" size="sm" onClick={addQuestion}>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Question
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={loadStandardQuestions}
+              disabled={!selectedOfficeType || loadingTemplates}
+            >
+              <Download className="mr-2 h-4 w-4" />
+              {loadingTemplates ? 'Loading...' : 'Load Standard Questions'}
+            </Button>
+            <Button variant="outline" size="sm" onClick={addQuestion}>
+              <Plus className="mr-2 h-4 w-4" />
+              Add Question
+            </Button>
+          </div>
         </div>
         <div className="space-y-6">
           {questions.map((q, i) => (

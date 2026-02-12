@@ -46,10 +46,13 @@ export async function POST(request: Request) {
     slug: input.slug,
     description: input.description || null,
     status: 'draft',
+    office_type_id: input.officeTypeId || null,
     election_type: input.electionType || null,
-    election_date: input.electionDate || null,
+    primary_date: input.primaryDate || null,
+    general_date: input.generalDate || null,
     state: input.state || null,
     charter_id: input.charterId || null,
+    election_deadline_id: input.electionDeadlineId || null,
     created_by: member?.id || null,
   } as never);
 
