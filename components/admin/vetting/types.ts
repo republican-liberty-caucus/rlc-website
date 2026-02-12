@@ -102,6 +102,40 @@ export interface EligibleVoter {
   last_name: string;
 }
 
+export interface SurveyAnswerData {
+  id: string;
+  answer: string;
+  score: number | null;
+  question: {
+    question_text: string;
+    question_type: string;
+    options: string[];
+    weight: number;
+    sort_order: number;
+    ideal_answer: string | null;
+  };
+}
+
+export interface SurveyResponseData {
+  id: string;
+  candidate_name: string;
+  candidate_email: string | null;
+  candidate_party: string | null;
+  candidate_office: string | null;
+  candidate_district: string | null;
+  total_score: number | null;
+  status: string;
+  submitted_at: string | null;
+  created_at: string;
+  survey: {
+    title: string;
+    election_type: string | null;
+    election_date: string | null;
+    state: string | null;
+  } | null;
+  answers: SurveyAnswerData[];
+}
+
 export interface VettingFullData {
   id: string;
   candidate_response_id: string;

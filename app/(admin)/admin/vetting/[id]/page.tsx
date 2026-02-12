@@ -21,6 +21,8 @@ import type {
   VettingPermissions,
   ReportSectionWithAssignments,
   CommitteeMemberOption,
+  SurveyResponseData,
+  SurveyAnswerData,
 } from '@/components/admin/vetting/types';
 import type { VettingSectionStatus } from '@/types';
 
@@ -111,6 +113,46 @@ export default async function VettingDetailPage({
     committeeMembers = (members ?? []) as unknown as CommitteeMemberOption[];
   }
 
+  // Fetch survey response with individual answers
+  let surveyResponse: SurveyResponseData | null = null;
+  if (vetting.candidate_response_id) {
+    const { data: response, error: responseError } = await supabase
+      .from('rlc_candidate_responses')
+      .select(`
+        id, candidate_name, candidate_email, candidate_party, candidate_office,
+        candidate_district, total_score, status, submitted_at, created_at,
+        survey:rlc_surveys(title, election_type, election_date, state)
+      `)
+      .eq('id', vetting.candidate_response_id)
+      .single();
+
+    if (responseError) {
+      logger.error('Failed to fetch survey response:', { responseId: vetting.candidate_response_id, error: responseError });
+    }
+
+    if (response) {
+      const { data: answers, error: answersError } = await supabase
+        .from('rlc_survey_answers')
+        .select(`
+          id, answer, score,
+          question:rlc_survey_questions(question_text, question_type, options, weight, sort_order, ideal_answer)
+        `)
+        .eq('candidate_response_id', vetting.candidate_response_id);
+
+      if (answersError) {
+        logger.error('Failed to fetch survey answers:', { responseId: vetting.candidate_response_id, error: answersError });
+      }
+
+      const sortedAnswers = ((answers ?? []) as unknown as SurveyAnswerData[])
+        .sort((a, b) => a.question.sort_order - b.question.sort_order);
+
+      surveyResponse = {
+        ...(response as unknown as Omit<SurveyResponseData, 'answers'>),
+        answers: sortedAnswers,
+      };
+    }
+  }
+
   // Build serializable permissions object
   const permissions: VettingPermissions = {
     canCreateVetting: canCreateVetting(ctx),
@@ -139,6 +181,7 @@ export default async function VettingDetailPage({
             vetting={vetting}
             permissions={permissions}
             committeeMembers={committeeMembers}
+            surveyResponse={surveyResponse}
           />
         </div>
 
