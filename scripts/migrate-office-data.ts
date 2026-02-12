@@ -31,12 +31,17 @@ const OFFICE_MAPPINGS: Record<string, string> = {
   'congressman': 'us-house',
   'u.s. house': 'us-house',
   'u.s. house of representatives': 'us-house',
+  'u.s. house of representatives ': 'us-house',
   'us house': 'us-house',
   'us house of representatives': 'us-house',
   'house of representatives': 'us-house',
   'representative': 'us-house',
   'us representative': 'us-house',
   'u.s. representative': 'us-house',
+  'u.s. house representative': 'us-house',
+  'u.s. house of representative': 'us-house',
+  'u.s congress': 'us-house',
+  'u.s. congress': 'us-house',
   'senate': 'us-senate',
   'u.s. senate': 'us-senate',
   'us senate': 'us-senate',
@@ -160,7 +165,17 @@ async function main() {
     }
 
     const officeText = (r.candidate_office || '').trim().toLowerCase();
-    const slug = OFFICE_MAPPINGS[officeText];
+    let slug = OFFICE_MAPPINGS[officeText];
+
+    // Fuzzy fallback: match patterns with embedded district/location info
+    if (!slug) {
+      if (/\b(us|u\.s\.?)\s*(house|representative|congress)/i.test(officeText) ||
+          /\bcongressional\s*(seat|district)/i.test(officeText)) {
+        slug = 'us-house';
+      } else if (/\b(us|u\.s\.?)\s*senat/i.test(officeText)) {
+        slug = 'us-senate';
+      }
+    }
 
     if (!slug) {
       unmatched.push({ id: r.id, name: r.candidate_name, office: r.candidate_office });
