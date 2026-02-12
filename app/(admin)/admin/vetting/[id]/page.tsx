@@ -71,6 +71,7 @@ export default async function VettingDetailPage({
     .from('rlc_candidate_vettings')
     .select(`
       *,
+      office_type:rlc_office_types(id, level, name, slug, district_label),
       election_deadline:rlc_candidate_election_deadlines(id, primary_date, general_date, state_code, cycle_year, office_type),
       committee:rlc_candidate_vetting_committees(id, name),
       report_sections:rlc_candidate_vetting_report_sections(

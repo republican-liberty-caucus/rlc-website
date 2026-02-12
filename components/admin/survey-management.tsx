@@ -5,6 +5,30 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 import { Plus, Copy, ExternalLink } from 'lucide-react';
+import type { OfficeType } from '@/types';
+
+const US_STATES = [
+  { code: 'AL', name: 'Alabama' }, { code: 'AK', name: 'Alaska' }, { code: 'AZ', name: 'Arizona' },
+  { code: 'AR', name: 'Arkansas' }, { code: 'CA', name: 'California' }, { code: 'CO', name: 'Colorado' },
+  { code: 'CT', name: 'Connecticut' }, { code: 'DE', name: 'Delaware' }, { code: 'DC', name: 'District of Columbia' },
+  { code: 'FL', name: 'Florida' }, { code: 'GA', name: 'Georgia' }, { code: 'HI', name: 'Hawaii' },
+  { code: 'ID', name: 'Idaho' }, { code: 'IL', name: 'Illinois' }, { code: 'IN', name: 'Indiana' },
+  { code: 'IA', name: 'Iowa' }, { code: 'KS', name: 'Kansas' }, { code: 'KY', name: 'Kentucky' },
+  { code: 'LA', name: 'Louisiana' }, { code: 'ME', name: 'Maine' }, { code: 'MD', name: 'Maryland' },
+  { code: 'MA', name: 'Massachusetts' }, { code: 'MI', name: 'Michigan' }, { code: 'MN', name: 'Minnesota' },
+  { code: 'MS', name: 'Mississippi' }, { code: 'MO', name: 'Missouri' }, { code: 'MT', name: 'Montana' },
+  { code: 'NE', name: 'Nebraska' }, { code: 'NV', name: 'Nevada' }, { code: 'NH', name: 'New Hampshire' },
+  { code: 'NJ', name: 'New Jersey' }, { code: 'NM', name: 'New Mexico' }, { code: 'NY', name: 'New York' },
+  { code: 'NC', name: 'North Carolina' }, { code: 'ND', name: 'North Dakota' }, { code: 'OH', name: 'Ohio' },
+  { code: 'OK', name: 'Oklahoma' }, { code: 'OR', name: 'Oregon' }, { code: 'PA', name: 'Pennsylvania' },
+  { code: 'RI', name: 'Rhode Island' }, { code: 'SC', name: 'South Carolina' }, { code: 'SD', name: 'South Dakota' },
+  { code: 'TN', name: 'Tennessee' }, { code: 'TX', name: 'Texas' }, { code: 'UT', name: 'Utah' },
+  { code: 'VT', name: 'Vermont' }, { code: 'VA', name: 'Virginia' }, { code: 'WA', name: 'Washington' },
+  { code: 'WV', name: 'West Virginia' }, { code: 'WI', name: 'Wisconsin' }, { code: 'WY', name: 'Wyoming' },
+  { code: 'AS', name: 'American Samoa' }, { code: 'GU', name: 'Guam' },
+  { code: 'MP', name: 'Northern Mariana Islands' }, { code: 'PR', name: 'Puerto Rico' },
+  { code: 'VI', name: 'US Virgin Islands' },
+];
 
 interface Candidate {
   id: string;
@@ -12,6 +36,9 @@ interface Candidate {
   candidate_email: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
+  office_type: { name: string; district_label: string | null } | null;
+  candidate_state: string | null;
+  candidate_county: string | null;
   status: string;
   total_score: number | null;
   access_token: string;
@@ -22,20 +49,64 @@ interface Candidate {
 interface SurveyManagementProps {
   surveyId: string;
   surveyStatus: string;
+  charterId: string | null;
   candidates: Candidate[];
 }
 
-export function SurveyManagement({ surveyId, surveyStatus, candidates }: SurveyManagementProps) {
+const inputClass = 'rounded-md border bg-background px-3 py-2 text-sm';
+const selectClass = 'rounded-md border bg-background px-3 py-2 text-sm';
+
+export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates }: SurveyManagementProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
   const [updating, setUpdating] = React.useState(false);
 
+  // Form fields
   const [candidateName, setCandidateName] = React.useState('');
   const [candidateEmail, setCandidateEmail] = React.useState('');
-  const [candidateOffice, setCandidateOffice] = React.useState('');
+  const [officeTypeId, setOfficeTypeId] = React.useState('');
+  const [candidateState, setCandidateState] = React.useState('');
+  const [candidateCounty, setCandidateCounty] = React.useState('');
   const [candidateDistrict, setCandidateDistrict] = React.useState('');
+
+  // Office types fetched from API
+  const [officeTypes, setOfficeTypes] = React.useState<OfficeType[]>([]);
+  const [loadingOfficeTypes, setLoadingOfficeTypes] = React.useState(false);
+
+  const selectedOfficeType = officeTypes.find((ot) => ot.id === officeTypeId);
+
+  // Fetch office types when form opens
+  React.useEffect(() => {
+    if (!showAddForm || officeTypes.length > 0) return;
+
+    setLoadingOfficeTypes(true);
+    const params = new URLSearchParams();
+    if (charterId) params.set('charterId', charterId);
+
+    fetch(`/api/v1/office-types?${params.toString()}`)
+      .then((res) => res.json())
+      .then((data) => setOfficeTypes(data.officeTypes ?? []))
+      .catch(() => toast({ title: 'Error', description: 'Failed to load office types', variant: 'destructive' }))
+      .finally(() => setLoadingOfficeTypes(false));
+  }, [showAddForm, charterId, officeTypes.length, toast]);
+
+  // Reset dependent fields when office type changes
+  React.useEffect(() => {
+    if (!selectedOfficeType?.requires_county) setCandidateCounty('');
+    if (!selectedOfficeType?.requires_district) setCandidateDistrict('');
+    if (!selectedOfficeType?.requires_state) setCandidateState('');
+  }, [officeTypeId, selectedOfficeType]);
+
+  function resetForm() {
+    setCandidateName('');
+    setCandidateEmail('');
+    setOfficeTypeId('');
+    setCandidateState('');
+    setCandidateCounty('');
+    setCandidateDistrict('');
+  }
 
   async function addCandidate() {
     if (!candidateName.trim()) return;
@@ -47,8 +118,11 @@ export function SurveyManagement({ surveyId, surveyStatus, candidates }: SurveyM
         body: JSON.stringify({
           candidateName,
           candidateEmail: candidateEmail || undefined,
-          candidateOffice: candidateOffice || undefined,
+          candidateOffice: selectedOfficeType?.name || undefined,
           candidateDistrict: candidateDistrict || undefined,
+          officeTypeId: officeTypeId || undefined,
+          candidateState: candidateState || undefined,
+          candidateCounty: candidateCounty || undefined,
         }),
       });
       const data = await res.json();
@@ -57,10 +131,7 @@ export function SurveyManagement({ surveyId, surveyStatus, candidates }: SurveyM
         return;
       }
       toast({ title: 'Candidate added', description: `Survey link generated for ${candidateName}` });
-      setCandidateName('');
-      setCandidateEmail('');
-      setCandidateOffice('');
-      setCandidateDistrict('');
+      resetForm();
       setShowAddForm(false);
       router.refresh();
     } catch {
@@ -96,6 +167,35 @@ export function SurveyManagement({ surveyId, surveyStatus, candidates }: SurveyM
     navigator.clipboard.writeText(url);
     toast({ title: 'Copied', description: 'Survey link copied to clipboard' });
   }
+
+  function formatOfficeDisplay(c: Candidate): string {
+    const name = c.office_type?.name ?? c.candidate_office;
+    if (!name) return '-';
+    const parts = [name];
+    if (c.candidate_state) parts.push(c.candidate_state);
+    if (c.candidate_district) {
+      const label = c.office_type?.district_label ?? 'District';
+      parts.push(`${label} ${c.candidate_district}`);
+    }
+    return parts.join(' - ');
+  }
+
+  // Group office types by level for the dropdown
+  const levelLabels: Record<string, string> = {
+    federal: 'Federal',
+    state: 'State',
+    county: 'County',
+    municipal: 'Municipal',
+    judicial: 'Judicial',
+    special_district: 'Special District',
+  };
+
+  const groupedOfficeTypes = officeTypes.reduce<Record<string, OfficeType[]>>((acc, ot) => {
+    const group = levelLabels[ot.level] || ot.level;
+    if (!acc[group]) acc[group] = [];
+    acc[group].push(ot);
+    return acc;
+  }, {});
 
   const statusColors: Record<string, string> = {
     pending: 'bg-yellow-100 text-yellow-800',
@@ -162,35 +262,74 @@ export function SurveyManagement({ surveyId, surveyStatus, candidates }: SurveyM
                 value={candidateName}
                 onChange={(e) => setCandidateName(e.target.value)}
                 placeholder="Candidate name *"
-                className="rounded-md border bg-background px-3 py-2 text-sm"
+                className={inputClass}
               />
               <input
                 type="email"
                 value={candidateEmail}
                 onChange={(e) => setCandidateEmail(e.target.value)}
                 placeholder="Email"
-                className="rounded-md border bg-background px-3 py-2 text-sm"
+                className={inputClass}
               />
-              <input
-                type="text"
-                value={candidateOffice}
-                onChange={(e) => setCandidateOffice(e.target.value)}
-                placeholder="Office (e.g., US House, TX-3)"
-                className="rounded-md border bg-background px-3 py-2 text-sm"
-              />
-              <input
-                type="text"
-                value={candidateDistrict}
-                onChange={(e) => setCandidateDistrict(e.target.value)}
-                placeholder="District"
-                className="rounded-md border bg-background px-3 py-2 text-sm"
-              />
+
+              {/* Office Type dropdown (grouped by level) */}
+              <select
+                value={officeTypeId}
+                onChange={(e) => setOfficeTypeId(e.target.value)}
+                className={selectClass}
+                disabled={loadingOfficeTypes}
+              >
+                <option value="">{loadingOfficeTypes ? 'Loading offices...' : 'Select office type'}</option>
+                {Object.entries(groupedOfficeTypes).map(([group, types]) => (
+                  <optgroup key={group} label={group}>
+                    {types.map((ot) => (
+                      <option key={ot.id} value={ot.id}>{ot.name}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+
+              {/* State dropdown (shown when office requires state) */}
+              {selectedOfficeType?.requires_state !== false && (
+                <select
+                  value={candidateState}
+                  onChange={(e) => setCandidateState(e.target.value)}
+                  className={selectClass}
+                >
+                  <option value="">Select state</option>
+                  {US_STATES.map((s) => (
+                    <option key={s.code} value={s.code}>{s.name}</option>
+                  ))}
+                </select>
+              )}
+
+              {/* County (shown when office requires county) */}
+              {selectedOfficeType?.requires_county && (
+                <input
+                  type="text"
+                  value={candidateCounty}
+                  onChange={(e) => setCandidateCounty(e.target.value)}
+                  placeholder="County"
+                  className={inputClass}
+                />
+              )}
+
+              {/* District/Ward/Seat/Circuit (shown when office requires district) */}
+              {selectedOfficeType?.requires_district && (
+                <input
+                  type="text"
+                  value={candidateDistrict}
+                  onChange={(e) => setCandidateDistrict(e.target.value)}
+                  placeholder={selectedOfficeType.district_label || 'District'}
+                  className={inputClass}
+                />
+              )}
             </div>
             <div className="mt-3 flex gap-2">
               <Button size="sm" onClick={addCandidate} disabled={saving}>
                 {saving ? 'Adding...' : 'Add'}
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => setShowAddForm(false)}>Cancel</Button>
+              <Button size="sm" variant="ghost" onClick={() => { setShowAddForm(false); resetForm(); }}>Cancel</Button>
             </div>
           </div>
         )}
@@ -216,8 +355,7 @@ export function SurveyManagement({ surveyId, surveyStatus, candidates }: SurveyM
                     )}
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {c.candidate_office || '-'}
-                    {c.candidate_district && `, ${c.candidate_district}`}
+                    {formatOfficeDisplay(c)}
                   </td>
                   <td className="px-4 py-3">
                     <span className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${statusColors[c.status] || 'bg-gray-100'}`}>

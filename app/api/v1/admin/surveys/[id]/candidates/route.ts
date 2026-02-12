@@ -50,6 +50,24 @@ export async function POST(
   }
 
   const input = parseResult.data;
+
+  // Verify office type exists and is active if provided
+  if (input.officeTypeId) {
+    const { data: officeType, error: otError } = await supabase
+      .from('rlc_office_types')
+      .select('id, is_active')
+      .eq('id', input.officeTypeId)
+      .single();
+
+    if (otError || !officeType) {
+      return NextResponse.json({ error: 'Invalid office type' }, { status: 400 });
+    }
+    const ot = officeType as unknown as { id: string; is_active: boolean };
+    if (!ot.is_active) {
+      return NextResponse.json({ error: 'Office type is inactive' }, { status: 400 });
+    }
+  }
+
   const accessToken = crypto.randomBytes(32).toString('hex');
 
   // Tokens expire in 90 days (issue #55)
@@ -66,6 +84,9 @@ export async function POST(
       candidate_party: input.candidateParty || null,
       candidate_office: input.candidateOffice || null,
       candidate_district: input.candidateDistrict || null,
+      office_type_id: input.officeTypeId || null,
+      candidate_state: input.candidateState || null,
+      candidate_county: input.candidateCounty || null,
       access_token: accessToken,
       token_expires_at: tokenExpiresAt.toISOString(),
       status: 'pending',

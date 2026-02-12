@@ -39,7 +39,7 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
   const survey = surveyData as {
     id: string; title: string; slug: string; description: string | null;
     status: string; election_type: string | null; election_date: string | null;
-    state: string | null; created_at: string;
+    state: string | null; charter_id: string | null; created_at: string;
   };
 
   const [questionsResult, candidatesResult] = await Promise.all([
@@ -48,7 +48,7 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
       .eq('survey_id', id)
       .order('sort_order'),
     supabase.from('rlc_candidate_responses')
-      .select('id, candidate_name, candidate_email, candidate_office, candidate_district, status, total_score, access_token, submitted_at, created_at')
+      .select('id, candidate_name, candidate_email, candidate_office, candidate_district, candidate_state, candidate_county, status, total_score, access_token, submitted_at, created_at, office_type:rlc_office_types(name, district_label)')
       .eq('survey_id', id)
       .order('candidate_name'),
   ]);
@@ -60,6 +60,8 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
   const candidates = (candidatesResult.data || []) as {
     id: string; candidate_name: string; candidate_email: string | null;
     candidate_office: string | null; candidate_district: string | null;
+    candidate_state: string | null; candidate_county: string | null;
+    office_type: { name: string; district_label: string | null } | null;
     status: string; total_score: number | null; access_token: string;
     submitted_at: string | null; created_at: string;
   }[];
@@ -93,6 +95,7 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
       <SurveyManagement
         surveyId={survey.id}
         surveyStatus={survey.status}
+        charterId={survey.charter_id}
         candidates={candidates}
       />
     </div>

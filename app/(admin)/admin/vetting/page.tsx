@@ -21,6 +21,8 @@ interface VettingRow {
   stage: string;
   recommendation: string | null;
   created_at: string;
+  charter_id: string | null;
+  office_type: { name: string; district_label: string | null } | null;
   election_deadline: {
     primary_date: string | null;
     general_date: string | null;
@@ -35,10 +37,17 @@ export default async function VettingPipelinePage() {
 
   const supabase = createServerClient();
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('rlc_candidate_vettings')
-    .select('id, candidate_name, candidate_state, candidate_office, candidate_district, stage, recommendation, created_at, election_deadline:rlc_candidate_election_deadlines(primary_date, general_date)')
+    .select('id, candidate_name, candidate_state, candidate_office, candidate_district, charter_id, stage, recommendation, created_at, office_type:rlc_office_types(name, district_label), election_deadline:rlc_candidate_election_deadlines(primary_date, general_date)')
     .order('created_at', { ascending: false });
+
+  // Charter-scoped admins only see vettings for their charters
+  if (ctx.visibleCharterIds !== null) {
+    query = query.in('charter_id', ctx.visibleCharterIds);
+  }
+
+  const { data, error } = await query;
 
   if (error) throw new Error(`Failed to fetch vettings: ${error.message}`);
 

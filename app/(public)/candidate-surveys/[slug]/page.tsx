@@ -42,7 +42,7 @@ export default async function SurveyResultsPage({ params }: SurveyResultsPagePro
   // Get submitted candidates with scores
   const { data: candidatesData } = await supabase
     .from('rlc_candidate_responses')
-    .select('id, candidate_name, candidate_party, candidate_office, candidate_district, status, total_score, submitted_at')
+    .select('id, candidate_name, candidate_party, candidate_office, candidate_district, candidate_state, status, total_score, submitted_at, office_type:rlc_office_types(name, district_label)')
     .eq('survey_id', survey.id)
     .in('status', ['submitted', 'endorsed', 'not_endorsed'])
     .order('total_score', { ascending: false, nullsFirst: false });
@@ -50,6 +50,8 @@ export default async function SurveyResultsPage({ params }: SurveyResultsPagePro
   const candidates = (candidatesData || []) as {
     id: string; candidate_name: string; candidate_party: string | null;
     candidate_office: string | null; candidate_district: string | null;
+    candidate_state: string | null;
+    office_type: { name: string; district_label: string | null } | null;
     status: string; total_score: number | null; submitted_at: string | null;
   }[];
 
@@ -105,8 +107,11 @@ export default async function SurveyResultsPage({ params }: SurveyResultsPagePro
                         )}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {c.candidate_office || 'Office not specified'}
-                        {c.candidate_district && ` - ${c.candidate_district}`}
+                        {c.office_type?.name ?? c.candidate_office ?? 'Office not specified'}
+                        {c.candidate_state ? ` - ${c.candidate_state}` : ''}
+                        {c.candidate_district
+                          ? ` ${c.office_type?.district_label ?? 'District'} ${c.candidate_district}`
+                          : ''}
                       </p>
                     </div>
                     <div className="text-right">

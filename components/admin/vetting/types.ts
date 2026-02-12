@@ -4,6 +4,7 @@ import type {
   VettingSectionStatus,
   VettingRecommendation,
   BoardVoteChoice,
+  OfficeLevel,
 } from '@/types';
 
 export interface VettingPermissions {
@@ -136,6 +137,14 @@ export interface SurveyResponseData {
   answers: SurveyAnswerData[];
 }
 
+export interface OfficeTypeData {
+  id: string;
+  level: OfficeLevel;
+  name: string;
+  slug: string;
+  district_label: string | null;
+}
+
 export interface VettingFullData {
   id: string;
   candidate_response_id: string;
@@ -144,6 +153,9 @@ export interface VettingFullData {
   candidate_office: string | null;
   candidate_district: string | null;
   candidate_party: string | null;
+  office_type_id: string | null;
+  office_type: OfficeTypeData | null;
+  charter_id: string | null;
   stage: VettingStage;
   recommendation: VettingRecommendation | null;
   recommendation_notes: string | null;

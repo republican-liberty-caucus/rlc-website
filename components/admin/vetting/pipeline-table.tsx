@@ -11,6 +11,7 @@ interface VettingItem {
   candidate_state: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
+  office_type: { name: string; district_label: string | null } | null;
   stage: string;
   recommendation: string | null;
   created_at: string;
@@ -82,8 +83,10 @@ export function PipelineTable({ vettings }: PipelineTableProps) {
                     {v.candidate_state || '-'}
                   </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {v.candidate_office || '-'}
-                    {v.candidate_district ? ` (${v.candidate_district})` : ''}
+                    {v.office_type?.name ?? v.candidate_office ?? '-'}
+                    {v.candidate_district
+                      ? ` (${v.office_type?.district_label ?? 'District'} ${v.candidate_district})`
+                      : ''}
                   </td>
                   <td className="px-4 py-3 text-sm">
                     <StatusBadge status={v.stage} type="vetting" />

@@ -14,8 +14,10 @@ interface CandidateResponseRow {
   candidate_party: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
+  candidate_state: string | null;
+  office_type_id: string | null;
   status: string;
-  survey: { state: string | null } | null;
+  survey: { state: string | null; charter_id: string | null } | null;
 }
 
 export async function POST(request: Request) {
@@ -52,7 +54,7 @@ export async function POST(request: Request) {
     // Look up the candidate response to denormalize fields and validate state
     const { data: response, error: responseError } = await supabase
       .from('rlc_candidate_responses')
-      .select('id, candidate_name, candidate_email, candidate_party, candidate_office, candidate_district, status, survey:rlc_surveys(state)')
+      .select('id, candidate_name, candidate_email, candidate_party, candidate_office, candidate_district, candidate_state, office_type_id, status, survey:rlc_surveys(state, charter_id)')
       .eq('id', candidateResponseId)
       .single();
 
@@ -77,7 +79,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const candidateState = candidateResponse.survey?.state ?? null;
+    // Prefer structured candidate_state from response, fall back to survey-level state
+    const candidateState = candidateResponse.candidate_state ?? candidateResponse.survey?.state ?? null;
+    const charterId = candidateResponse.survey?.charter_id ?? null;
 
     const vettingId = crypto.randomUUID();
 
@@ -93,6 +97,8 @@ export async function POST(request: Request) {
         candidate_district: candidateResponse.candidate_district ?? null,
         candidate_state: candidateState,
         candidate_party: candidateResponse.candidate_party ?? null,
+        office_type_id: candidateResponse.office_type_id ?? null,
+        charter_id: charterId,
         stage: 'survey_submitted',
       } as never)
       .select()

@@ -29,6 +29,7 @@ export default async function VettingReportPage({
     .from('rlc_candidate_vettings')
     .select(`
       *,
+      office_type:rlc_office_types(name, district_label),
       election_deadline:rlc_candidate_election_deadlines(id, primary_date, general_date, state_code, cycle_year, office_type),
       committee:rlc_candidate_vetting_committees(id, name),
       report_sections:rlc_candidate_vetting_report_sections(section, data, status),
@@ -67,6 +68,7 @@ export default async function VettingReportPage({
     candidate_office: vetting.candidate_office as string | null,
     candidate_district: vetting.candidate_district as string | null,
     candidate_party: vetting.candidate_party as string | null,
+    office_type: vetting.office_type as { name: string; district_label: string | null } | null,
     stage: vetting.stage as string,
     recommendation: vetting.recommendation as VettingRecommendation | null,
     recommendation_notes: vetting.recommendation_notes as string | null,
