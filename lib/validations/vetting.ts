@@ -116,6 +116,10 @@ export const sectionAcceptDraftSchema = z.object({
   mergeStrategy: z.enum(['replace', 'merge']).default('replace'),
 });
 
+export const aiDraftGenerateSchema = z.object({
+  force: z.boolean().default(false),
+});
+
 // ============================================
 // Opponent schemas
 // ============================================
@@ -225,3 +229,5 @@ export type BoardVoteInput = z.infer<typeof boardVoteSchema>;
 export type DistrictDataCreateInput = z.infer<typeof districtDataCreateSchema>;
 export type DistrictDataUpdateInput = z.infer<typeof districtDataUpdateSchema>;
 export type PipelineFilterInput = z.infer<typeof pipelineFilterSchema>;
+export type AiDraftGenerateInput = z.infer<typeof aiDraftGenerateSchema>;
+export type SectionAcceptDraftInput = z.infer<typeof sectionAcceptDraftSchema>;
