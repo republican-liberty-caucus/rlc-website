@@ -183,6 +183,18 @@ export const districtDataCreateSchema = z.object({
 export const districtDataUpdateSchema = districtDataCreateSchema.partial();
 
 // ============================================
+// Audit schemas
+// ============================================
+
+export const AUDIT_STATUSES = ['audit_pending', 'running', 'audit_completed', 'audit_failed'] as const;
+
+export const auditTriggerSchema = z.object({
+  force: z.boolean().default(false),
+});
+
+export type AuditTriggerInput = z.infer<typeof auditTriggerSchema>;
+
+// ============================================
 // Pipeline filter schemas
 // ============================================
 
