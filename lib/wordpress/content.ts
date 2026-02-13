@@ -171,7 +171,7 @@ export function wpautop(text: string): string {
  * Maps: rlc.org/wp-content/uploads/YYYY/MM/file → supabase storage URL
  */
 const WP_DOMAINS = ['rlc.org', 'www.rlc.org', 'new.rlc.org', 'brevardrepublicans.com', 'www.brevardrepublicans.com', 'rlccef.com', 'www.rlccef.com', 'vps.virtualinfosys.us'];
-const SUPABASE_STORAGE_BASE = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/wordpress-media`;
+const SUPABASE_STORAGE_BASE = `${(process.env.NEXT_PUBLIC_SUPABASE_URL || '').trim()}/storage/v1/object/public/wordpress-media`;
 
 export function rewriteWPImageUrl(url: string): string {
   if (!url) return url;
