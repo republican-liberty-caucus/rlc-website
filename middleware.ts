@@ -61,8 +61,8 @@ async function wpSlugRedirect(pathname: string, baseUrl: string): Promise<NextRe
   // Skip if it doesn't look like a WP slug (lowercase alphanumeric + hyphens)
   if (!/^[a-z0-9][a-z0-9-]*[a-z0-9]$/.test(slug) && !/^[a-z0-9]{1,2}$/.test(slug)) return null;
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
   if (!supabaseUrl || !supabaseAnonKey) return null;
 
   try {
