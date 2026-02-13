@@ -7,6 +7,7 @@ import { VettingOpponentsTab } from './tabs/vetting-opponents-tab';
 import { VettingStageActionsTab } from './tabs/vetting-stage-actions-tab';
 import { VettingBoardVoteTab } from './tabs/vetting-board-vote-tab';
 import { VettingSurveyTab } from './tabs/vetting-survey-tab';
+import { VettingAuditTab } from './tabs/vetting-audit-tab';
 import type { VettingFullData, VettingPermissions, CommitteeMemberOption, SurveyResponseData } from './types';
 
 interface VettingDetailTabsProps {
@@ -24,6 +25,7 @@ export function VettingDetailTabs({ vetting, permissions, committeeMembers, surv
       <TabsList className="w-full justify-start">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="survey">Survey</TabsTrigger>
+        <TabsTrigger value="audit">Digital Audit</TabsTrigger>
         <TabsTrigger value="sections">Report Sections</TabsTrigger>
         <TabsTrigger value="opponents">Opponents</TabsTrigger>
         <TabsTrigger value="actions">Stage Actions</TabsTrigger>
@@ -36,6 +38,14 @@ export function VettingDetailTabs({ vetting, permissions, committeeMembers, surv
 
       <TabsContent value="survey">
         <VettingSurveyTab surveyResponse={surveyResponse} />
+      </TabsContent>
+
+      <TabsContent value="audit">
+        <VettingAuditTab
+          vettingId={vetting.id}
+          vetting={vetting}
+          permissions={permissions}
+        />
       </TabsContent>
 
       <TabsContent value="sections">

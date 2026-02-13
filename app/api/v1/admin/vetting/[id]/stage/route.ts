@@ -1,9 +1,11 @@
 import { auth } from '@clerk/nextjs/server';
-import { NextResponse } from 'next/server';
+import { NextResponse, after } from 'next/server';
+import crypto from 'crypto';
 import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canCreateVetting } from '@/lib/vetting/permissions';
 import { vettingStageAdvanceSchema } from '@/lib/validations/vetting';
 import { canAdvanceStage } from '@/lib/vetting/engine';
+import { runAudit } from '@/lib/vetting/audit-engine';
 import { logger } from '@/lib/logger';
 import type { VettingStage, VettingSectionStatus, VettingReportSectionType } from '@/types';
 
@@ -104,6 +106,56 @@ export async function PATCH(
       }
       logger.error('Error advancing stage:', { id, targetStage, error: updateError });
       return NextResponse.json({ error: 'Failed to advance stage' }, { status: 500 });
+    }
+
+    // Auto-trigger digital presence audit when advancing to auto_audit
+    if (targetStage === 'auto_audit') {
+      const auditId = crypto.randomUUID();
+      const { error: auditInsertErr } = await supabase
+        .from('rlc_candidate_digital_audits')
+        .insert({
+          id: auditId,
+          vetting_id: id,
+          status: 'audit_pending',
+          triggered_by_id: ctx.member.id,
+        } as never);
+
+      if (auditInsertErr) {
+        logger.error('Failed to create audit record on stage advance:', { id, error: auditInsertErr });
+        // Rollback stage — audit couldn't be created, so auto_audit stage is broken
+        await supabase
+          .from('rlc_candidate_vettings')
+          .update({ stage: vetting.stage } as never)
+          .eq('id', id);
+        return NextResponse.json(
+          { error: 'Stage advanced but audit initialization failed. Stage rolled back.' },
+          { status: 500 },
+        );
+      } else {
+        after(() => {
+          runAudit(id, auditId, ctx.member.id).catch(async (err) => {
+            logger.error('[Audit] Background execution from stage advance failed:', err);
+            try {
+              const sb = createServerClient();
+              await sb
+                .from('rlc_candidate_digital_audits')
+                .update({
+                  status: 'audit_failed',
+                  error_message: err instanceof Error ? err.message : String(err),
+                  completed_at: new Date().toISOString(),
+                } as never)
+                .eq('id', auditId);
+            } catch (statusErr) {
+              logger.error('[Audit] Fallback status update failed (orphaned audit):', {
+                auditId,
+                vettingId: id,
+                originalError: err instanceof Error ? err.message : String(err),
+                statusUpdateError: statusErr,
+              });
+            }
+          });
+        });
+      }
     }
 
     return NextResponse.json({ vetting: updated });
