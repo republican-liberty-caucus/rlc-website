@@ -96,12 +96,18 @@ export async function POST(
 
     const { id } = await params;
 
-    // Parse optional body
+    // Parse optional body — empty body uses defaults, bad JSON returns 400
     let body: unknown = {};
-    try {
-      body = await request.json();
-    } catch {
-      // empty body is fine — defaults apply
+    const contentType = request.headers.get('content-type');
+    if (contentType?.includes('application/json')) {
+      try {
+        body = await request.json();
+      } catch {
+        return NextResponse.json(
+          { error: 'Invalid JSON in request body' },
+          { status: 400 },
+        );
+      }
     }
 
     const parseResult = auditTriggerSchema.safeParse(body);
@@ -116,7 +122,7 @@ export async function POST(
     const supabase = createServerClient();
 
     // Verify vetting exists
-    const { data: rawVetting, error: vErr } = await supabase
+    const { error: vErr } = await supabase
       .from('rlc_candidate_vettings')
       .select('id')
       .eq('id', id)
@@ -194,7 +200,14 @@ export async function POST(
               completed_at: new Date().toISOString(),
             } as never)
             .eq('id', auditId);
-        } catch { /* best-effort */ }
+        } catch (statusErr) {
+          logger.error('[Audit] Fallback status update failed (orphaned audit):', {
+            auditId,
+            vettingId: id,
+            originalError: err instanceof Error ? err.message : String(err),
+            statusUpdateError: statusErr,
+          });
+        }
       });
     });
 

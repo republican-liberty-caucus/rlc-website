@@ -152,6 +152,8 @@ export interface OpponentAuditResult {
   overallScore: number | null;
   grade: string | null;
   platforms: PlatformResult[];
+  auditFailed?: boolean;
+  failureReason?: string;
 }
 
 // ─── Full Audit Result ────────────────────────────────────────────

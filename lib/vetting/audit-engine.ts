@@ -50,7 +50,11 @@ export async function runAudit(
       .single();
 
     if (vError || !rawVetting) {
-      throw new Error(`Vetting not found: ${vError?.message ?? 'null'}`);
+      const errorDetail = vError
+        ? `Database error: ${vError.message} (code: ${vError.code})`
+        : 'Vetting record returned null — may have been deleted';
+      logger.error('[Audit] Failed to load vetting record:', { auditId, vettingId, error: vError });
+      throw new Error(errorDetail);
     }
 
     const vetting = rawVetting as {
@@ -126,7 +130,10 @@ export async function runAudit(
           platforms: oppPlatforms,
         });
       } catch (err) {
-        logger.warn(`[Audit] Opponent audit failed for "${opponent.name}":`, err);
+        logger.warn(`[Audit] Opponent audit failed for "${opponent.name}":`, {
+          opponentName: opponent.name,
+          error: err instanceof Error ? err.message : String(err),
+        });
         opponentAudits.push({
           name: opponent.name,
           party: opponent.party,
@@ -134,6 +141,8 @@ export async function runAudit(
           overallScore: null,
           grade: null,
           platforms: [],
+          auditFailed: true,
+          failureReason: err instanceof Error ? err.message : 'Unknown error',
         });
       }
     }
@@ -177,7 +186,13 @@ export async function runAudit(
         .insert(platformRows as never);
 
       if (platErr) {
-        logger.error('[Audit] Failed to insert platform rows:', platErr);
+        logger.error('[Audit] Failed to insert platform rows:', {
+          auditId,
+          vettingId,
+          platformCount: allPlatforms.length,
+          error: platErr,
+        });
+        throw new Error(`Platform insert failed: ${platErr.message}`);
       }
     }
 
@@ -203,7 +218,12 @@ export async function runAudit(
       .eq('section', 'digital_presence_audit');
 
     if (sectionErr) {
-      logger.error('[Audit] Failed to pre-populate report section:', sectionErr);
+      logger.error('[Audit] Failed to pre-populate report section:', {
+        auditId,
+        vettingId,
+        error: sectionErr,
+      });
+      throw new Error(`Report section update failed: ${sectionErr.message}`);
     }
 
     // 11. Update audit record to completed
@@ -269,11 +289,11 @@ function processPlatforms(
       input.state,
     );
 
-    // Basic platform scoring (heuristic — no page content analysis)
+    // Basic platform scoring (heuristic — no page content analysis yet)
     const platformScores = scorePlatform({
       hasProfile: true,
-      isActive: true, // assume active if found in search results
-      lastActivityRecent: true,
+      isActive: false, // can't verify without page crawl
+      lastActivityRecent: false, // can't verify without page crawl
       namingConsistent: confidenceScore > 0.5,
       messagingConsistent: confidenceScore > 0.4,
       hasLogo: false, // can't determine without screenshot
@@ -292,7 +312,7 @@ function processPlatforms(
       platformUrl: discovered.url,
       confidenceScore: Math.round(confidenceScore * 100) / 100,
       discoveryMethod: discovered.discoveryMethod,
-      activityStatus: 'active',
+      activityStatus: 'unknown',
       lastActivityDate: null,
       followers: null,
       engagementRate: null,

@@ -48,6 +48,8 @@ interface OpponentAuditData {
   platformCount: number;
   overallScore: number | null;
   grade: string | null;
+  auditFailed?: boolean;
+  failureReason?: string;
 }
 
 interface AuditData {
@@ -91,7 +93,7 @@ const STATUS_LABELS: Record<string, { label: string; color: string }> = {
 
 // ─── Component ────────────────────────────────────────────────────
 
-export function VettingAuditTab({ vettingId, vetting, permissions }: VettingAuditTabProps) {
+export function VettingAuditTab({ vettingId, vetting: _vetting, permissions }: VettingAuditTabProps) {
   const [audit, setAudit] = useState<AuditData | null>(null);
   const [loading, setLoading] = useState(false);
   const [fetched, setFetched] = useState(false);
@@ -336,23 +338,31 @@ export function VettingAuditTab({ vettingId, vetting, permissions }: VettingAudi
           </h3>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {audit.opponent_audits.map((opp, i) => (
-              <div key={i} className="rounded-lg border bg-background p-4">
+              <div key={i} className={`rounded-lg border bg-background p-4 ${
+                opp.auditFailed ? 'border-amber-200 dark:border-amber-900' : ''
+              }`}>
                 <h4 className="font-medium">{opp.name}</h4>
                 {opp.party && (
                   <p className="text-xs text-muted-foreground">{opp.party}</p>
                 )}
-                <div className="mt-3 flex items-center gap-4 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Platforms:</span>{' '}
-                    <span className="font-medium">{opp.platformCount}</span>
-                  </div>
-                  {opp.overallScore != null && (
+                {opp.auditFailed ? (
+                  <p className="mt-2 text-xs text-amber-600 dark:text-amber-400">
+                    Audit failed: {opp.failureReason ?? 'Unknown error'}
+                  </p>
+                ) : (
+                  <div className="mt-3 flex items-center gap-4 text-sm">
                     <div>
-                      <span className="text-muted-foreground">Avg Score:</span>{' '}
-                      <span className="font-medium">{opp.overallScore}</span>
+                      <span className="text-muted-foreground">Platforms:</span>{' '}
+                      <span className="font-medium">{opp.platformCount}</span>
                     </div>
-                  )}
-                </div>
+                    {opp.overallScore != null && (
+                      <div>
+                        <span className="text-muted-foreground">Avg Score:</span>{' '}
+                        <span className="font-medium">{opp.overallScore}</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             ))}
           </div>

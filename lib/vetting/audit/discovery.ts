@@ -21,7 +21,6 @@ interface TavilyResponse {
   results: TavilyResult[];
 }
 
-const MAX_HOPS = 3;
 const RESULTS_PER_HOP = 10;
 
 /**
@@ -96,7 +95,10 @@ export async function discoverOpponentPlatforms(
   office: string | null,
 ): Promise<DiscoveredUrl[]> {
   const tavilyKey = process.env.TAVILY_API_KEY;
-  if (!tavilyKey) return [];
+  if (!tavilyKey) {
+    logger.warn('[Audit] TAVILY_API_KEY not set — opponent discovery skipped', { opponentName });
+    return [];
+  }
 
   const hops: HopLog[] = [];
   const allUrls: DiscoveredUrl[] = [];
@@ -135,6 +137,10 @@ async function searchTavily(
       const errBody = await res.text().catch(() => '');
       logger.error(`Tavily search failed (${res.status}):`, errBody.slice(0, 200));
       hops.push({ hop, query, resultsFound: 0, durationMs: Date.now() - start });
+      // Fail fast on auth errors — remaining hops will also fail
+      if (res.status === 401 || res.status === 403) {
+        throw new Error(`Tavily API auth failed (${res.status}) — check TAVILY_API_KEY`);
+      }
       return [];
     }
 
@@ -143,8 +149,17 @@ async function searchTavily(
     hops.push({ hop, query, resultsFound: results.length, durationMs: Date.now() - start });
     return results;
   } catch (err) {
-    logger.error(`Tavily search error (hop ${hop}):`, err);
+    const isTimeout = err instanceof Error && err.name === 'AbortError';
+    logger.error(`Tavily search ${isTimeout ? 'TIMEOUT' : 'ERROR'} (hop ${hop}):`, {
+      query,
+      error: err instanceof Error ? err.message : String(err),
+      errorType: err instanceof Error ? err.constructor.name : typeof err,
+    });
     hops.push({ hop, query, resultsFound: 0, durationMs: Date.now() - start });
+    // Re-throw auth errors so the audit fails cleanly
+    if (err instanceof Error && err.message.includes('Tavily API auth failed')) {
+      throw err;
+    }
     return [];
   }
 }

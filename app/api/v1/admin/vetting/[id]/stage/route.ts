@@ -122,6 +122,15 @@ export async function PATCH(
 
       if (auditInsertErr) {
         logger.error('Failed to create audit record on stage advance:', { id, error: auditInsertErr });
+        // Rollback stage — audit couldn't be created, so auto_audit stage is broken
+        await supabase
+          .from('rlc_candidate_vettings')
+          .update({ stage: vetting.stage } as never)
+          .eq('id', id);
+        return NextResponse.json(
+          { error: 'Stage advanced but audit initialization failed. Stage rolled back.' },
+          { status: 500 },
+        );
       } else {
         after(() => {
           runAudit(id, auditId, ctx.member.id).catch(async (err) => {
@@ -136,7 +145,14 @@ export async function PATCH(
                   completed_at: new Date().toISOString(),
                 } as never)
                 .eq('id', auditId);
-            } catch { /* best-effort */ }
+            } catch (statusErr) {
+              logger.error('[Audit] Fallback status update failed (orphaned audit):', {
+                auditId,
+                vettingId: id,
+                originalError: err instanceof Error ? err.message : String(err),
+                statusUpdateError: statusErr,
+              });
+            }
           });
         });
       }
