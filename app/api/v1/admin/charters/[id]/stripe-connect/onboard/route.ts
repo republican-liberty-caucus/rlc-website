@@ -92,7 +92,7 @@ export async function POST(
   }
 
   // Generate onboarding link
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://rlc.org';
+  const baseUrl = (process.env.NEXT_PUBLIC_APP_URL || 'https://rlc.org').trim();
   const returnUrl = `${baseUrl}/admin/charters/${charterId}/banking?onboarding=complete`;
   const refreshUrl = `${baseUrl}/admin/charters/${charterId}/banking?onboarding=refresh`;
 

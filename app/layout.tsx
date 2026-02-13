@@ -7,7 +7,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { BASE_URL } from '@/lib/constants';
 import './globals.css';
 
-const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID;
+const GA_ID = process.env.NEXT_PUBLIC_GA_MEASUREMENT_ID?.trim();
 
 const inter = Inter({
   subsets: ['latin'],
