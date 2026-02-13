@@ -590,6 +590,8 @@ model Post {
   createdAt        DateTime  @default(now()) @map("created_at")
   updatedAt        DateTime  @updatedAt @map("updated_at")
 
+  vetting          CandidateVetting?
+
   @@map("rlc_posts")
 }
 
@@ -1078,6 +1080,8 @@ model CandidateVetting {
   // Press release
   pressReleaseUrl     String?              @map("press_release_url") @db.Text
   pressReleaseNotes   String?              @map("press_release_notes") @db.Text
+  pressReleasePostId  String?              @unique @map("press_release_post_id")
+  pressReleasePost    Post?                @relation(fields: [pressReleasePostId], references: [id])
 
   metadata            Json                 @default("{}")
   createdAt           DateTime             @default(now()) @map("created_at")

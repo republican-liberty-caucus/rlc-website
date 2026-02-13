@@ -164,6 +164,7 @@ export interface VettingFullData {
   endorsed_at: string | null;
   press_release_url: string | null;
   press_release_notes: string | null;
+  press_release_post_id: string | null;
   interview_date: string | null;
   interview_notes: string | null;
   interviewers: string[] | null;

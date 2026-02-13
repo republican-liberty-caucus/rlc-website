@@ -10,11 +10,24 @@ export const metadata: Metadata = {
   title: 'Create Post - Admin',
 };
 
-export default async function AdminCreatePostPage() {
+interface AdminCreatePostPageProps {
+  searchParams: Promise<{ contentType?: string }>;
+}
+
+export default async function AdminCreatePostPage({ searchParams }: AdminCreatePostPageProps) {
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
   const ctx = await getAdminContext(userId);
   if (!ctx) redirect('/dashboard?error=unauthorized');
+
+  const params = await searchParams;
+  const contentType = params.contentType === 'press_release' ? 'press_release'
+    : params.contentType === 'page' ? 'page' : 'post';
+
+  const entityLabel = contentType === 'page' ? 'Page'
+    : contentType === 'press_release' ? 'Press Release' : 'Post';
+  const backPath = contentType === 'page' ? '/admin/pages'
+    : contentType === 'press_release' ? '/admin/press-releases' : '/admin/posts';
 
   const supabase = createServerClient();
 
@@ -33,15 +46,16 @@ export default async function AdminCreatePostPage() {
   return (
     <div>
       <div className="mb-8">
-        <Link href="/admin/posts" className="text-sm text-muted-foreground hover:underline">
-          &larr; Back to Posts
+        <Link href={backPath} className="text-sm text-muted-foreground hover:underline">
+          &larr; Back to {entityLabel}s
         </Link>
-        <h1 className="mt-2 text-3xl font-bold">Create Post</h1>
+        <h1 className="mt-2 text-3xl font-bold">Create {entityLabel}</h1>
       </div>
 
       <PostEditorForm
         post={null}
         charters={(charters || []) as { id: string; name: string }[]}
+        contentType={contentType}
       />
     </div>
   );

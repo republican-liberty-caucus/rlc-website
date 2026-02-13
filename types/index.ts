@@ -172,7 +172,7 @@ export interface Post {
   author_id: string | null;
   charter_id: string | null;
   status: string;
-  content_type: 'post' | 'page';
+  content_type: 'post' | 'page' | 'press_release';
   published_at: string | null;
   categories: string[];
   tags: string[];
@@ -598,6 +598,7 @@ export interface CandidateVetting {
   endorsed_at: string | null;
   press_release_url: string | null;
   press_release_notes: string | null;
+  press_release_post_id: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;

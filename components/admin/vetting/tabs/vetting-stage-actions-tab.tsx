@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ADMIN_INPUT_CLASS, ADMIN_LABEL_CLASS } from '@/components/admin/form-styles';
@@ -394,9 +395,19 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
                 {new Date(vetting.endorsed_at).toLocaleDateString()}
               </p>
             )}
+            {vetting.press_release_post_id && (
+              <p>
+                <a
+                  href={`/admin/posts/${vetting.press_release_post_id}`}
+                  className="text-blue-600 dark:text-blue-400 underline"
+                >
+                  View Press Release in Admin
+                </a>
+              </p>
+            )}
             {vetting.press_release_url && (
               <p>
-                <span className="text-muted-foreground">Press Release:</span>{' '}
+                <span className="text-muted-foreground">External URL:</span>{' '}
                 <a
                   href={vetting.press_release_url}
                   target="_blank"
@@ -411,47 +422,67 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
         </div>
       )}
 
-      {/* Press Release Form */}
-      {(vetting.stage === 'press_release_created' || vetting.stage === 'press_release_published') &&
-        permissions.canCreateVetting && (
+      {/* Press Release — Draft Link or Manual Fallback */}
+      {vetting.stage === 'press_release_created' && permissions.canCreateVetting && (
         <div className="rounded-lg border bg-card p-6">
           <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
             Press Release
           </h3>
 
-          <div className="space-y-3">
-            <div>
-              <label className={ADMIN_LABEL_CLASS}>Press Release URL</label>
-              <input
-                type="url"
-                value={pressReleaseUrl}
-                onChange={(e) => setPressReleaseUrl(e.target.value)}
-                className={ADMIN_INPUT_CLASS}
-                placeholder="https://docs.google.com/... or published URL"
-              />
-            </div>
-
-            <div>
-              <label className={ADMIN_LABEL_CLASS}>Notes</label>
-              <textarea
-                value={pressReleaseNotes}
-                onChange={(e) => setPressReleaseNotes(e.target.value)}
-                rows={4}
-                className={ADMIN_INPUT_CLASS}
-                placeholder="Internal notes about the press release..."
-              />
-            </div>
-
-            <div className="flex justify-end">
-              <Button
-                size="sm"
-                className="bg-rlc-red hover:bg-rlc-red/90"
-                onClick={handleSavePressRelease}
-                disabled={savingPressRelease}
+          {vetting.press_release_post_id ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Draft created &mdash; edit and publish to complete the vetting process.
+              </p>
+              <a
+                href={`/admin/posts/${vetting.press_release_post_id}`}
+                className="inline-flex items-center gap-2 rounded-md bg-rlc-red px-4 py-2 text-sm font-medium text-white hover:bg-rlc-red/90"
               >
-                {savingPressRelease ? 'Saving...' : 'Save Press Release'}
-              </Button>
+                Edit Press Release Draft
+              </a>
             </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Auto-draft creation failed. Use the manual form below or create one from{' '}
+                <Link href="/admin/posts/new?contentType=press_release" className="underline">
+                  the press release editor
+                </Link>.
+              </p>
+              <div>
+                <label className={ADMIN_LABEL_CLASS}>Press Release URL</label>
+                <input
+                  type="url"
+                  value={pressReleaseUrl}
+                  onChange={(e) => setPressReleaseUrl(e.target.value)}
+                  className={ADMIN_INPUT_CLASS}
+                  placeholder="https://docs.google.com/... or published URL"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Notes field (always shown) */}
+          <div className="mt-3">
+            <label className={ADMIN_LABEL_CLASS}>Internal Notes</label>
+            <textarea
+              value={pressReleaseNotes}
+              onChange={(e) => setPressReleaseNotes(e.target.value)}
+              rows={3}
+              className={ADMIN_INPUT_CLASS}
+              placeholder="Internal notes about the press release..."
+            />
+          </div>
+
+          <div className="flex justify-end mt-3">
+            <Button
+              size="sm"
+              className="bg-rlc-red hover:bg-rlc-red/90"
+              onClick={handleSavePressRelease}
+              disabled={savingPressRelease}
+            >
+              {savingPressRelease ? 'Saving...' : 'Save Notes'}
+            </Button>
           </div>
         </div>
       )}
