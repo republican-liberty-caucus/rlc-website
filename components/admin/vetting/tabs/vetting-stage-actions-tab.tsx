@@ -29,6 +29,7 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
   const [advancing, setAdvancing] = useState(false);
   const [savingInterview, setSavingInterview] = useState(false);
   const [savingRec, setSavingRec] = useState(false);
+  const [savingPressRelease, setSavingPressRelease] = useState(false);
 
   // Interview form state
   const [interviewDate, setInterviewDate] = useState(
@@ -43,6 +44,10 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
   const [recommendation, setRecommendation] = useState(vetting.recommendation ?? '');
   const [recNotes, setRecNotes] = useState(vetting.recommendation_notes ?? '');
 
+  // Press release form state
+  const [pressReleaseUrl, setPressReleaseUrl] = useState(vetting.press_release_url ?? '');
+  const [pressReleaseNotes, setPressReleaseNotes] = useState(vetting.press_release_notes ?? '');
+
   const nextStage = getNextStage(vetting.stage);
   const sections = vetting.report_sections.map((s) => ({
     section: s.section,
@@ -52,6 +57,7 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
   const gateResult = nextStage
     ? canAdvanceStage(vetting.stage, nextStage, sections, {
         hasRecommendation: !!vetting.recommendation,
+        hasEndorsementResult: !!vetting.endorsement_result,
       })
     : { allowed: false, reason: 'Final stage reached' };
 
@@ -113,6 +119,36 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
       alert('A network error occurred. Please check your connection and try again.');
     } finally {
       setSavingInterview(false);
+    }
+  }
+
+  async function handleSavePressRelease() {
+    setSavingPressRelease(true);
+    try {
+      const body: Record<string, unknown> = {};
+      if (pressReleaseUrl.trim()) body.pressReleaseUrl = pressReleaseUrl.trim();
+      if (pressReleaseNotes.trim()) body.pressReleaseNotes = pressReleaseNotes.trim();
+
+      if (Object.keys(body).length === 0) {
+        alert('Please enter a URL or notes');
+        return;
+      }
+
+      const res = await fetch(`/api/v1/admin/vetting/${vetting.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        router.refresh();
+      } else {
+        const err = await res.json().catch(() => null);
+        alert(err?.error || 'Failed to save press release data');
+      }
+    } catch {
+      alert('A network error occurred. Please check your connection and try again.');
+    } finally {
+      setSavingPressRelease(false);
     }
   }
 
@@ -185,6 +221,11 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
                 Committee recommendation required before board vote
               </p>
             )}
+            {nextStage === 'press_release_created' && !vetting.endorsement_result && (
+              <p className="text-sm text-amber-600 dark:text-amber-400">
+                Board vote must be finalized before creating press release
+              </p>
+            )}
             {gateResult.allowed ? (
               <Badge className="bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400 border-transparent">
                 Ready to advance
@@ -207,9 +248,9 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
           </Button>
         )}
 
-        {!nextStage && (
+        {!nextStage && vetting.stage !== 'press_release_published' && (
           <p className="text-sm text-muted-foreground">
-            This vetting has reached the final stage (Board Vote).
+            No further stage transitions available.
           </p>
         )}
 
@@ -328,6 +369,87 @@ export function VettingStageActionsTab({ vetting, permissions }: VettingStageAct
                 disabled={savingRec || !recommendation}
               >
                 {savingRec ? 'Saving...' : 'Submit Recommendation'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Process Complete Banner */}
+      {vetting.stage === 'press_release_published' && (
+        <div className="rounded-lg border-2 border-green-500 bg-green-50 dark:bg-green-950/30 p-6">
+          <h3 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-3">
+            Vetting Complete &mdash; Press Release Published
+          </h3>
+          <div className="space-y-2 text-sm">
+            {vetting.endorsement_result && (
+              <p>
+                <span className="text-muted-foreground">Endorsement Result:</span>{' '}
+                <span className="font-medium">{formatLabel(vetting.endorsement_result)}</span>
+              </p>
+            )}
+            {vetting.endorsed_at && (
+              <p>
+                <span className="text-muted-foreground">Endorsed:</span>{' '}
+                {new Date(vetting.endorsed_at).toLocaleDateString()}
+              </p>
+            )}
+            {vetting.press_release_url && (
+              <p>
+                <span className="text-muted-foreground">Press Release:</span>{' '}
+                <a
+                  href={vetting.press_release_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 dark:text-blue-400 underline"
+                >
+                  {vetting.press_release_url}
+                </a>
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Press Release Form */}
+      {(vetting.stage === 'press_release_created' || vetting.stage === 'press_release_published') &&
+        permissions.canCreateVetting && (
+        <div className="rounded-lg border bg-card p-6">
+          <h3 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-4">
+            Press Release
+          </h3>
+
+          <div className="space-y-3">
+            <div>
+              <label className={ADMIN_LABEL_CLASS}>Press Release URL</label>
+              <input
+                type="url"
+                value={pressReleaseUrl}
+                onChange={(e) => setPressReleaseUrl(e.target.value)}
+                className={ADMIN_INPUT_CLASS}
+                placeholder="https://docs.google.com/... or published URL"
+              />
+            </div>
+
+            <div>
+              <label className={ADMIN_LABEL_CLASS}>Notes</label>
+              <textarea
+                value={pressReleaseNotes}
+                onChange={(e) => setPressReleaseNotes(e.target.value)}
+                rows={4}
+                className={ADMIN_INPUT_CLASS}
+                placeholder="Internal notes about the press release..."
+              />
+            </div>
+
+            <div className="flex justify-end">
+              <Button
+                size="sm"
+                className="bg-rlc-red hover:bg-rlc-red/90"
+                onClick={handleSavePressRelease}
+                disabled={savingPressRelease}
+              >
+                {savingPressRelease ? 'Saving...' : 'Save Press Release'}
               </Button>
             </div>
           </div>

@@ -18,7 +18,11 @@ interface VettingDetailTabsProps {
 }
 
 export function VettingDetailTabs({ vetting, permissions, committeeMembers, surveyResponse }: VettingDetailTabsProps) {
-  const showBoardVote = vetting.stage === 'board_vote' || !!vetting.endorsed_at;
+  const showBoardVote =
+    vetting.stage === 'board_vote' ||
+    vetting.stage === 'press_release_created' ||
+    vetting.stage === 'press_release_published' ||
+    !!vetting.endorsed_at;
 
   return (
     <Tabs defaultValue="overview">

@@ -7,6 +7,7 @@ import { z } from 'zod';
 export const VETTING_STAGES = [
   'survey_submitted', 'auto_audit', 'assigned', 'research',
   'interview', 'committee_review', 'board_vote',
+  'press_release_created', 'press_release_published',
 ] as const;
 
 export const VETTING_REPORT_SECTION_TYPES = [
@@ -167,6 +168,15 @@ export const boardVoteSchema = z.object({
 });
 
 // ============================================
+// Press release schemas
+// ============================================
+
+export const pressReleaseUpdateSchema = z.object({
+  pressReleaseUrl: z.string().url().max(2000).optional(),
+  pressReleaseNotes: z.string().max(5000).optional(),
+});
+
+// ============================================
 // District data schemas
 // ============================================
 
@@ -226,6 +236,7 @@ export type OpponentUpdateInput = z.infer<typeof opponentUpdateSchema>;
 export type InterviewUpdateInput = z.infer<typeof interviewUpdateSchema>;
 export type RecommendationInput = z.infer<typeof recommendationSchema>;
 export type BoardVoteInput = z.infer<typeof boardVoteSchema>;
+export type PressReleaseUpdateInput = z.infer<typeof pressReleaseUpdateSchema>;
 export type DistrictDataCreateInput = z.infer<typeof districtDataCreateSchema>;
 export type DistrictDataUpdateInput = z.infer<typeof districtDataUpdateSchema>;
 export type PipelineFilterInput = z.infer<typeof pipelineFilterSchema>;

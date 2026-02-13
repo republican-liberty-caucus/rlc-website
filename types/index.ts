@@ -516,7 +516,9 @@ export type VettingStage =
   | 'research'
   | 'interview'
   | 'committee_review'
-  | 'board_vote';
+  | 'board_vote'
+  | 'press_release_created'
+  | 'press_release_published';
 
 export type VettingReportSectionType =
   | 'digital_presence_audit'
@@ -594,6 +596,8 @@ export interface CandidateVetting {
   recommended_at: string | null;
   endorsement_result: VettingRecommendation | null;
   endorsed_at: string | null;
+  press_release_url: string | null;
+  press_release_notes: string | null;
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;

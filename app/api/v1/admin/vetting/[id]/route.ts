@@ -12,6 +12,7 @@ import {
   vettingUpdateSchema,
   recommendationSchema,
   interviewUpdateSchema,
+  pressReleaseUpdateSchema,
 } from '@/lib/validations/vetting';
 import { logger } from '@/lib/logger';
 
@@ -169,6 +170,50 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         }
         logger.error('Error updating interview:', { id, error });
         return NextResponse.json({ error: 'Failed to update interview' }, { status: 500 });
+      }
+
+      return NextResponse.json({ vetting: data });
+    }
+
+    // Press release update
+    if ('pressReleaseUrl' in body || 'pressReleaseNotes' in body) {
+      if (!canCreateVetting(ctx)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+
+      const parseResult = pressReleaseUpdateSchema.safeParse(body);
+      if (!parseResult.success) {
+        return NextResponse.json(
+          { error: 'Invalid input', details: parseResult.error.flatten() },
+          { status: 400 }
+        );
+      }
+
+      const updates: Record<string, unknown> = {};
+      if (parseResult.data.pressReleaseUrl !== undefined) {
+        updates.press_release_url = parseResult.data.pressReleaseUrl;
+      }
+      if (parseResult.data.pressReleaseNotes !== undefined) {
+        updates.press_release_notes = parseResult.data.pressReleaseNotes;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+      }
+
+      const { data, error } = await supabase
+        .from('rlc_candidate_vettings')
+        .update(updates as never)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        if (error.code === 'PGRST116') {
+          return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        }
+        logger.error('Error updating press release:', { id, error });
+        return NextResponse.json({ error: 'Failed to update press release' }, { status: 500 });
       }
 
       return NextResponse.json({ vetting: data });
