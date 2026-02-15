@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { applyMemberFilters } from '@/lib/admin/permissions';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { escapeCsvField } from '@/lib/csv';
@@ -42,19 +41,25 @@ export async function GET(request: Request) {
       membership_join_date, membership_expiry_date,
       primary_charter:rlc_charters(name)
     `)
-    .order('last_name')
-    .limit(10000);
+    .order('last_name');
 
   query = applyMemberFilters(query, ctx.visibleCharterIds, { search, status, tier, source, joined_after, joined_before });
 
-  const { data, error } = await query;
-
-  if (error) {
-    logger.error('Export query error:', error);
-    return apiError('Export failed', ApiErrorCode.INTERNAL_ERROR, 500);
+  // Fetch all rows via pagination (PostgREST default is 1000 per request)
+  const PAGE_SIZE = 1000;
+  const rows: ExportRow[] = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await query.range(offset, offset + PAGE_SIZE - 1);
+    if (error) {
+      logger.error('Export query error:', error);
+      return apiError('Export failed', ApiErrorCode.INTERNAL_ERROR, 500);
+    }
+    if (!data?.length) break;
+    rows.push(...(data as ExportRow[]));
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
   }
-
-  const rows = (data || []) as ExportRow[];
 
   const headers = ['Name', 'Email', 'Phone', 'City', 'State', 'Tier', 'Status', 'Charter', 'Join Date', 'Expiry Date'];
   const csvLines = [
