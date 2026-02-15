@@ -122,6 +122,24 @@ export interface Contribution {
   created_at: string;
 }
 
+export interface Membership {
+  id: string;
+  contact_id: string;
+  membership_tier: MembershipTier;
+  membership_status: MembershipStatus;
+  start_date: string | null;
+  expiry_date: string | null;
+  join_date: string | null;
+  amount: number | null;
+  currency: string | null;
+  civicrm_membership_id: number | null;
+  is_auto_renew: boolean;
+  stripe_subscription_id: string | null;
+  metadata: Record<string, unknown>;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Event {
   id: string;
   title: string;
