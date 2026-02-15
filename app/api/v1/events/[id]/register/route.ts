@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { eventRegistrationSchema } from '@/lib/validations/event';
+import { applyRateLimit } from '@/lib/rate-limit';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
@@ -9,6 +10,9 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const rateLimited = applyRateLimit(request, 'public');
+  if (rateLimited) return rateLimited;
+
   const { id: eventId } = await params;
   const { userId } = await auth();
 

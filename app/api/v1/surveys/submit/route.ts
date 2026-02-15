@@ -2,10 +2,14 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { surveySubmissionSchema } from '@/lib/validations/survey';
 import { findOrCreateCandidateContact } from '@/lib/vetting/candidate-contact';
+import { applyRateLimit } from '@/lib/rate-limit';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
+  const rateLimited = applyRateLimit(request, 'public');
+  if (rateLimited) return rateLimited;
+
   let body: unknown;
   try {
     body = await request.json();

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createCheckoutSession, MEMBERSHIP_TIERS } from '@/lib/stripe/client';
 import { getMemberByClerkId } from '@/lib/supabase/server';
+import { applyRateLimit } from '@/lib/rate-limit';
 import type { MembershipTier } from '@/types';
 import { logger } from '@/lib/logger';
 
@@ -14,6 +15,9 @@ const checkoutSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const rateLimited = applyRateLimit(request, 'payment');
+  if (rateLimited) return rateLimited;
+
   try {
     const body = await request.json();
     const parseResult = checkoutSchema.safeParse(body);

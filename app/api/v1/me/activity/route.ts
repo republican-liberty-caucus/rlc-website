@@ -105,7 +105,7 @@ export async function GET() {
         id: c.id,
         type: 'contribution',
         title: typeLabels[c.contribution_type] || 'Contribution',
-        description: `$${(c.amount / 100).toFixed(2)}`,
+        description: `$${Number(c.amount).toFixed(2)}`,
         timestamp: c.created_at,
         href: '/contributions',
       });

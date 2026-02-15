@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createDonationCheckoutSession } from '@/lib/stripe/client';
 import { getMemberByClerkId } from '@/lib/supabase/server';
+import { applyRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
 
 const donateSchema = z.object({
@@ -14,6 +15,9 @@ const donateSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const rateLimited = applyRateLimit(request, 'payment');
+  if (rateLimited) return rateLimited;
+
   try {
     let body: unknown;
     try {
