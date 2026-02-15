@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(
   _request: Request,
@@ -12,7 +13,7 @@ export async function GET(
   const { id: charterId } = await params;
 
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { data, error } = await supabase
@@ -30,7 +31,7 @@ export async function GET(
         payouts_enabled: false,
       });
     }
-    return NextResponse.json({ error: 'Failed to fetch Stripe account status' }, { status: 500 });
+    return apiError('Failed to fetch Stripe account status', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   if (!data) {

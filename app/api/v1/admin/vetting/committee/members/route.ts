@@ -5,31 +5,29 @@ import { getVettingContext, canManageCommittee } from '@/lib/vetting/permissions
 import { committeeMemberAddSchema } from '@/lib/validations/vetting';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function POST(request: Request) {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const ctx = await getVettingContext(userId);
   if (!ctx || !canManageCommittee(ctx)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = committeeMemberAddSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const { contactId, role } = parseResult.data;
@@ -37,7 +35,7 @@ export async function POST(request: Request) {
   // Need a committeeId — get the first active committee (or from request body)
   const committeeId = (body as Record<string, unknown>).committeeId as string | undefined;
   if (!committeeId) {
-    return NextResponse.json({ error: 'committeeId is required' }, { status: 400 });
+    return apiError('committeeId is required', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   const supabase = createServerClient();
@@ -56,10 +54,10 @@ export async function POST(request: Request) {
 
   if (error) {
     if (error.code === '23505') {
-      return NextResponse.json({ error: 'Member is already on this committee' }, { status: 409 });
+      return apiError('Member is already on this committee', ApiErrorCode.CONFLICT, 409);
     }
     logger.error('Error adding committee member:', error);
-    return NextResponse.json({ error: 'Failed to add member' }, { status: 500 });
+    return apiError('Failed to add member', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ member: data }, { status: 201 });

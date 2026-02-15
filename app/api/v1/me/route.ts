@@ -5,6 +5,7 @@ import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import type { Database } from '@/lib/supabase/client';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type MemberUpdate = Database['public']['Tables']['rlc_contacts']['Update'];
 
@@ -42,7 +43,7 @@ export async function GET() {
   const { userId } = await auth();
 
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   try {
@@ -50,7 +51,7 @@ export async function GET() {
     return NextResponse.json({ member });
   } catch (error) {
     logger.error('Error getting/creating member:', error);
-    return NextResponse.json({ error: 'Failed to load profile' }, { status: 500 });
+    return apiError('Failed to load profile', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -58,7 +59,7 @@ export async function PATCH(request: Request) {
   const { userId } = await auth();
 
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   try {
@@ -68,10 +69,7 @@ export async function PATCH(request: Request) {
     // Validate input
     const parseResult = profileUpdateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const {
@@ -138,6 +136,6 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ member: updatedMember });
   } catch (error) {
     logger.error('Error updating member:', error);
-    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
+    return apiError('Failed to update profile', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

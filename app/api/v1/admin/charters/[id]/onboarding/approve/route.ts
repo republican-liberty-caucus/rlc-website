@@ -3,6 +3,7 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { isOnboardingComplete } from '@/lib/onboarding/engine';
 import { logger } from '@/lib/logger';
 import type { OnboardingStep, OnboardingStepStatus } from '@/types';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function POST(
   _request: Request,
@@ -13,7 +14,7 @@ export async function POST(
   const { ctx, supabase } = result;
 
   if (!ctx.isNational) {
-    return NextResponse.json({ error: 'Forbidden: national admin required' }, { status: 403 });
+    return apiError('Forbidden: national admin required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: charterId } = await params;
@@ -29,15 +30,15 @@ export async function POST(
   if (fetchError || !rawOnboarding) {
     if (fetchError && fetchError.code !== 'PGRST116') {
       logger.error('Error fetching onboarding for approval:', fetchError);
-      return NextResponse.json({ error: 'Failed to fetch onboarding' }, { status: 500 });
+      return apiError('Failed to fetch onboarding', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'Onboarding not found' }, { status: 404 });
+    return apiError('Onboarding not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const onboarding = rawOnboarding as { id: string; approved_at: string | null; steps: Array<{ step: string; status: string }> };
 
   if (onboarding.approved_at) {
-    return NextResponse.json({ error: 'Already approved' }, { status: 400 });
+    return apiError('Already approved', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   // Check all steps are complete
@@ -47,7 +48,7 @@ export async function POST(
   }));
 
   if (!isOnboardingComplete(steps)) {
-    return NextResponse.json({ error: 'Not all steps are complete' }, { status: 400 });
+    return apiError('Not all steps are complete', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   const now = new Date().toISOString();
@@ -65,7 +66,7 @@ export async function POST(
 
   if (onboardingError) {
     logger.error('Error approving onboarding:', onboardingError);
-    return NextResponse.json({ error: 'Failed to approve onboarding' }, { status: 500 });
+    return apiError('Failed to approve onboarding', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   // Verify charter is still in forming status before activation
@@ -77,11 +78,11 @@ export async function POST(
 
   if (charterFetchError || !charterRow) {
     logger.error('Error fetching charter for approval:', charterFetchError);
-    return NextResponse.json({ error: 'Failed to verify charter status' }, { status: 500 });
+    return apiError('Failed to verify charter status', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   if ((charterRow as { status: string }).status !== 'forming') {
-    return NextResponse.json({ error: 'Charter is no longer in forming status' }, { status: 409 });
+    return apiError('Charter is no longer in forming status', ApiErrorCode.CONFLICT, 409);
   }
 
   // Transition charter from forming → active
@@ -105,12 +106,9 @@ export async function POST(
         rollbackError,
         originalError: charterError,
       });
-      return NextResponse.json(
-        { error: 'Failed to activate charter and rollback failed. Contact support.' },
-        { status: 500 }
-      );
+      return apiError('Failed to activate charter and rollback failed. Contact support.', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'Failed to activate charter. Approval rolled back — please retry.' }, { status: 500 });
+    return apiError('Failed to activate charter. Approval rolled back — please retry.', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ success: true, message: 'Charter onboarding approved and charter activated' });

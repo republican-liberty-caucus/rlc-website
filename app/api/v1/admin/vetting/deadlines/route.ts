@@ -5,16 +5,17 @@ import { getVettingContext, canManageDeadlines } from '@/lib/vetting/permissions
 import { electionDeadlineCreateSchema } from '@/lib/validations/vetting';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const ctx = await getVettingContext(userId);
   if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const supabase = createServerClient();
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     logger.error('Error fetching election deadlines:', error);
-    return NextResponse.json({ error: 'Failed to fetch deadlines' }, { status: 500 });
+    return apiError('Failed to fetch deadlines', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ deadlines: data || [] });
@@ -48,27 +49,24 @@ export async function GET(request: NextRequest) {
 export async function POST(request: Request) {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const ctx = await getVettingContext(userId);
   if (!ctx || !canManageDeadlines(ctx)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = electionDeadlineCreateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -93,13 +91,10 @@ export async function POST(request: Request) {
 
   if (error) {
     if (error.code === '23505') {
-      return NextResponse.json(
-        { error: 'A deadline for this state/year/office already exists' },
-        { status: 409 }
-      );
+      return apiError('A deadline for this state/year/office already exists', ApiErrorCode.CONFLICT, 409);
     }
     logger.error('Error creating election deadline:', error);
-    return NextResponse.json({ error: 'Failed to create deadline' }, { status: 500 });
+    return apiError('Failed to create deadline', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ deadline: data }, { status: 201 });

@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canViewPipeline, canCastBoardVote } from '@/lib/vetting/permissions';
 import { boardVoteSchema } from '@/lib/validations/vetting';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function GET(
   _request: Request,
@@ -12,12 +13,12 @@ export async function GET(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canViewPipeline(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -35,7 +36,7 @@ export async function GET(
 
     if (votesError) {
       logger.error('Error fetching board votes:', { vettingId: id, error: votesError });
-      return NextResponse.json({ error: 'Failed to fetch votes' }, { status: 500 });
+      return apiError('Failed to fetch votes', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Fetch eligible voters: national_board and super_admin role holders
@@ -46,7 +47,7 @@ export async function GET(
 
     if (rolesError) {
       logger.error('Error fetching eligible voter roles:', { error: rolesError });
-      return NextResponse.json({ error: 'Failed to fetch eligible voters' }, { status: 500 });
+      return apiError('Failed to fetch eligible voters', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Deduplicate contact IDs and fetch member details
@@ -61,7 +62,7 @@ export async function GET(
 
       if (membersError) {
         logger.error('Error fetching eligible voter details:', { error: membersError });
-        return NextResponse.json({ error: 'Failed to fetch eligible voters' }, { status: 500 });
+        return apiError('Failed to fetch eligible voters', ApiErrorCode.INTERNAL_ERROR, 500);
       }
       eligibleVoters = (rawMembers ?? []) as unknown as typeof eligibleVoters;
     }
@@ -72,7 +73,7 @@ export async function GET(
     });
   } catch (err) {
     logger.error('Unhandled error in GET /api/v1/admin/vetting/[id]/votes:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -83,12 +84,12 @@ export async function POST(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canCastBoardVote(ctx)) {
-      return NextResponse.json({ error: 'Forbidden: only national board members can vote' }, { status: 403 });
+      return apiError('Forbidden: only national board members can vote', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -97,15 +98,12 @@ export async function POST(
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = boardVoteSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const { vote, notes } = parseResult.data;
@@ -120,26 +118,20 @@ export async function POST(
 
     if (vettingError) {
       if (vettingError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching vetting for vote:', { id, error: vettingError });
-      return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
+      return apiError('Failed to fetch vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const vetting = rawVetting as unknown as { id: string; stage: string; endorsed_at: string | null };
 
     if (vetting.stage !== 'board_vote') {
-      return NextResponse.json(
-        { error: 'Voting is only available at the board_vote stage' },
-        { status: 400 }
-      );
+      return apiError('Voting is only available at the board_vote stage', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     if (vetting.endorsed_at) {
-      return NextResponse.json(
-        { error: 'Voting has been finalized. No further changes allowed.' },
-        { status: 400 }
-      );
+      return apiError('Voting has been finalized. No further changes allowed.', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     // Use the contact (member) ID as voter_id — FK references rlc_contacts
@@ -163,12 +155,12 @@ export async function POST(
 
     if (upsertError) {
       logger.error('Error casting board vote:', { vettingId: id, voterId, error: upsertError });
-      return NextResponse.json({ error: 'Failed to cast vote' }, { status: 500 });
+      return apiError('Failed to cast vote', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ vote: upserted }, { status: 200 });
   } catch (err) {
     logger.error('Unhandled error in POST /api/v1/admin/vetting/[id]/votes:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

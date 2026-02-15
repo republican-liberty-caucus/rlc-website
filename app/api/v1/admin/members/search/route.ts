@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sanitizeSearch } from '@/lib/admin/permissions';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 /**
  * GET /api/v1/admin/members/search?q=smith&charter_id=xxx
@@ -40,7 +41,7 @@ export async function GET(request: NextRequest) {
   const { data, error } = await q;
 
   if (error) {
-    return NextResponse.json({ error: 'Search failed' }, { status: 500 });
+    return apiError('Search failed', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export const revalidate = 30;
 
@@ -21,7 +22,7 @@ export async function GET() {
 
     if (error) {
       console.error('[activity API] Supabase error:', error.message);
-      return NextResponse.json({ error: 'Failed to fetch activity' }, { status: 500 });
+      return apiError('Failed to fetch activity', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     type ParticipationRow = {
@@ -44,6 +45,6 @@ export async function GET() {
     return NextResponse.json({ data: items });
   } catch (err) {
     console.error('[activity API] Unexpected error:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

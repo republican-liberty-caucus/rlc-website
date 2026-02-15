@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { rpc } from '@/lib/supabase/rpc';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: Request) {
   const result = await requireAdminApi();
@@ -16,7 +17,7 @@ export async function GET(request: Request) {
   const contributionId = searchParams.get('contributionId');
 
   if (charterId && ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   // Build the charter_ids filter for RPC
@@ -56,7 +57,7 @@ export async function GET(request: Request) {
   ]);
 
   if (dataRes.error) {
-    return NextResponse.json({ error: 'Failed to fetch audit trail' }, { status: 500 });
+    return apiError('Failed to fetch audit trail', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const entries = dataRes.data;

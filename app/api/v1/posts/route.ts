@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -42,6 +43,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ posts });
   } catch (error) {
     logger.error('Error fetching posts:', error);
-    return NextResponse.json({ error: 'Failed to fetch posts' }, { status: 500 });
+    return apiError('Failed to fetch posts', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

@@ -7,6 +7,7 @@ import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import type { MembershipTier,  Contact } from '@/types';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 const addMemberSchema = z.object({
   firstName: z.string().min(1).max(100),
@@ -20,12 +21,12 @@ export async function GET() {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const member = await getMemberByClerkId(userId);
     if (!member) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+      return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     const supabase = createServerClient();
@@ -52,7 +53,7 @@ export async function GET() {
 
     if (error) {
       logger.error('Error fetching household members:', error);
-      return NextResponse.json({ error: 'Failed to fetch household members' }, { status: 500 });
+      return apiError('Failed to fetch household members', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({
@@ -64,7 +65,7 @@ export async function GET() {
     });
   } catch (err) {
     logger.error('Unexpected error in GET /api/v1/me/household:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -73,29 +74,23 @@ export async function POST(req: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const member = await getMemberByClerkId(userId);
     if (!member) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+      return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     // Only primary members (or members without household) can add household members
     if (member.household_role && member.household_role !== 'primary') {
-      return NextResponse.json(
-        { error: 'Only the primary household member can add family members' },
-        { status: 403 }
-      );
+      return apiError('Only the primary household member can add family members', ApiErrorCode.FORBIDDEN, 403);
     }
 
     // Check tier eligibility
     const tierConfig = getTierConfig(member.membership_tier as MembershipTier);
     if (!tierConfig || (!tierConfig.includesSpouse && !tierConfig.includesFamily)) {
-      return NextResponse.json(
-        { error: 'Your membership tier does not include household members. Upgrade to Premium or higher.' },
-        { status: 403 }
-      );
+      return apiError('Your membership tier does not include household members. Upgrade to Premium or higher.', ApiErrorCode.FORBIDDEN, 403);
     }
 
     // Parse and validate input
@@ -103,25 +98,19 @@ export async function POST(req: Request) {
     try {
       body = await req.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+      return apiError('Invalid JSON body', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parsed = addMemberSchema.safeParse(body);
     if (!parsed.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parsed.error.flatten().fieldErrors },
-        { status: 400 }
-      );
+      return validationError(parsed.error);
     }
 
     const { firstName, lastName, email, role } = parsed.data;
 
     // Validate role against tier
     if (role === 'child' && !tierConfig.includesFamily) {
-      return NextResponse.json(
-        { error: 'Your membership tier does not include children. Upgrade to Sustaining or higher.' },
-        { status: 403 }
-      );
+      return apiError('Your membership tier does not include children. Upgrade to Sustaining or higher.', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const supabase = createServerClient();
@@ -144,7 +133,7 @@ export async function POST(req: Request) {
 
       if (updateError) {
         logger.error('Error setting primary household fields:', updateError);
-        return NextResponse.json({ error: 'Failed to initialize household' }, { status: 500 });
+        return apiError('Failed to initialize household', ApiErrorCode.INTERNAL_ERROR, 500);
       }
 
       if (!updatedPrimary) {
@@ -156,7 +145,7 @@ export async function POST(req: Request) {
           .single();
         const refreshedMember = refreshed as { household_id: string | null } | null;
         if (!refreshedMember?.household_id) {
-          return NextResponse.json({ error: 'Failed to initialize household' }, { status: 500 });
+          return apiError('Failed to initialize household', ApiErrorCode.INTERNAL_ERROR, 500);
         }
         householdId = refreshedMember.household_id;
       }
@@ -171,7 +160,7 @@ export async function POST(req: Request) {
 
     if (countError) {
       logger.error('Error counting household members:', countError);
-      return NextResponse.json({ error: 'Failed to check household limits' }, { status: 500 });
+      return apiError('Failed to check household limits', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const existingMembersList = (existingMembers || []) as Array<{ id: string; household_role: string | null }>;
@@ -180,10 +169,7 @@ export async function POST(req: Request) {
     // Premium: max 1 spouse, no children
     // Sustaining+: max 1 spouse, unlimited children
     if (role === 'spouse' && existingSpouses.length >= 1) {
-      return NextResponse.json(
-        { error: 'Your household already has a spouse member' },
-        { status: 409 }
-      );
+      return apiError('Your household already has a spouse member', ApiErrorCode.CONFLICT, 409);
     }
 
     // Check if email is already in use
@@ -195,14 +181,11 @@ export async function POST(req: Request) {
 
     if (emailError && emailError.code !== 'PGRST116') {
       logger.error('Error checking email:', emailError);
-      return NextResponse.json({ error: 'Failed to validate email' }, { status: 500 });
+      return apiError('Failed to validate email', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     if (existingByEmail) {
-      return NextResponse.json(
-        { error: 'A member with this email already exists' },
-        { status: 409 }
-      );
+      return apiError('A member with this email already exists', ApiErrorCode.CONFLICT, 409);
     }
 
     // Create the household member record
@@ -228,13 +211,10 @@ export async function POST(req: Request) {
     if (insertError) {
       // Handle unique partial index violation (concurrent spouse add)
       if (insertError.code === '23505' && insertError.message?.includes('idx_one_spouse_per_household')) {
-        return NextResponse.json(
-          { error: 'Your household already has a spouse member' },
-          { status: 409 }
-        );
+        return apiError('Your household already has a spouse member', ApiErrorCode.CONFLICT, 409);
       }
       logger.error('Error creating household member:', insertError);
-      return NextResponse.json({ error: 'Failed to add household member' }, { status: 500 });
+      return apiError('Failed to add household member', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const created = newMember as Contact;
@@ -262,6 +242,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ data: created }, { status: 201 });
   } catch (err) {
     logger.error('Unexpected error in POST /api/v1/me/household:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

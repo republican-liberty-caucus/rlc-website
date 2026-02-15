@@ -6,6 +6,7 @@ import { computeScoresForSession } from '@/lib/scorecard/compute-scores';
 import type { LegislativeChamber, VoteChoice } from '@/types';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 function verifySecret(provided: string, expected: string): boolean {
   try {
@@ -42,12 +43,12 @@ export async function GET(req: Request) {
 
   if (!cronSecret) {
     logger.error('CRON_SECRET not configured');
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    return apiError('Server configuration error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : '';
   if (!verifySecret(token, cronSecret)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const supabase = createServerClient();
@@ -66,7 +67,7 @@ export async function GET(req: Request) {
 
   if (sessionsError) {
     logger.error('Failed to fetch active sessions:', sessionsError);
-    return NextResponse.json({ error: 'Failed to fetch sessions' }, { status: 500 });
+    return apiError('Failed to fetch sessions', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const sessions = (sessionsData || []) as { id: string; jurisdiction: string; state_code: string | null }[];

@@ -8,6 +8,7 @@ import { canAdvanceStage } from '@/lib/vetting/engine';
 import { runAudit } from '@/lib/vetting/audit-engine';
 import { logger } from '@/lib/logger';
 import type { VettingStage, VettingSectionStatus, VettingReportSectionType } from '@/types';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function PATCH(
   request: Request,
@@ -16,12 +17,12 @@ export async function PATCH(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canCreateVetting(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -30,15 +31,12 @@ export async function PATCH(
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = vettingStageAdvanceSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const { targetStage } = parseResult.data;
@@ -53,10 +51,10 @@ export async function PATCH(
 
     if (vettingError) {
       if (vettingError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching vetting for stage advance:', { id, error: vettingError });
-      return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
+      return apiError('Failed to fetch vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const vetting = rawVetting as unknown as { id: string; stage: string; recommendation: string | null; endorsement_result: string | null };
@@ -69,7 +67,7 @@ export async function PATCH(
 
     if (sectionsError) {
       logger.error('Error fetching sections for stage advance:', { id, error: sectionsError });
-      return NextResponse.json({ error: 'Failed to fetch sections' }, { status: 500 });
+      return apiError('Failed to fetch sections', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const sectionStates = (rawSections ?? []) as unknown as { section: VettingReportSectionType; status: VettingSectionStatus }[];
@@ -82,10 +80,7 @@ export async function PATCH(
     );
 
     if (!gateResult.allowed) {
-      return NextResponse.json(
-        { error: 'Cannot advance stage', reason: gateResult.reason },
-        { status: 400 }
-      );
+      return apiError('Cannot advance stage', ApiErrorCode.VALIDATION_ERROR, 400, { reason: gateResult.reason });
     }
 
     // Optimistic concurrency: only update if stage hasn't changed since we checked
@@ -99,13 +94,10 @@ export async function PATCH(
 
     if (updateError) {
       if (updateError.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Stage was modified by another user. Please refresh and try again.' },
-          { status: 409 }
-        );
+        return apiError('Stage was modified by another user. Please refresh and try again.', ApiErrorCode.CONFLICT, 409);
       }
       logger.error('Error advancing stage:', { id, targetStage, error: updateError });
-      return NextResponse.json({ error: 'Failed to advance stage' }, { status: 500 });
+      return apiError('Failed to advance stage', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Auto-trigger digital presence audit when advancing to auto_audit
@@ -127,10 +119,7 @@ export async function PATCH(
           .from('rlc_candidate_vettings')
           .update({ stage: vetting.stage } as never)
           .eq('id', id);
-        return NextResponse.json(
-          { error: 'Stage advanced but audit initialization failed. Stage rolled back.' },
-          { status: 500 },
-        );
+        return apiError('Stage advanced but audit initialization failed. Stage rolled back.', ApiErrorCode.INTERNAL_ERROR, 500);
       } else {
         after(() => {
           runAudit(id, auditId, ctx.member.id).catch(async (err) => {
@@ -161,6 +150,6 @@ export async function PATCH(
     return NextResponse.json({ vetting: updated });
   } catch (err) {
     logger.error('Unhandled error in PATCH /api/v1/admin/vetting/[id]/stage:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

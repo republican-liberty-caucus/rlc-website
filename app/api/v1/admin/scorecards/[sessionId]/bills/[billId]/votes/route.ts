@@ -4,6 +4,7 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { logger } from '@/lib/logger';
 import type { LegislativeChamber, VoteChoice } from '@/types';
 import crypto from 'crypto';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 function mapVoteText(voteText: string): VoteChoice {
   switch (voteText) {
@@ -41,13 +42,13 @@ export async function POST(
     .single();
 
   if (billError || !billData) {
-    return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
+    return apiError('Bill not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const bill = billData as { id: string; legiscan_roll_call_id: number | null; liberty_position: string; session_id: string };
 
   if (!bill.legiscan_roll_call_id) {
-    return NextResponse.json({ error: 'No roll call ID set for this bill' }, { status: 400 });
+    return apiError('No roll call ID set for this bill', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   // Get session for state context
@@ -58,7 +59,7 @@ export async function POST(
     .single();
 
   if (sessionError || !sessionData) {
-    return NextResponse.json({ error: 'Session not found for this bill' }, { status: 404 });
+    return apiError('Session not found for this bill', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const session = sessionData as { jurisdiction: string; state_code: string | null };
@@ -160,6 +161,6 @@ export async function POST(
     });
   } catch (err) {
     logger.error('Vote import failed:', err);
-    return NextResponse.json({ error: 'Failed to import votes from LegiScan' }, { status: 500 });
+    return apiError('Failed to import votes from LegiScan', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

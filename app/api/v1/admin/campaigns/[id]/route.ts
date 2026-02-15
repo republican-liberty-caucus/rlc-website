@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { campaignUpdateSchema } from '@/lib/validations/campaign';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function GET(
   request: NextRequest,
@@ -22,7 +23,7 @@ export async function GET(
     .single();
 
   if (error || !campaign) {
-    return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+    return apiError('Campaign not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const response: Record<string, unknown> = { campaign };
@@ -74,15 +75,12 @@ export async function PATCH(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = campaignUpdateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -110,10 +108,10 @@ export async function PATCH(
 
   if (error) {
     if (error.code === '23505') {
-      return NextResponse.json({ error: 'A campaign with this slug already exists' }, { status: 409 });
+      return apiError('A campaign with this slug already exists', ApiErrorCode.CONFLICT, 409);
     }
     logger.error('Error updating campaign:', error);
-    return NextResponse.json({ error: 'Failed to update campaign' }, { status: 500 });
+    return apiError('Failed to update campaign', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ campaign: data });

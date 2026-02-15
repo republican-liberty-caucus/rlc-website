@@ -5,6 +5,7 @@ import { findOrCreateCandidateContact } from '@/lib/vetting/candidate-contact';
 import { applyRateLimit } from '@/lib/rate-limit';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function POST(request: Request) {
   const rateLimited = applyRateLimit(request, 'public');
@@ -14,20 +15,17 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const token = (body as Record<string, unknown>)?.accessToken;
   if (!token || typeof token !== 'string') {
-    return NextResponse.json({ error: 'Access token required' }, { status: 400 });
+    return apiError('Access token required', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   const parseResult = surveySubmissionSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const { answers } = parseResult.data;
@@ -41,7 +39,7 @@ export async function POST(request: Request) {
     .single();
 
   if (responseError || !responseData) {
-    return NextResponse.json({ error: 'Invalid access token' }, { status: 404 });
+    return apiError('Invalid access token', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const candidateResponse = responseData as {
@@ -50,11 +48,11 @@ export async function POST(request: Request) {
 
   // Check token expiration (issue #55)
   if (candidateResponse.token_expires_at && new Date(candidateResponse.token_expires_at) < new Date()) {
-    return NextResponse.json({ error: 'Survey link has expired' }, { status: 410 });
+    return apiError('Survey link has expired', ApiErrorCode.VALIDATION_ERROR, 410);
   }
 
   if (candidateResponse.status === 'submitted') {
-    return NextResponse.json({ error: 'Survey already submitted' }, { status: 409 });
+    return apiError('Survey already submitted', ApiErrorCode.CONFLICT, 409);
   }
 
   // Fetch questions for scoring
@@ -109,7 +107,7 @@ export async function POST(request: Request) {
 
   if (answersError) {
     logger.error('Error saving answers:', answersError);
-    return NextResponse.json({ error: 'Failed to save answers' }, { status: 500 });
+    return apiError('Failed to save answers', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   // Calculate weighted score

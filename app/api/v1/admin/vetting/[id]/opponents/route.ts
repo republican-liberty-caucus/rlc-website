@@ -5,6 +5,7 @@ import { getVettingContext, canViewPipeline, canManageOpponents } from '@/lib/ve
 import { opponentCreateSchema } from '@/lib/validations/vetting';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -12,12 +13,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canViewPipeline(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -31,13 +32,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (error) {
       logger.error('Error fetching opponents:', { vettingId: id, error });
-      return NextResponse.json({ error: 'Failed to fetch opponents' }, { status: 500 });
+      return apiError('Failed to fetch opponents', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ opponents: data });
   } catch (err) {
     logger.error('Unhandled error in GET opponents:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -45,12 +46,12 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canManageOpponents(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -59,15 +60,12 @@ export async function POST(request: Request, { params }: RouteParams) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = opponentCreateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const supabase = createServerClient();
@@ -80,7 +78,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       .single();
 
     if (vettingError || !vetting) {
-      return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+      return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     const d = parseResult.data;
@@ -104,12 +102,12 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     if (insertError) {
       logger.error('Error creating opponent:', { vettingId: id, error: insertError });
-      return NextResponse.json({ error: 'Failed to create opponent' }, { status: 500 });
+      return apiError('Failed to create opponent', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ opponent }, { status: 201 });
   } catch (err) {
     logger.error('Unhandled error in POST opponents:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

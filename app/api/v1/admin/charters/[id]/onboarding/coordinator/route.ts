@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 const schema = z.object({
   coordinatorId: z.string().uuid(),
@@ -16,7 +17,7 @@ export async function POST(
   const { ctx, supabase } = result;
 
   if (!ctx.isNational) {
-    return NextResponse.json({ error: 'Forbidden: national admin required' }, { status: 403 });
+    return apiError('Forbidden: national admin required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: charterId } = await params;
@@ -25,12 +26,12 @@ export async function POST(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = schema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json({ error: 'Invalid input', details: parseResult.error.flatten() }, { status: 400 });
+    return validationError(parseResult.error);
   }
 
   const { coordinatorId } = parseResult.data;
@@ -45,9 +46,9 @@ export async function POST(
   if (memberError || !member) {
     if (memberError && memberError.code !== 'PGRST116') {
       logger.error('Error looking up coordinator member:', memberError);
-      return NextResponse.json({ error: 'Failed to verify member' }, { status: 500 });
+      return apiError('Failed to verify member', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+    return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -60,10 +61,10 @@ export async function POST(
 
   if (error || !data) {
     if (!error || error.code === 'PGRST116') {
-      return NextResponse.json({ error: 'No onboarding found for this charter' }, { status: 404 });
+      return apiError('No onboarding found for this charter', ApiErrorCode.NOT_FOUND, 404);
     }
     logger.error('Error updating coordinator:', error);
-    return NextResponse.json({ error: 'Failed to update coordinator' }, { status: 500 });
+    return apiError('Failed to update coordinator', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ onboarding: data });

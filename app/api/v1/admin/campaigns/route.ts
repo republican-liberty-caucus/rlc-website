@@ -3,6 +3,7 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { campaignCreateSchema } from '@/lib/validations/campaign';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function GET(request: NextRequest) {
   const result = await requireAdminApi();
@@ -28,7 +29,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     logger.error('Error fetching campaigns:', error);
-    return NextResponse.json({ error: 'Failed to fetch campaigns' }, { status: 500 });
+    return apiError('Failed to fetch campaigns', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ campaigns: data || [] });
@@ -43,15 +44,12 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = campaignCreateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -78,10 +76,10 @@ export async function POST(request: Request) {
 
   if (error) {
     if (error.code === '23505') {
-      return NextResponse.json({ error: 'A campaign with this slug already exists' }, { status: 409 });
+      return apiError('A campaign with this slug already exists', ApiErrorCode.CONFLICT, 409);
     }
     logger.error('Error creating campaign:', error);
-    return NextResponse.json({ error: 'Failed to create campaign' }, { status: 500 });
+    return apiError('Failed to create campaign', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ campaign: data }, { status: 201 });

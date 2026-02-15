@@ -5,6 +5,7 @@ import { getStepDefinition } from '@/lib/onboarding/constants';
 import { areDependenciesMet, isValidTransition } from '@/lib/onboarding/engine';
 import { STEP_DATA_SCHEMAS } from '@/lib/validations/onboarding';
 import type { OnboardingStep, OnboardingStepStatus } from '@/types';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 interface StepRow {
   id: string;
@@ -23,7 +24,7 @@ export async function GET(
 
   const { id: charterId, step } = await params;
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -36,9 +37,9 @@ export async function GET(
   if (onboardingError || !onboarding) {
     if (onboardingError && onboardingError.code !== 'PGRST116') {
       logger.error('Error fetching onboarding:', onboardingError);
-      return NextResponse.json({ error: 'Failed to fetch onboarding' }, { status: 500 });
+      return apiError('Failed to fetch onboarding', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'No onboarding found' }, { status: 404 });
+    return apiError('No onboarding found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -52,9 +53,9 @@ export async function GET(
   if (error || !stepData) {
     if (error && error.code !== 'PGRST116') {
       logger.error('Error fetching step:', error);
-      return NextResponse.json({ error: 'Failed to fetch step' }, { status: 500 });
+      return apiError('Failed to fetch step', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'Step not found' }, { status: 404 });
+    return apiError('Step not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   return NextResponse.json({ step: stepData });
@@ -71,20 +72,20 @@ export async function PATCH(
   const { id: charterId, step: stepName } = await params;
 
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   let body: { action: string; data?: Record<string, unknown>; reviewNotes?: string };
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const { action, data: formData, reviewNotes } = body;
   const validActions = ['save_draft', 'complete', 'approve', 'reject'];
   if (!validActions.includes(action)) {
-    return NextResponse.json({ error: `Invalid action. Must be one of: ${validActions.join(', ')}` }, { status: 400 });
+    return apiError(`Invalid action. Must be one of: ${validActions.join(', ')}`, ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   // Fetch onboarding and all steps
@@ -98,9 +99,9 @@ export async function PATCH(
   if (onboardingFetchErr || !onboarding) {
     if (onboardingFetchErr && onboardingFetchErr.code !== 'PGRST116') {
       logger.error('Error fetching onboarding:', onboardingFetchErr);
-      return NextResponse.json({ error: 'Failed to fetch onboarding' }, { status: 500 });
+      return apiError('Failed to fetch onboarding', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'No onboarding found' }, { status: 404 });
+    return apiError('No onboarding found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const onboardingRow = onboarding as { id: string };
@@ -113,18 +114,18 @@ export async function PATCH(
 
   if (stepsFetchErr || !allStepsRaw) {
     logger.error('Error fetching steps:', stepsFetchErr);
-    return NextResponse.json({ error: 'Failed to fetch steps' }, { status: 500 });
+    return apiError('Failed to fetch steps', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const allSteps = allStepsRaw as StepRow[];
   const currentStep = allSteps.find((s) => s.step === stepName);
   if (!currentStep) {
-    return NextResponse.json({ error: 'Step not found' }, { status: 404 });
+    return apiError('Step not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const stepDef = getStepDefinition(stepName as OnboardingStep);
   if (!stepDef) {
-    return NextResponse.json({ error: 'Invalid step' }, { status: 400 });
+    return apiError('Invalid step', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   const updates: Record<string, unknown> = {};
@@ -138,13 +139,13 @@ export async function PATCH(
     // Verify dependencies
     const stepsState = allSteps.map((s) => ({ step: s.step as OnboardingStep, status: s.status as OnboardingStepStatus }));
     if (!areDependenciesMet(stepName as OnboardingStep, stepsState)) {
-      return NextResponse.json({ error: 'Dependencies not met' }, { status: 400 });
+      return apiError('Dependencies not met', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     const targetStatus: OnboardingStepStatus = 'completed';
     if (!isValidTransition(currentStep.status as OnboardingStepStatus, targetStatus, stepDef.requiresReview) &&
         currentStep.status !== 'not_started') {
-      return NextResponse.json({ error: `Cannot complete step from status "${currentStep.status}"` }, { status: 400 });
+      return apiError(`Cannot complete step from status "${currentStep.status}"`, ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     // Validate step data against schema on completion
@@ -152,17 +153,11 @@ export async function PATCH(
     const dataToValidate = formData ?? currentStep.data;
     if (schema) {
       if (!dataToValidate || Object.keys(dataToValidate).length === 0) {
-        return NextResponse.json(
-          { error: 'Step data is required for completion' },
-          { status: 400 }
-        );
+        return apiError('Step data is required for completion', ApiErrorCode.VALIDATION_ERROR, 400);
       }
       const parseResult = schema.safeParse(dataToValidate);
       if (!parseResult.success) {
-        return NextResponse.json(
-          { error: 'Invalid step data', details: parseResult.error.flatten() },
-          { status: 400 }
-        );
+        return validationError(parseResult.error);
       }
     }
     if (formData) {
@@ -199,19 +194,16 @@ export async function PATCH(
         }
         if (officerErrors.length > 0) {
           logger.error('Some officer positions failed to create:', { charterId, errors: officerErrors });
-          return NextResponse.json(
-            { error: `Failed to create officer positions: ${officerErrors.join('; ')}` },
-            { status: 500 }
-          );
+          return apiError(`Failed to create officer positions: ${officerErrors.join('; ')}`, ApiErrorCode.INTERNAL_ERROR, 500);
         }
       }
     }
   } else if (action === 'approve' || action === 'reject') {
     if (!ctx.isNational) {
-      return NextResponse.json({ error: `Only national admins can ${action}` }, { status: 403 });
+      return apiError(`Only national admins can ${action}`, ApiErrorCode.FORBIDDEN, 403);
     }
     if (currentStep.status !== 'completed') {
-      return NextResponse.json({ error: `Can only ${action} completed steps` }, { status: 400 });
+      return apiError(`Can only ${action} completed steps`, ApiErrorCode.VALIDATION_ERROR, 400);
     }
     updates.status = action === 'approve' ? 'approved' : 'rejected';
     updates.reviewed_at = new Date().toISOString();
@@ -229,7 +221,7 @@ export async function PATCH(
 
   if (updateError) {
     logger.error('Error updating step:', updateError);
-    return NextResponse.json({ error: 'Failed to update step' }, { status: 500 });
+    return apiError('Failed to update step', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ step: updated });

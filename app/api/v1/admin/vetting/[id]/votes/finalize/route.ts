@@ -7,6 +7,7 @@ import { logger } from '@/lib/logger';
 import { slugify, formatCandidateName } from '@/lib/utils';
 import { generateEndorsementShareKit } from '@/lib/share/kit-generator';
 import type { BoardVoteChoice, VettingRecommendation } from '@/types';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 function escapeHtml(str: string): string {
   return str
@@ -80,12 +81,12 @@ export async function POST(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canCastBoardVote(ctx)) {
-      return NextResponse.json({ error: 'Forbidden: only national board members can finalize votes' }, { status: 403 });
+      return apiError('Forbidden: only national board members can finalize votes', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -100,10 +101,10 @@ export async function POST(
 
     if (vettingError) {
       if (vettingError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching vetting for finalize:', { id, error: vettingError });
-      return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
+      return apiError('Failed to fetch vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const vetting = rawVetting as unknown as {
@@ -119,17 +120,11 @@ export async function POST(
     };
 
     if (vetting.stage !== 'board_vote') {
-      return NextResponse.json(
-        { error: 'Can only finalize votes at the board_vote stage' },
-        { status: 400 }
-      );
+      return apiError('Can only finalize votes at the board_vote stage', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     if (vetting.endorsed_at) {
-      return NextResponse.json(
-        { error: 'Votes have already been finalized' },
-        { status: 400 }
-      );
+      return apiError('Votes have already been finalized', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     // Fetch all votes for this vetting
@@ -140,7 +135,7 @@ export async function POST(
 
     if (votesError) {
       logger.error('Error fetching votes for finalize:', { id, error: votesError });
-      return NextResponse.json({ error: 'Failed to fetch votes' }, { status: 500 });
+      return apiError('Failed to fetch votes', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const votes = (rawVotes ?? []) as unknown as { vote: BoardVoteChoice }[];
@@ -148,10 +143,7 @@ export async function POST(
     // Require at least one non-abstain vote
     const substantiveVotes = votes.filter((v) => v.vote !== 'vote_abstain');
     if (substantiveVotes.length === 0) {
-      return NextResponse.json(
-        { error: 'At least one non-abstain vote is required to finalize' },
-        { status: 400 }
-      );
+      return apiError('At least one non-abstain vote is required to finalize', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     const tally = tallyVotes(votes);
@@ -172,13 +164,10 @@ export async function POST(
 
     if (updateError) {
       if (updateError.code === 'PGRST116') {
-        return NextResponse.json(
-          { error: 'Votes were finalized by another user. Please refresh.' },
-          { status: 409 }
-        );
+        return apiError('Votes were finalized by another user. Please refresh.', ApiErrorCode.CONFLICT, 409);
       }
       logger.error('Error finalizing votes:', { id, error: updateError });
-      return NextResponse.json({ error: 'Failed to finalize votes' }, { status: 500 });
+      return apiError('Failed to finalize votes', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Sync endorsement status to candidate_responses if linked
@@ -284,6 +273,6 @@ export async function POST(
     });
   } catch (err) {
     logger.error('Unhandled error in POST /api/v1/admin/vetting/[id]/votes/finalize:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

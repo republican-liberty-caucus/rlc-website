@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canManageOpponents, canDeleteOpponent } from '@/lib/vetting/permissions';
 import { opponentUpdateSchema } from '@/lib/validations/vetting';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type RouteParams = { params: Promise<{ id: string; opponentId: string }> };
 
@@ -11,12 +12,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canManageOpponents(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id, opponentId } = await params;
@@ -25,15 +26,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = opponentUpdateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const supabase = createServerClient();
@@ -48,10 +46,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     const existing = rawExisting as unknown as { id: string; vetting_id: string } | null;
 
     if (fetchError || !existing) {
-      return NextResponse.json({ error: 'Opponent not found' }, { status: 404 });
+      return apiError('Opponent not found', ApiErrorCode.NOT_FOUND, 404);
     }
     if (existing.vetting_id !== id) {
-      return NextResponse.json({ error: 'Opponent not found' }, { status: 404 });
+      return apiError('Opponent not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     const d = parseResult.data;
@@ -67,7 +65,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (d.photoUrl !== undefined) updates.photo_url = d.photoUrl;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+      return apiError('No fields to update', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -80,13 +78,13 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (updateError) {
       logger.error('Error updating opponent:', { opponentId, error: updateError });
-      return NextResponse.json({ error: 'Failed to update opponent' }, { status: 500 });
+      return apiError('Failed to update opponent', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ opponent: updated });
   } catch (err) {
     logger.error('Unhandled error in PATCH opponents/[opponentId]:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -94,12 +92,12 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canDeleteOpponent(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id, opponentId } = await params;
@@ -115,10 +113,10 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
     const delExisting = rawDelExisting as unknown as { id: string; vetting_id: string } | null;
 
     if (fetchError || !delExisting) {
-      return NextResponse.json({ error: 'Opponent not found' }, { status: 404 });
+      return apiError('Opponent not found', ApiErrorCode.NOT_FOUND, 404);
     }
     if (delExisting.vetting_id !== id) {
-      return NextResponse.json({ error: 'Opponent not found' }, { status: 404 });
+      return apiError('Opponent not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     const { error: deleteError } = await supabase
@@ -129,12 +127,12 @@ export async function DELETE(_request: Request, { params }: RouteParams) {
 
     if (deleteError) {
       logger.error('Error deleting opponent:', { opponentId, error: deleteError });
-      return NextResponse.json({ error: 'Failed to delete opponent' }, { status: 500 });
+      return apiError('Failed to delete opponent', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ success: true });
   } catch (err) {
     logger.error('Unhandled error in DELETE opponents/[opponentId]:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

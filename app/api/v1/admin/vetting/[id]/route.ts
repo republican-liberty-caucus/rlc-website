@@ -15,6 +15,7 @@ import {
   pressReleaseUpdateSchema,
 } from '@/lib/validations/vetting';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -22,12 +23,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canViewPipeline(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -55,16 +56,16 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching vetting:', { id, error });
-      return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
+      return apiError('Failed to fetch vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ vetting: data });
   } catch (err) {
     logger.error('Unhandled error in GET /api/v1/admin/vetting/[id]:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -72,12 +73,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -86,7 +87,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const supabase = createServerClient();
@@ -95,15 +96,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if ('recommendation' in body) {
       // Recommendation update
       if (!canMakeRecommendation(ctx)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
       }
 
       const parseResult = recommendationSchema.safeParse(body);
       if (!parseResult.success) {
-        return NextResponse.json(
-          { error: 'Invalid input', details: parseResult.error.flatten() },
-          { status: 400 }
-        );
+        return validationError(parseResult.error);
       }
 
       const { data, error } = await supabase
@@ -119,10 +117,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+          return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
         }
         logger.error('Error updating recommendation:', { id, error });
-        return NextResponse.json({ error: 'Failed to update recommendation' }, { status: 500 });
+        return apiError('Failed to update recommendation', ApiErrorCode.INTERNAL_ERROR, 500);
       }
 
       return NextResponse.json({ vetting: data });
@@ -131,15 +129,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if ('interviewDate' in body || 'interviewNotes' in body || 'interviewers' in body) {
       // Interview update
       if (!canRecordInterview(ctx)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
       }
 
       const parseResult = interviewUpdateSchema.safeParse(body);
       if (!parseResult.success) {
-        return NextResponse.json(
-          { error: 'Invalid input', details: parseResult.error.flatten() },
-          { status: 400 }
-        );
+        return validationError(parseResult.error);
       }
 
       const updates: Record<string, unknown> = {};
@@ -154,7 +149,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
 
       if (Object.keys(updates).length === 0) {
-        return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+        return apiError('No fields to update', ApiErrorCode.VALIDATION_ERROR, 400);
       }
 
       const { data, error } = await supabase
@@ -166,10 +161,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+          return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
         }
         logger.error('Error updating interview:', { id, error });
-        return NextResponse.json({ error: 'Failed to update interview' }, { status: 500 });
+        return apiError('Failed to update interview', ApiErrorCode.INTERNAL_ERROR, 500);
       }
 
       return NextResponse.json({ vetting: data });
@@ -178,15 +173,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     // Press release update
     if ('pressReleaseUrl' in body || 'pressReleaseNotes' in body) {
       if (!canCreateVetting(ctx)) {
-        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+        return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
       }
 
       const parseResult = pressReleaseUpdateSchema.safeParse(body);
       if (!parseResult.success) {
-        return NextResponse.json(
-          { error: 'Invalid input', details: parseResult.error.flatten() },
-          { status: 400 }
-        );
+        return validationError(parseResult.error);
       }
 
       const updates: Record<string, unknown> = {};
@@ -198,7 +190,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
       }
 
       if (Object.keys(updates).length === 0) {
-        return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+        return apiError('No fields to update', ApiErrorCode.VALIDATION_ERROR, 400);
       }
 
       const { data, error } = await supabase
@@ -210,10 +202,10 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
       if (error) {
         if (error.code === 'PGRST116') {
-          return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+          return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
         }
         logger.error('Error updating press release:', { id, error });
-        return NextResponse.json({ error: 'Failed to update press release' }, { status: 500 });
+        return apiError('Failed to update press release', ApiErrorCode.INTERNAL_ERROR, 500);
       }
 
       return NextResponse.json({ vetting: data });
@@ -221,15 +213,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     // General vetting update
     if (!canCreateVetting(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const parseResult = vettingUpdateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const updates: Record<string, unknown> = {};
@@ -247,7 +236,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+      return apiError('No fields to update', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     const { data, error } = await supabase
@@ -259,15 +248,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error updating vetting:', { id, error });
-      return NextResponse.json({ error: 'Failed to update vetting' }, { status: 500 });
+      return apiError('Failed to update vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ vetting: data });
   } catch (err) {
     logger.error('Unhandled error in PATCH /api/v1/admin/vetting/[id]:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

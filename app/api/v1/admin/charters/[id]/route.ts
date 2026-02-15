@@ -3,6 +3,7 @@ import { charterUpdateSchema } from '@/lib/validations/admin';
 import type { Database } from '@/lib/supabase/client';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type CharterUpdate = Database['public']['Tables']['rlc_charters']['Update'];
 
@@ -18,22 +19,19 @@ export async function PATCH(
 
   // Check charter visibility
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(id)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return apiError('Invalid JSON in request body', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = charterUpdateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -58,7 +56,7 @@ export async function PATCH(
 
   if (error) {
     logger.error('Error updating charter:', error);
-    return NextResponse.json({ error: 'Failed to update charter' }, { status: 500 });
+    return apiError('Failed to update charter', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ charter: data });

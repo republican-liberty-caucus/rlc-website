@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { escapeCsvField } from '@/lib/csv';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: Request) {
   const result = await requireAdminApi();
@@ -20,7 +21,7 @@ export async function GET(request: Request) {
   // Charter filter
   if (charterId) {
     if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
     query = query.eq('recipient_charter_id', charterId);
   } else if (ctx.visibleCharterIds !== null) {
@@ -30,7 +31,7 @@ export async function GET(request: Request) {
   // Month filter
   if (month) {
     if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(month)) {
-      return NextResponse.json({ error: 'Invalid month format. Use YYYY-MM (e.g. 2026-02)' }, { status: 400 });
+      return apiError('Invalid month format. Use YYYY-MM (e.g. 2026-02)', ApiErrorCode.VALIDATION_ERROR, 400);
     }
     const [year, m] = month.split('-').map(Number);
     const startDate = new Date(year, m - 1, 1).toISOString();
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
   const { data: entries, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: 'Failed to fetch entries' }, { status: 500 });
+    return apiError('Failed to fetch entries', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const rows = (entries || []) as {

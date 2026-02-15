@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: Request) {
   const result = await requireAdminApi();
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   // Filter by charter
   if (charterId) {
     if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
     query = query.eq('charter_id', charterId);
   } else if (ctx.visibleCharterIds !== null) {
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
   const { data: contributions, count, error } = await query;
 
   if (error) {
-    return NextResponse.json({ error: 'Failed to fetch member dues' }, { status: 500 });
+    return apiError('Failed to fetch member dues', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   // For each contribution, get its ledger entries

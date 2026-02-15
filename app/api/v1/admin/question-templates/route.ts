@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: NextRequest) {
   const result = await requireAdminApi();
@@ -13,10 +14,7 @@ export async function GET(request: NextRequest) {
   const active = searchParams.get('active') !== 'false'; // default true
 
   if (!officeLevel) {
-    return NextResponse.json(
-      { error: 'officeLevel query parameter is required' },
-      { status: 400 }
-    );
+    return apiError('officeLevel query parameter is required', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   let query = supabase
@@ -34,7 +32,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     logger.error('Error fetching question templates:', error);
-    return NextResponse.json({ error: 'Failed to fetch templates' }, { status: 500 });
+    return apiError('Failed to fetch templates', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ templates: data || [] });

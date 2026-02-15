@@ -6,6 +6,7 @@ import { vettingCreateSchema } from '@/lib/validations/vetting';
 import { initializeSectionStates } from '@/lib/vetting/engine';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 interface CandidateResponseRow {
   id: string;
@@ -25,27 +26,24 @@ export async function POST(request: Request) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canCreateVetting(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = vettingCreateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const { candidateResponseId, committeeId, electionDeadlineId } = parseResult.data;
@@ -61,23 +59,20 @@ export async function POST(request: Request) {
 
     if (responseError) {
       if (responseError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Candidate response not found' }, { status: 404 });
+        return apiError('Candidate response not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching candidate response:', { candidateResponseId, error: responseError });
-      return NextResponse.json({ error: 'Failed to look up candidate response' }, { status: 500 });
+      return apiError('Failed to look up candidate response', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     if (!response) {
-      return NextResponse.json({ error: 'Candidate response not found' }, { status: 404 });
+      return apiError('Candidate response not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     const candidateResponse = response as unknown as CandidateResponseRow;
 
     if (candidateResponse.status !== 'submitted') {
-      return NextResponse.json(
-        { error: 'Candidate response must be submitted before creating a vetting' },
-        { status: 400 }
-      );
+      return apiError('Candidate response must be submitted before creating a vetting', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     // Prefer structured candidate_state from response, fall back to survey-level state
@@ -108,13 +103,10 @@ export async function POST(request: Request) {
 
     if (insertError) {
       if (insertError.code === '23505') {
-        return NextResponse.json(
-          { error: 'A vetting already exists for this candidate response' },
-          { status: 409 }
-        );
+        return apiError('A vetting already exists for this candidate response', ApiErrorCode.CONFLICT, 409);
       }
       logger.error('Error creating vetting:', { candidateResponseId, error: insertError });
-      return NextResponse.json({ error: 'Failed to create vetting' }, { status: 500 });
+      return apiError('Failed to create vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Initialize all 9 report sections as not_started
@@ -140,18 +132,12 @@ export async function POST(request: Request) {
         error: sectionsError,
       });
       await supabase.from('rlc_candidate_vettings').delete().eq('id', vettingId);
-      return NextResponse.json(
-        { error: 'Failed to initialize report sections. Please try again.' },
-        { status: 500 }
-      );
+      return apiError('Failed to initialize report sections. Please try again.', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ vetting }, { status: 201 });
   } catch (err) {
     logger.error('Unhandled error in POST /api/v1/admin/vetting:', err);
-    return NextResponse.json(
-      { error: 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

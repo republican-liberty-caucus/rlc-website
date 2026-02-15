@@ -5,6 +5,7 @@ import { eventRegistrationSchema } from '@/lib/validations/event';
 import { applyRateLimit } from '@/lib/rate-limit';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function POST(
   request: Request,
@@ -20,16 +21,13 @@ export async function POST(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   // Override eventId from URL params
   const parseResult = eventRegistrationSchema.safeParse({ ...body as object, eventId });
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -43,7 +41,7 @@ export async function POST(
     .single();
 
   if (eventError || !eventData) {
-    return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+    return apiError('Event not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const event = eventData as {
@@ -53,16 +51,16 @@ export async function POST(
   };
 
   if (event.status !== 'published') {
-    return NextResponse.json({ error: 'Event is not open for registration' }, { status: 400 });
+    return apiError('Event is not open for registration', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   if (!event.registration_required) {
-    return NextResponse.json({ error: 'This event does not require registration' }, { status: 400 });
+    return apiError('This event does not require registration', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   // Check deadline
   if (event.registration_deadline && new Date(event.registration_deadline) < new Date()) {
-    return NextResponse.json({ error: 'Registration deadline has passed' }, { status: 400 });
+    return apiError('Registration deadline has passed', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   // Determine member vs guest
@@ -85,7 +83,7 @@ export async function POST(
         .maybeSingle();
 
       if (existing) {
-        return NextResponse.json({ error: 'You are already registered for this event' }, { status: 409 });
+        return apiError('You are already registered for this event', ApiErrorCode.CONFLICT, 409);
       }
     }
   }
@@ -93,7 +91,7 @@ export async function POST(
   if (!memberId) {
     // Guest registration
     if (!input.guestEmail || !input.guestName) {
-      return NextResponse.json({ error: 'Guest name and email are required' }, { status: 400 });
+      return apiError('Guest name and email are required', ApiErrorCode.VALIDATION_ERROR, 400);
     }
     guestEmail = input.guestEmail;
     guestName = input.guestName;
@@ -108,7 +106,7 @@ export async function POST(
       .maybeSingle();
 
     if (existingGuest) {
-      return NextResponse.json({ error: 'This email is already registered for this event' }, { status: 409 });
+      return apiError('This email is already registered for this event', ApiErrorCode.CONFLICT, 409);
     }
   }
 
@@ -132,7 +130,7 @@ export async function POST(
 
   if (insertError) {
     logger.error('Error creating registration:', insertError);
-    return NextResponse.json({ error: 'Failed to register' }, { status: 500 });
+    return apiError('Failed to register', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   // Post-insert capacity check: if max_attendees is set, verify we haven't exceeded it
@@ -150,7 +148,7 @@ export async function POST(
         .delete()
         .eq('id', registrationId);
 
-      return NextResponse.json({ error: 'This event is full' }, { status: 409 });
+      return apiError('This event is full', ApiErrorCode.CONFLICT, 409);
     }
   }
 

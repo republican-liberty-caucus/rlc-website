@@ -6,6 +6,7 @@ import { getMemberByClerkId } from '@/lib/supabase/server';
 import { applyRateLimit } from '@/lib/rate-limit';
 import type { MembershipTier } from '@/types';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 const validTiers = MEMBERSHIP_TIERS.map((t) => t.tier) as [string, ...string[]];
 
@@ -23,10 +24,7 @@ export async function POST(request: Request) {
     const parseResult = checkoutSchema.safeParse(body);
 
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid request', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const { tier } = parseResult.data;
@@ -53,10 +51,7 @@ export async function POST(request: Request) {
     }
 
     if (!memberEmail) {
-      return NextResponse.json(
-        { error: 'Email is required for unauthenticated checkout' },
-        { status: 400 }
-      );
+      return apiError('Email is required for unauthenticated checkout', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     const session = await createCheckoutSession({
@@ -72,10 +67,7 @@ export async function POST(request: Request) {
         tier,
         uiMode: session.ui_mode,
       });
-      return NextResponse.json(
-        { error: 'Failed to initialize payment form' },
-        { status: 500 }
-      );
+      return apiError('Failed to initialize payment form', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ clientSecret: session.client_secret });
@@ -86,9 +78,6 @@ export async function POST(request: Request) {
       type: err.type,
       code: err.code,
     });
-    return NextResponse.json(
-      { error: 'Failed to create checkout session' },
-      { status: 500 }
-    );
+    return apiError('Failed to create checkout session', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

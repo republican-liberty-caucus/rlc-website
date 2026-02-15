@@ -5,6 +5,7 @@ import { getVettingContext, canEditSection } from '@/lib/vetting/permissions';
 import { sectionAcceptDraftSchema } from '@/lib/validations/vetting';
 import { logger } from '@/lib/logger';
 import type { VettingSectionStatus } from '@/types';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type RouteParams = { params: Promise<{ id: string; sectionId: string }> };
 
@@ -37,12 +38,12 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id, sectionId } = await params;
@@ -57,10 +58,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const parseResult = sectionAcceptDraftSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const { mergeStrategy } = parseResult.data;
@@ -86,27 +84,27 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+        return apiError('Section not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching section for accept-draft:', { sectionId, error: fetchError });
-      return NextResponse.json({ error: 'Failed to fetch section' }, { status: 500 });
+      return apiError('Failed to fetch section', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const section = rawSection as unknown as SectionRow;
 
     if (section.vetting_id !== id) {
-      return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+      return apiError('Section not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     // Permission check
     const assignedMemberIds = (section.assignments ?? []).map((a) => a.committee_member_id);
     if (!canEditSection(ctx, assignedMemberIds)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     // Must have an AI draft to accept
     if (!section.ai_draft_data) {
-      return NextResponse.json({ error: 'No AI draft to accept' }, { status: 400 });
+      return apiError('No AI draft to accept', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     // Build the new data
@@ -138,12 +136,12 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     if (updateError) {
       logger.error('Error accepting AI draft:', { sectionId, error: updateError });
-      return NextResponse.json({ error: 'Failed to accept AI draft' }, { status: 500 });
+      return apiError('Failed to accept AI draft', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ section: updated });
   } catch (err) {
     logger.error('Unhandled error in POST accept-draft:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

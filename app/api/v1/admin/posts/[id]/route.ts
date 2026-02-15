@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { postUpdateSchema } from '@/lib/validations/post';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function PATCH(
   request: Request,
@@ -21,7 +22,7 @@ export async function PATCH(
     .single();
 
   if (fetchError || !existingData) {
-    return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    return apiError('Post not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const existing = existingData as { charter_id: string | null; published_at: string | null; [key: string]: unknown };
@@ -29,7 +30,7 @@ export async function PATCH(
   // Check charter visibility
   if (existing.charter_id && ctx.visibleCharterIds !== null) {
     if (!ctx.visibleCharterIds.includes(existing.charter_id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
   }
 
@@ -37,15 +38,12 @@ export async function PATCH(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = postUpdateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -53,10 +51,7 @@ export async function PATCH(
   // If changing charter, verify new charter is in scope
   if (input.charterId !== undefined && ctx.visibleCharterIds !== null) {
     if (input.charterId && !ctx.visibleCharterIds.includes(input.charterId)) {
-      return NextResponse.json(
-        { error: 'Cannot move post to a charter outside your scope' },
-        { status: 403 }
-      );
+      return apiError('Cannot move post to a charter outside your scope', ApiErrorCode.FORBIDDEN, 403);
     }
   }
 
@@ -90,7 +85,7 @@ export async function PATCH(
 
   if (error || !data) {
     logger.error('Error updating post:', error);
-    return NextResponse.json({ error: 'Failed to update post' }, { status: 500 });
+    return apiError('Failed to update post', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   // Auto-advance vetting stage when a press release is published

@@ -3,6 +3,7 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { STEP_ORDER } from '@/lib/onboarding/constants';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 const createOnboardingSchema = z.object({
   coordinatorId: z.string().uuid().optional(),
@@ -18,7 +19,7 @@ export async function GET(
 
   const { id: charterId } = await params;
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,7 +35,7 @@ export async function GET(
 
   if (error && error.code !== 'PGRST116') {
     logger.error('Error fetching onboarding:', error);
-    return NextResponse.json({ error: 'Failed to fetch onboarding' }, { status: 500 });
+    return apiError('Failed to fetch onboarding', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ onboarding: data || null });
@@ -49,7 +50,7 @@ export async function POST(
   const { ctx, supabase } = result;
 
   if (!ctx.isNational) {
-    return NextResponse.json({ error: 'Forbidden: national admin required' }, { status: 403 });
+    return apiError('Forbidden: national admin required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: charterId } = await params;
@@ -64,13 +65,13 @@ export async function POST(
   if (charterError || !charter) {
     if (charterError && charterError.code !== 'PGRST116') {
       logger.error('Error looking up charter for onboarding:', charterError);
-      return NextResponse.json({ error: 'Failed to verify charter' }, { status: 500 });
+      return apiError('Failed to verify charter', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'Charter not found' }, { status: 404 });
+    return apiError('Charter not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   if ((charter as { status: string }).status !== 'forming') {
-    return NextResponse.json({ error: 'Charter must be in "forming" status' }, { status: 400 });
+    return apiError('Charter must be in "forming" status', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   // Check for existing onboarding
@@ -82,24 +83,24 @@ export async function POST(
     .single();
 
   if (existing) {
-    return NextResponse.json({ error: 'Onboarding already exists for this charter' }, { status: 409 });
+    return apiError('Onboarding already exists for this charter', ApiErrorCode.CONFLICT, 409);
   }
   // If error is not "no rows found", it's a real error
   if (existingError && existingError.code !== 'PGRST116') {
     logger.error('Error checking existing onboarding:', existingError);
-    return NextResponse.json({ error: 'Failed to check existing onboarding' }, { status: 500 });
+    return apiError('Failed to check existing onboarding', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   let rawBody: unknown;
   try {
     rawBody = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = createOnboardingSchema.safeParse(rawBody);
   if (!parseResult.success) {
-    return NextResponse.json({ error: 'Invalid input', details: parseResult.error.flatten() }, { status: 400 });
+    return validationError(parseResult.error);
   }
 
   const coordinatorId = parseResult.data.coordinatorId || ctx.member.id;
@@ -117,7 +118,7 @@ export async function POST(
 
   if (insertError || !onboarding) {
     logger.error('Error creating onboarding:', insertError);
-    return NextResponse.json({ error: 'Failed to create onboarding' }, { status: 500 });
+    return apiError('Failed to create onboarding', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const onboardingRow = onboarding as { id: string };
@@ -142,7 +143,7 @@ export async function POST(
     if (cleanupError) {
       logger.error('Failed to clean up orphaned onboarding record:', { onboardingId: onboardingRow.id, cleanupError });
     }
-    return NextResponse.json({ error: 'Failed to create onboarding steps' }, { status: 500 });
+    return apiError('Failed to create onboarding steps', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   // Fetch the complete record

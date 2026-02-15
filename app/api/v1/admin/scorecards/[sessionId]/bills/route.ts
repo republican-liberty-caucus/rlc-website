@@ -3,6 +3,7 @@ import { billCreateSchema } from '@/lib/validations/scorecard';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function GET(
   _request: Request,
@@ -22,7 +23,7 @@ export async function GET(
 
   if (error) {
     logger.error('Error fetching bills:', error);
-    return NextResponse.json({ error: 'Failed to fetch bills' }, { status: 500 });
+    return apiError('Failed to fetch bills', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ bills: data || [] });
@@ -42,15 +43,12 @@ export async function POST(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = billCreateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -63,7 +61,7 @@ export async function POST(
     .single();
 
   if (sessionError || !session) {
-    return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    return apiError('Session not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const { data, error } = await supabase
@@ -87,7 +85,7 @@ export async function POST(
 
   if (error) {
     logger.error('Error adding bill:', error);
-    return NextResponse.json({ error: 'Failed to add bill' }, { status: 500 });
+    return apiError('Failed to add bill', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ bill: data }, { status: 201 });

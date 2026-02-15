@@ -3,6 +3,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { timingSafeEqual } from 'crypto';
 import type { MembershipStatus } from '@/types';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 // Vercel Cron calls this endpoint daily.
 // Protected by CRON_SECRET to prevent unauthorized access.
@@ -35,12 +36,12 @@ export async function GET(req: Request) {
 
   if (!cronSecret) {
     logger.error('CRON_SECRET not configured');
-    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    return apiError('Server configuration error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const token = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : '';
   if (!verifySecret(token, cronSecret)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const supabase = createServerClient();
