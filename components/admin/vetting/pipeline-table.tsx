@@ -31,6 +31,7 @@ export interface PipelineRow {
 interface PipelineTableProps {
   rows: PipelineRow[];
   canCreate: boolean;
+  emptyMessage?: string;
 }
 
 function formatDate(dateStr: string): string {
@@ -56,7 +57,7 @@ function formatRecommendation(rec: string | null): string {
   return rec.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
-export function PipelineTable({ rows, canCreate }: PipelineTableProps) {
+export function PipelineTable({ rows, canCreate, emptyMessage = 'No candidates in the pipeline yet.' }: PipelineTableProps) {
   const router = useRouter();
   const { toast } = useToast();
   const [addingId, setAddingId] = useState<string | null>(null);
@@ -199,7 +200,7 @@ export function PipelineTable({ rows, canCreate }: PipelineTableProps) {
             {rows.length === 0 && (
               <tr>
                 <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
-                  No candidates in the pipeline yet.
+                  {emptyMessage}
                 </td>
               </tr>
             )}
