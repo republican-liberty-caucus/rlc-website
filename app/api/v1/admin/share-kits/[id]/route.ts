@@ -1,0 +1,181 @@
+import { auth } from '@clerk/nextjs/server';
+import { NextResponse } from 'next/server';
+import { createServerClient } from '@/lib/supabase/server';
+import { getAdminContext } from '@/lib/admin/permissions';
+import { shareKitUpdateSchema } from '@/lib/validations/share-kit';
+import { logger } from '@/lib/logger';
+
+interface RouteParams {
+  params: Promise<{ id: string }>;
+}
+
+export async function GET(_request: Request, { params }: RouteParams) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const ctx = await getAdminContext(userId);
+    if (!ctx) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { id } = await params;
+    const supabase = createServerClient();
+
+    const { data: kit, error } = await supabase
+      .from('rlc_share_kits')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Share kit not found' }, { status: 404 });
+      }
+      logger.error('Failed to fetch share kit:', { id, error });
+      return NextResponse.json({ error: 'Failed to fetch share kit' }, { status: 500 });
+    }
+
+    // Charter-scoped authorization
+    const kitRow = kit as { charter_id: string | null };
+    if (ctx.visibleCharterIds !== null && kitRow.charter_id && !ctx.visibleCharterIds.includes(kitRow.charter_id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    // Get share stats — fetch link IDs once, reuse for both counts
+    const { data: links, error: linksError } = await supabase
+      .from('rlc_share_links')
+      .select('id')
+      .eq('share_kit_id', id);
+
+    if (linksError) {
+      logger.error('Failed to fetch share links for stats:', { shareKitId: id, error: linksError });
+      return NextResponse.json({ error: 'Failed to fetch share kit stats' }, { status: 500 });
+    }
+
+    const linkIds = (links || []).map((l: { id: string }) => l.id);
+    let shareCount = 0;
+    let clickCount = 0;
+
+    if (linkIds.length > 0) {
+      const { count: shares, error: sharesError } = await supabase
+        .from('rlc_share_events')
+        .select('id', { count: 'exact', head: true })
+        .in('share_link_id', linkIds);
+
+      if (sharesError) {
+        logger.error('Failed to count share events:', { shareKitId: id, error: sharesError });
+      } else {
+        shareCount = shares || 0;
+      }
+
+      const { count: clicks, error: clicksError } = await supabase
+        .from('rlc_link_clicks')
+        .select('id', { count: 'exact', head: true })
+        .in('share_link_id', linkIds);
+
+      if (clicksError) {
+        logger.error('Failed to count link clicks:', { shareKitId: id, error: clicksError });
+      } else {
+        clickCount = clicks || 0;
+      }
+    }
+
+    return NextResponse.json({
+      shareKit: kit,
+      stats: {
+        shares: shareCount,
+        clicks: clickCount,
+      },
+    });
+  } catch (err) {
+    logger.error('Unhandled error in share-kits GET:', { error: err });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: Request, { params }: RouteParams) {
+  try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const ctx = await getAdminContext(userId);
+    if (!ctx) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const { id } = await params;
+
+    let body: unknown;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    }
+
+    const parseResult = shareKitUpdateSchema.safeParse(body);
+    if (!parseResult.success) {
+      return NextResponse.json(
+        { error: 'Invalid input', details: parseResult.error.flatten() },
+        { status: 400 },
+      );
+    }
+
+    const supabase = createServerClient();
+
+    // Charter-scoped authorization — fetch kit first to check access
+    const { data: existing, error: fetchError } = await supabase
+      .from('rlc_share_kits')
+      .select('charter_id')
+      .eq('id', id)
+      .single();
+
+    if (fetchError) {
+      if (fetchError.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Share kit not found' }, { status: 404 });
+      }
+      logger.error('Failed to fetch share kit for auth check:', { id, error: fetchError });
+      return NextResponse.json({ error: 'Failed to update share kit' }, { status: 500 });
+    }
+
+    const existingRow = existing as { charter_id: string | null };
+    if (ctx.visibleCharterIds !== null && existingRow.charter_id && !ctx.visibleCharterIds.includes(existingRow.charter_id)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (parseResult.data.title !== undefined) updates.title = parseResult.data.title;
+    if (parseResult.data.description !== undefined) updates.description = parseResult.data.description;
+    if (parseResult.data.socialCopy !== undefined) updates.social_copy = parseResult.data.socialCopy;
+    if (parseResult.data.ogImageOverrideUrl !== undefined) updates.og_image_override_url = parseResult.data.ogImageOverrideUrl;
+    if (parseResult.data.status !== undefined) updates.status = parseResult.data.status;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    }
+
+    const { data, error } = await supabase
+      .from('rlc_share_kits')
+      .update(updates as never)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return NextResponse.json({ error: 'Share kit not found' }, { status: 404 });
+      }
+      logger.error('Error updating share kit:', { id, error });
+      return NextResponse.json({ error: 'Failed to update share kit' }, { status: 500 });
+    }
+
+    return NextResponse.json({ shareKit: data });
+  } catch (err) {
+    logger.error('Unhandled error in share-kits PATCH:', { error: err });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}

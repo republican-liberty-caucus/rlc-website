@@ -321,6 +321,9 @@ model Charter {
   splitRulesAsRecipient CharterSplitRule[]   @relation("SplitRuleRecipient")
   splitLedgerEntries   SplitLedgerEntry[]    @relation("LedgerRecipient")
 
+  // Share kits
+  shareKits            ShareKit[]
+
   @@map("rlc_charters")
 }
 
@@ -406,6 +409,10 @@ model Contact {
   vettingSectionAssignments CandidateVettingSectionAssignment[]
   boardVotes                CandidateVettingBoardVote[]
   digitalAuditsTriggered    CandidateDigitalAudit[]           @relation("AuditTriggeredBy")
+
+  // Share kit relations
+  shareKitsCreated          ShareKit[]                        @relation("ShareKitCreatedBy")
+  shareLinks                ShareLink[]                       @relation("ShareLinkMember")
 
   @@map("rlc_members")
 }
@@ -1278,6 +1285,77 @@ model CandidateAuditPlatform {
 
   @@index([auditId, entityType])
   @@map("rlc_candidate_audit_platforms")
+}
+
+/// Share Kits (promotable content bundles)
+model ShareKit {
+  id                  String    @id @default(uuid())
+  contentType         String    @map("content_type")
+  contentId           String    @map("content_id")
+  title               String
+  description         String?   @db.Text
+  socialCopy          Json      @default("{}") @map("social_copy")
+  ogImageUrl          String?   @map("og_image_url")
+  ogImageOverrideUrl  String?   @map("og_image_override_url")
+  status              String    @default("draft")
+  scope               String    @default("national")
+  charterId           String?   @map("charter_id")
+  charter             Charter?  @relation(fields: [charterId], references: [id])
+  createdById         String?   @map("created_by")
+  createdBy           Contact?  @relation("ShareKitCreatedBy", fields: [createdById], references: [id])
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  shareLinks ShareLink[]
+
+  @@unique([contentType, contentId])
+  @@index([status])
+  @@map("rlc_share_kits")
+}
+
+/// Tracked share links (one per member per share kit)
+model ShareLink {
+  id          String    @id @default(uuid())
+  shareKitId  String    @map("share_kit_id")
+  shareKit    ShareKit  @relation(fields: [shareKitId], references: [id], onDelete: Cascade)
+  memberId    String    @map("member_id")
+  member      Contact   @relation("ShareLinkMember", fields: [memberId], references: [id], onDelete: Cascade)
+  shortCode   String    @unique @map("short_code")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  clicks      LinkClick[]
+  shareEvents ShareEvent[]
+
+  @@unique([shareKitId, memberId])
+  @@index([memberId])
+  @@map("rlc_share_links")
+}
+
+/// Click tracking for share links
+model LinkClick {
+  id          String    @id @default(uuid())
+  shareLinkId String    @map("share_link_id")
+  shareLink   ShareLink @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+  clickedAt   DateTime  @default(now()) @map("clicked_at")
+  referrer    String?
+  userAgent   String?   @map("user_agent")
+  geoState    String?   @map("geo_state")
+
+  @@index([shareLinkId])
+  @@index([clickedAt])
+  @@map("rlc_link_clicks")
+}
+
+/// Share events (tracks which platform a link was shared on)
+model ShareEvent {
+  id          String    @id @default(uuid())
+  shareLinkId String    @map("share_link_id")
+  shareLink   ShareLink @relation(fields: [shareLinkId], references: [id], onDelete: Cascade)
+  platform    String
+  sharedAt    DateTime  @default(now()) @map("shared_at")
+
+  @@index([shareLinkId])
+  @@map("rlc_share_events")
 }
 
 /// Webhook Events (idempotency tracking for Stripe webhooks)

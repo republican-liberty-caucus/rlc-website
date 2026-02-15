@@ -730,6 +730,66 @@ export interface CandidateAuditPlatform {
   updated_at: string;
 }
 
+// Share Kit types
+
+export type ShareKitContentType = 'endorsement' | 'campaign' | 'event' | 'custom';
+export type ShareKitStatus = 'draft' | 'active' | 'archived';
+export type ShareKitScope = 'national' | 'charter';
+export type SharePlatform = 'x' | 'facebook' | 'linkedin' | 'email' | 'sms' | 'copy' | 'qr';
+
+export interface SocialCopyVariant {
+  formal: string;
+  casual: string;
+  punchy: string;
+}
+
+export interface SocialCopyVariants {
+  x: SocialCopyVariant;
+  facebook: SocialCopyVariant;
+  linkedin: SocialCopyVariant;
+}
+
+export interface ShareKit {
+  id: string;
+  content_type: ShareKitContentType;
+  content_id: string;
+  title: string;
+  description: string | null;
+  social_copy: SocialCopyVariants;
+  og_image_url: string | null;
+  og_image_override_url: string | null;
+  status: ShareKitStatus;
+  scope: ShareKitScope;
+  charter_id: string | null;
+  created_by: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ShareLink {
+  id: string;
+  share_kit_id: string;
+  member_id: string;
+  short_code: string;
+  created_at: string;
+}
+
+export interface LinkClick {
+  id: string;
+  share_link_id: string;
+  clicked_at: string;
+  referrer: string | null;
+  user_agent: string | null;
+  geo_state: string | null;
+}
+
+export interface ShareEvent {
+  id: string;
+  share_link_id: string;
+  platform: SharePlatform;
+  shared_at: string;
+}
+
 // API Response types
 export interface ApiResponse<T> {
   data?: T;
