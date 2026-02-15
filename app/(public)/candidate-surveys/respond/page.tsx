@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
+import { formatCandidateName } from '@/lib/utils';
 import { CandidateSurveyForm } from '@/components/surveys/candidate-survey-form';
 
 export const metadata: Metadata = {
@@ -24,14 +25,14 @@ export default async function CandidateRespondPage({ searchParams }: RespondPage
   // Find the candidate response and survey
   const { data: responseData, error: responseError } = await supabase
     .from('rlc_candidate_responses')
-    .select('id, survey_id, candidate_name, status, token_expires_at')
+    .select('id, survey_id, candidate_first_name, candidate_last_name, status, token_expires_at')
     .eq('access_token', token)
     .single();
 
   if (responseError || !responseData) notFound();
 
   const candidateResponse = responseData as {
-    id: string; survey_id: string; candidate_name: string; status: string;
+    id: string; survey_id: string; candidate_first_name: string; candidate_last_name: string; status: string;
     token_expires_at: string | null;
   };
 
@@ -61,7 +62,7 @@ export default async function CandidateRespondPage({ searchParams }: RespondPage
           <div className="text-center">
             <h1 className="text-3xl font-bold">Survey Already Submitted</h1>
             <p className="mt-4 text-muted-foreground">
-              Thank you, {candidateResponse.candidate_name}. Your survey response has already been recorded.
+              Thank you, {formatCandidateName(candidateResponse.candidate_first_name, candidateResponse.candidate_last_name)}. Your survey response has already been recorded.
             </p>
           </div>
         </section>
@@ -120,7 +121,7 @@ export default async function CandidateRespondPage({ searchParams }: RespondPage
             <p className="mx-auto mt-3 max-w-2xl text-white/90">{survey.description}</p>
           )}
           <p className="mt-3 text-sm text-white/70">
-            Completing this survey for: <strong>{candidateResponse.candidate_name}</strong>
+            Completing this survey for: <strong>{formatCandidateName(candidateResponse.candidate_first_name, candidateResponse.candidate_last_name)}</strong>
           </p>
         </div>
       </section>

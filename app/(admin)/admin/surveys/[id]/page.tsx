@@ -49,9 +49,9 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
       .eq('survey_id', id)
       .order('sort_order'),
     supabase.from('rlc_candidate_responses')
-      .select('id, candidate_name, candidate_email, candidate_office, candidate_district, candidate_state, candidate_county, status, total_score, access_token, submitted_at, created_at, office_type:rlc_office_types(name, district_label)')
+      .select('id, candidate_first_name, candidate_last_name, candidate_email, candidate_office, candidate_district, candidate_state, candidate_county, status, total_score, access_token, submitted_at, created_at, office_type:rlc_office_types(name, district_label)')
       .eq('survey_id', id)
-      .order('candidate_name'),
+      .order('candidate_last_name'),
   ]);
 
   const questions = (questionsResult.data || []) as {
@@ -59,7 +59,7 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
   }[];
 
   const candidates = (candidatesResult.data || []) as {
-    id: string; candidate_name: string; candidate_email: string | null;
+    id: string; candidate_first_name: string; candidate_last_name: string; candidate_email: string | null;
     candidate_office: string | null; candidate_district: string | null;
     candidate_state: string | null; candidate_county: string | null;
     office_type: { name: string; district_label: string | null } | null;

@@ -7,6 +7,7 @@
 
 import { createServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { formatCandidateName } from '@/lib/utils';
 import { discoverPlatforms, discoverOpponentPlatforms } from './audit/discovery';
 import { classifyUrl } from './audit/platform-classifier';
 import { calculateConfidence } from './audit/confidence';
@@ -45,7 +46,7 @@ export async function runAudit(
     // 2. Load vetting data
     const { data: rawVetting, error: vError } = await supabase
       .from('rlc_candidate_vettings')
-      .select('id, candidate_name, candidate_state, candidate_office, candidate_district, candidate_party, stage')
+      .select('id, candidate_first_name, candidate_last_name, candidate_state, candidate_office, candidate_district, candidate_party, stage')
       .eq('id', vettingId)
       .single();
 
@@ -59,7 +60,8 @@ export async function runAudit(
 
     const vetting = rawVetting as {
       id: string;
-      candidate_name: string;
+      candidate_first_name: string;
+      candidate_last_name: string;
       candidate_state: string | null;
       candidate_office: string | null;
       candidate_district: string | null;
@@ -76,7 +78,8 @@ export async function runAudit(
     const opponents = (rawOpponents ?? []) as { name: string; party: string | null }[];
 
     const auditInput: AuditInput = {
-      candidateName: vetting.candidate_name,
+      candidateFirstName: vetting.candidate_first_name,
+      candidateLastName: vetting.candidate_last_name,
       state: vetting.candidate_state,
       office: vetting.candidate_office,
       district: vetting.candidate_district,
@@ -86,7 +89,8 @@ export async function runAudit(
     };
 
     // 3. Discovery
-    logger.info(`[Audit] Starting discovery for "${vetting.candidate_name}"`);
+    const candidateFullName = formatCandidateName(vetting.candidate_first_name, vetting.candidate_last_name);
+    logger.info(`[Audit] Starting discovery for "${candidateFullName}"`);
     const discovery = await discoverPlatforms(auditInput);
     logger.info(`[Audit] Discovered ${discovery.urls.length} URLs across ${discovery.totalSearches} searches`);
 
@@ -94,7 +98,7 @@ export async function runAudit(
     const candidatePlatforms = processPlatforms(
       discovery.urls,
       'candidate',
-      vetting.candidate_name,
+      candidateFullName,
       auditInput,
     );
 
@@ -114,7 +118,7 @@ export async function runAudit(
           oppUrls,
           'opponent',
           opponent.name,
-          { ...auditInput, candidateName: opponent.name },
+          { ...auditInput, candidateFirstName: opponent.name.split(' ')[0], candidateLastName: opponent.name.split(' ').slice(1).join(' ') },
         );
 
         const oppAvgScore = oppPlatforms.length > 0
@@ -250,7 +254,7 @@ export async function runAudit(
         .eq('stage', 'auto_audit'); // optimistic concurrency
     }
 
-    logger.info(`[Audit] Completed for "${vetting.candidate_name}" — score ${scoreBreakdown.total} (${scoreBreakdown.grade})`);
+    logger.info(`[Audit] Completed for "${candidateFullName}" — score ${scoreBreakdown.total} (${scoreBreakdown.grade})`);
   } catch (err) {
     logger.error(`[Audit] Failed for vetting ${vettingId}:`, err);
 
@@ -284,7 +288,7 @@ function processPlatforms(
     const { score: confidenceScore } = calculateConfidence(
       discovered.url,
       discovered.title,
-      input.candidateName,
+      formatCandidateName(input.candidateFirstName, input.candidateLastName),
       input.office,
       input.state,
     );

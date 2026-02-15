@@ -7,6 +7,7 @@
  */
 
 import { logger } from '@/lib/logger';
+import { formatCandidateName } from '@/lib/utils';
 import type { DiscoveredUrl, DiscoveryResult, HopLog, AuditInput } from './types';
 
 interface TavilyResult {
@@ -49,10 +50,12 @@ export async function discoverPlatforms(input: AuditInput): Promise<DiscoveryRes
     });
   }
 
+  const candidateFullName = formatCandidateName(input.candidateFirstName, input.candidateLastName);
+
   // ─── Hop 1: General search ────────────────────────────────
   const hop1Queries = [
-    `"${input.candidateName}" ${input.state ?? ''} ${input.office ?? ''}`,
-    `"${input.candidateName}" campaign website`,
+    `"${candidateFullName}" ${input.state ?? ''} ${input.office ?? ''}`,
+    `"${candidateFullName}" campaign website`,
   ];
 
   for (const query of hop1Queries) {
@@ -62,9 +65,9 @@ export async function discoverPlatforms(input: AuditInput): Promise<DiscoveryRes
 
   // ─── Hop 2: Platform-specific searches ────────────────────
   const hop2Queries = [
-    `"${input.candidateName}" site:facebook.com OR site:x.com OR site:instagram.com`,
-    `"${input.candidateName}" site:linkedin.com OR site:youtube.com`,
-    `"${input.candidateName}" ${input.state ?? ''} site:ballotpedia.org OR site:votesmart.org`,
+    `"${candidateFullName}" site:facebook.com OR site:x.com OR site:instagram.com`,
+    `"${candidateFullName}" site:linkedin.com OR site:youtube.com`,
+    `"${candidateFullName}" ${input.state ?? ''} site:ballotpedia.org OR site:votesmart.org`,
   ];
 
   for (const query of hop2Queries) {
@@ -74,8 +77,8 @@ export async function discoverPlatforms(input: AuditInput): Promise<DiscoveryRes
 
   // ─── Hop 3: Political databases & FEC ─────────────────────
   const hop3Queries = [
-    `"${input.candidateName}" FEC campaign finance filing`,
-    `"${input.candidateName}" ${input.office ?? ''} endorsement news`,
+    `"${candidateFullName}" FEC campaign finance filing`,
+    `"${candidateFullName}" ${input.office ?? ''} endorsement news`,
   ];
 
   for (const query of hop3Queries) {

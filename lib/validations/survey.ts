@@ -36,7 +36,8 @@ export const surveyUpdateSchema = z.object({
 });
 
 export const candidateCreateSchema = z.object({
-  candidateName: z.string().min(1).max(200),
+  candidateFirstName: z.string().min(1).max(100),
+  candidateLastName: z.string().max(100).default(''),
   candidateEmail: z.string().email().optional(),
   candidateParty: z.string().optional(),
   candidateOffice: z.string().optional(),

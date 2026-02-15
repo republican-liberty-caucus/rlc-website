@@ -17,7 +17,8 @@ export const metadata: Metadata = {
 interface VettingRow {
   id: string;
   candidate_response_id: string | null;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_state: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
@@ -34,7 +35,8 @@ interface VettingRow {
 
 interface SubmissionRow {
   id: string;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_office: string | null;
   candidate_state: string | null;
   candidate_district: string | null;
@@ -55,7 +57,7 @@ export default async function VettingPipelinePage() {
   // Fetch active vettings and pending submissions in parallel
   let vettingQuery = supabase
     .from('rlc_candidate_vettings')
-    .select('id, candidate_response_id, candidate_name, candidate_state, candidate_office, candidate_district, charter_id, stage, recommendation, created_at, office_type:rlc_office_types(name, district_label), election_deadline:rlc_candidate_election_deadlines(primary_date, general_date)')
+    .select('id, candidate_response_id, candidate_first_name, candidate_last_name, candidate_state, candidate_office, candidate_district, charter_id, stage, recommendation, created_at, office_type:rlc_office_types(name, district_label), election_deadline:rlc_candidate_election_deadlines(primary_date, general_date)')
     .order('created_at', { ascending: false });
 
   if (ctx.visibleCharterIds !== null) {
@@ -66,7 +68,7 @@ export default async function VettingPipelinePage() {
     vettingQuery,
     supabase
       .from('rlc_candidate_responses')
-      .select('id, candidate_name, candidate_office, candidate_state, candidate_district, contact_id, total_score, submitted_at')
+      .select('id, candidate_first_name, candidate_last_name, candidate_office, candidate_state, candidate_district, contact_id, total_score, submitted_at')
       .eq('status', 'submitted')
       .order('submitted_at', { ascending: false }),
     supabase
@@ -112,7 +114,8 @@ export default async function VettingPipelinePage() {
   const submissionRows: PipelineRow[] = pendingSubmissions.map((s) => ({
     id: s.id,
     type: 'submission' as const,
-    candidate_name: s.candidate_name,
+    candidate_first_name: s.candidate_first_name,
+    candidate_last_name: s.candidate_last_name,
     candidate_state: s.candidate_state,
     candidate_office: s.candidate_office,
     candidate_district: s.candidate_district,
@@ -129,7 +132,8 @@ export default async function VettingPipelinePage() {
   const vettingRows: PipelineRow[] = vettings.map((v) => ({
     id: v.id,
     type: 'vetting' as const,
-    candidate_name: v.candidate_name,
+    candidate_first_name: v.candidate_first_name,
+    candidate_last_name: v.candidate_last_name,
     candidate_state: v.candidate_state,
     candidate_office: v.candidate_office,
     candidate_district: v.candidate_district,

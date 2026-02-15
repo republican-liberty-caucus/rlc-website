@@ -119,7 +119,8 @@ export interface SurveyAnswerData {
 
 export interface SurveyResponseData {
   id: string;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_email: string | null;
   candidate_party: string | null;
   candidate_office: string | null;
@@ -157,7 +158,8 @@ export interface OfficeTypeData {
 export interface VettingFullData {
   id: string;
   candidate_response_id: string;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_state: string | null;
   candidate_office: string | null;
   candidate_district: string | null;

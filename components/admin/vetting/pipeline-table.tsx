@@ -7,12 +7,13 @@ import { Play, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useToast } from '@/lib/hooks/use-toast';
-import { cn } from '@/lib/utils';
+import { cn, formatCandidateName } from '@/lib/utils';
 
 export interface PipelineRow {
   id: string;
   type: 'submission' | 'vetting';
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_state: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
@@ -72,7 +73,7 @@ export function PipelineTable({ rows, canCreate, emptyMessage = 'No candidates i
         body: JSON.stringify({ candidateResponseId }),
         signal: AbortSignal.timeout(15000),
       });
-      let data: { error?: string; vetting?: { candidate_name?: string } } | null = null;
+      let data: { error?: string; vetting?: { candidate_first_name?: string; candidate_last_name?: string } } | null = null;
       try {
         data = await res.json();
       } catch {
@@ -82,7 +83,10 @@ export function PipelineTable({ rows, canCreate, emptyMessage = 'No candidates i
         toast({ title: 'Error', description: data?.error || `Server returned ${res.status}`, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Added to Pipeline', description: `${data?.vetting?.candidate_name || 'Candidate'} is now in the vetting pipeline` });
+      const name = data?.vetting?.candidate_first_name
+        ? formatCandidateName(data.vetting.candidate_first_name, data.vetting.candidate_last_name ?? '')
+        : 'Candidate';
+      toast({ title: 'Added to Pipeline', description: `${name} is now in the vetting pipeline` });
       router.refresh();
     } catch (err) {
       console.error('Failed to add to pipeline:', err);
@@ -126,7 +130,7 @@ export function PipelineTable({ rows, canCreate, emptyMessage = 'No candidates i
                   )}
                 >
                   <td className="px-4 py-3 text-sm font-medium">
-                    {row.candidate_name}
+                    {formatCandidateName(row.candidate_first_name, row.candidate_last_name)}
                     {row.contact_id && (
                       <Link
                         href={`/admin/members/${row.contact_id}`}

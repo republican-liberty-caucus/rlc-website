@@ -241,7 +241,8 @@ export interface SurveyQuestion {
 export interface CandidateResponse {
   id: string;
   survey_id: string;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_email: string | null;
   candidate_party: string | null;
   candidate_office: string | null;
@@ -579,7 +580,8 @@ export interface CandidateVetting {
   candidate_response_id: string;
   committee_id: string | null;
   stage: VettingStage;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_office: string | null;
   candidate_district: string | null;
   candidate_state: string | null;

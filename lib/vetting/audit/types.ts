@@ -7,7 +7,8 @@
 // ─── Input ────────────────────────────────────────────────────────
 
 export interface AuditInput {
-  candidateName: string;
+  candidateFirstName: string;
+  candidateLastName: string;
   state: string | null;
   office: string | null;
   district: string | null;

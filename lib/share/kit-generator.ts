@@ -2,6 +2,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { generateSocialCopy } from '@/lib/share/copy-generator';
 import { logger } from '@/lib/logger';
 import { BASE_URL } from '@/lib/constants';
+import { formatCandidateName } from '@/lib/utils';
 import type { VettingRecommendation } from '@/types';
 
 /**
@@ -10,40 +11,42 @@ import type { VettingRecommendation } from '@/types';
  */
 export async function generateEndorsementShareKit(params: {
   vettingId: string;
-  candidateName: string;
+  candidateFirstName: string;
+  candidateLastName: string;
   candidateOffice: string | null;
   candidateState: string | null;
   endorsementResult: VettingRecommendation;
 }): Promise<string | null> {
   try {
     const supabase = createServerClient();
+    const candidateName = formatCandidateName(params.candidateFirstName, params.candidateLastName);
 
     // Build title matching the press release pattern
     let title: string;
     const office = params.candidateOffice || 'Office';
     switch (params.endorsementResult) {
       case 'endorse':
-        title = `RLC Endorses ${params.candidateName} for ${office}`;
+        title = `RLC Endorses ${candidateName} for ${office}`;
         break;
       case 'do_not_endorse':
-        title = `RLC Does Not Endorse ${params.candidateName} for ${office}`;
+        title = `RLC Does Not Endorse ${candidateName} for ${office}`;
         break;
       case 'no_position':
-        title = `RLC Takes No Position on ${params.candidateName} for ${office}`;
+        title = `RLC Takes No Position on ${candidateName} for ${office}`;
         break;
       default:
-        title = `RLC Endorsement Decision: ${params.candidateName} for ${office}`;
+        title = `RLC Endorsement Decision: ${candidateName} for ${office}`;
     }
 
     const description = params.candidateState
-      ? `${params.candidateName} — ${office}, ${params.candidateState}`
-      : `${params.candidateName} — ${office}`;
+      ? `${candidateName} — ${office}, ${params.candidateState}`
+      : `${candidateName} — ${office}`;
 
     // Generate AI social copy
     const socialCopy = await generateSocialCopy({
       contentType: 'endorsement',
       title,
-      candidateName: params.candidateName,
+      candidateName,
       candidateOffice: params.candidateOffice,
       candidateState: params.candidateState,
       endorsementResult: params.endorsementResult,

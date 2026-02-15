@@ -648,14 +648,14 @@ async function seed() {
   const candidate2Id = id();
 
   await insert('rlc_candidate_responses', {
-    id: candidate1Id, survey_id: surveyId, candidate_name: 'John Libertarian',
+    id: candidate1Id, survey_id: surveyId, candidate_first_name: 'John', candidate_last_name: 'Libertarian',
     candidate_email: 'demo-libertarian@example.com', candidate_party: 'Republican',
     candidate_office: 'State Representative', candidate_district: 'TX HD-47',
     access_token: crypto.randomBytes(16).toString('hex'), status: 'submitted',
     total_score: 92.5, submitted_at: '2026-02-01T14:00:00Z',
   });
   await insert('rlc_candidate_responses', {
-    id: candidate2Id, survey_id: surveyId, candidate_name: 'Jane Conservative',
+    id: candidate2Id, survey_id: surveyId, candidate_first_name: 'Jane', candidate_last_name: 'Conservative',
     candidate_email: 'demo-conservative@example.com', candidate_party: 'Republican',
     candidate_office: 'State Representative', candidate_district: 'TX HD-47',
     access_token: crypto.randomBytes(16).toString('hex'), status: 'submitted',
@@ -690,7 +690,7 @@ async function seed() {
   const vettingId = id();
   await insert('rlc_candidate_vettings', {
     id: vettingId, candidate_response_id: candidate1Id, committee_id: committeeId,
-    stage: 'committee_review', candidate_name: 'John Libertarian',
+    stage: 'committee_review', candidate_first_name: 'John', candidate_last_name: 'Libertarian',
     candidate_office: 'State Representative', candidate_district: 'TX HD-47',
     candidate_state: 'TX', candidate_party: 'Republican', metadata: DEMO_TAG,
   });

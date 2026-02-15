@@ -2,31 +2,17 @@ import { createServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 
 /**
- * Splits a full candidate name into first/last.
- * Single-word names get "(candidate)" as last name since Contact requires both.
- */
-export function splitCandidateName(fullName: string): { firstName: string; lastName: string } {
-  const trimmed = fullName.trim();
-  const spaceIndex = trimmed.indexOf(' ');
-  if (spaceIndex === -1) {
-    return { firstName: trimmed, lastName: '(candidate)' };
-  }
-  return {
-    firstName: trimmed.slice(0, spaceIndex),
-    lastName: trimmed.slice(spaceIndex + 1).trim(),
-  };
-}
-
-/**
  * Finds an existing contact by email (case-insensitive) or creates a new one.
  * Returns the contact ID for linking to the candidate response.
  */
 export async function findOrCreateCandidateContact({
-  candidateName,
+  candidateFirstName,
+  candidateLastName,
   candidateEmail,
   candidateState,
 }: {
-  candidateName: string;
+  candidateFirstName: string;
+  candidateLastName: string;
   candidateEmail: string | null | undefined;
   candidateState: string | null | undefined;
 }): Promise<{ contactId: string; isNew: boolean }> {
@@ -54,7 +40,8 @@ export async function findOrCreateCandidateContact({
   }
 
   // No match — create new contact
-  const { firstName, lastName } = splitCandidateName(candidateName);
+  const firstName = candidateFirstName.trim();
+  const lastName = candidateLastName.trim() || '(candidate)';
 
   const { data: newContact, error: insertError } = await supabase
     .from('rlc_contacts')

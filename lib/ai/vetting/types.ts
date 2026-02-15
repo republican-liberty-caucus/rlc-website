@@ -92,7 +92,8 @@ export interface VotingRulesResearchOutput {
 // ============================================
 
 export interface CandidateBackgroundInput {
-  candidateName: string;
+  candidateFirstName: string;
+  candidateLastName: string;
   office: string | null;
   state: string | null;
   district: string | null;
@@ -114,7 +115,8 @@ export interface CandidateBackgroundOutput {
 // ============================================
 
 export interface ExecutiveSummaryInput {
-  candidateName: string;
+  candidateFirstName: string;
+  candidateLastName: string;
   office: string | null;
   state: string | null;
   party: string | null;

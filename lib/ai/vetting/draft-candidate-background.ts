@@ -1,5 +1,6 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { formatCandidateName } from '@/lib/utils';
 import type { CandidateBackgroundInput, CandidateBackgroundOutput } from './types';
 
 const SYSTEM_PROMPT = `You are a political research analyst for the Republican Liberty Caucus (RLC). Your role is to compile structured background profiles on candidates seeking RLC endorsement.
@@ -32,7 +33,7 @@ export async function draftCandidateBackground(input: CandidateBackgroundInput):
   }
 
   const parts = [
-    `Candidate Name: ${input.candidateName}`,
+    `Candidate Name: ${formatCandidateName(input.candidateFirstName, input.candidateLastName)}`,
     input.office && `Office Sought: ${input.office}`,
     input.state && `State: ${input.state}`,
     input.district && `District: ${input.district}`,

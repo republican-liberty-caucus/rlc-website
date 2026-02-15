@@ -9,7 +9,8 @@ import { logger } from '@/lib/logger';
 
 interface CandidateResponseRow {
   id: string;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_email: string | null;
   candidate_party: string | null;
   candidate_office: string | null;
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
     // Look up the candidate response to denormalize fields and validate state
     const { data: response, error: responseError } = await supabase
       .from('rlc_candidate_responses')
-      .select('id, candidate_name, candidate_email, candidate_party, candidate_office, candidate_district, candidate_state, office_type_id, status, survey:rlc_surveys(state, charter_id)')
+      .select('id, candidate_first_name, candidate_last_name, candidate_email, candidate_party, candidate_office, candidate_district, candidate_state, office_type_id, status, survey:rlc_surveys(state, charter_id)')
       .eq('id', candidateResponseId)
       .single();
 
@@ -92,7 +93,8 @@ export async function POST(request: Request) {
         candidate_response_id: candidateResponseId,
         committee_id: committeeId ?? null,
         election_deadline_id: electionDeadlineId ?? null,
-        candidate_name: candidateResponse.candidate_name,
+        candidate_first_name: candidateResponse.candidate_first_name,
+        candidate_last_name: candidateResponse.candidate_last_name,
         candidate_office: candidateResponse.candidate_office ?? null,
         candidate_district: candidateResponse.candidate_district ?? null,
         candidate_state: candidateState,

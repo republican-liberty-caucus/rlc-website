@@ -353,7 +353,8 @@ export type Database = {
           candidate_response_id: string;
           committee_id: string | null;
           stage: VettingStage;
-          candidate_name: string;
+          candidate_first_name: string;
+          candidate_last_name: string;
           candidate_office: string | null;
           candidate_district: string | null;
           candidate_state: string | null;

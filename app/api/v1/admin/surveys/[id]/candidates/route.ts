@@ -79,7 +79,8 @@ export async function POST(
   let contactId: string | null = null;
   try {
     const result = await findOrCreateCandidateContact({
-      candidateName: input.candidateName,
+      candidateFirstName: input.candidateFirstName,
+      candidateLastName: input.candidateLastName,
       candidateEmail: input.candidateEmail,
       candidateState: input.candidateState,
     });
@@ -94,7 +95,8 @@ export async function POST(
       id: crypto.randomUUID(),
       survey_id: surveyId,
       contact_id: contactId,
-      candidate_name: input.candidateName,
+      candidate_first_name: input.candidateFirstName,
+      candidate_last_name: input.candidateLastName,
       candidate_email: input.candidateEmail || null,
       candidate_party: input.candidateParty || null,
       candidate_office: input.candidateOffice || null,
