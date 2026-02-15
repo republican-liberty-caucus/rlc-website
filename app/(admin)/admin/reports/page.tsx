@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
+import { rpc } from '@/lib/supabase/rpc';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { formatCurrency } from '@/lib/utils';
 import {
@@ -37,11 +38,6 @@ function scopeByCharter<T extends { in: (col: string, vals: string[]) => T }>(
     return query.in(column, charterIds);
   }
   return query;
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database type doesn't include RPC function signatures
-function rpc(supabase: any, fn: string, args: Record<string, unknown>) {
-  return supabase.rpc(fn, args);
 }
 
 export default async function AdminReportsPage({ searchParams }: ReportsPageProps) {
