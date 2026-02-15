@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { User } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { STAGE_ORDER, calculateUrgency } from '@/lib/vetting/engine';
+import { formatCandidateName } from '@/lib/utils';
 import type { VettingFullData, SurveyResponseData } from '../types';
 
 function formatDate(dateStr: string): string {
@@ -35,7 +36,7 @@ export function VettingOverviewTab({ vetting, surveyResponse }: VettingOverviewT
       <div className="rounded-lg border bg-card p-6">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-lg font-semibold">{vetting.candidate_name}</h2>
+            <h2 className="text-lg font-semibold">{formatCandidateName(vetting.candidate_first_name, vetting.candidate_last_name)}</h2>
             <p className="text-sm text-muted-foreground">
               {[
                 vetting.candidate_party,

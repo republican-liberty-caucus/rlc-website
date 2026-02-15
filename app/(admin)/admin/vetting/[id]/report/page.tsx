@@ -63,7 +63,8 @@ export default async function VettingReportPage({
 
   const reportData = {
     id: vetting.id as string,
-    candidate_name: vetting.candidate_name as string,
+    candidate_first_name: vetting.candidate_first_name as string,
+    candidate_last_name: vetting.candidate_last_name as string,
     candidate_state: vetting.candidate_state as string | null,
     candidate_office: vetting.candidate_office as string | null,
     candidate_district: vetting.candidate_district as string | null,

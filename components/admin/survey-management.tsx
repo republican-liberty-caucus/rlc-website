@@ -5,13 +5,15 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
+import { formatCandidateName } from '@/lib/utils';
 import { Plus, Copy, ExternalLink, Eye, Play } from 'lucide-react';
 import type { OfficeType } from '@/types';
 import { US_STATES } from '@/lib/constants/us-states';
 
 interface Candidate {
   id: string;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_email: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
@@ -45,7 +47,8 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
   const [startingVetting, setStartingVetting] = React.useState<string | null>(null);
 
   // Form fields
-  const [candidateName, setCandidateName] = React.useState('');
+  const [candidateFirstName, setCandidateFirstName] = React.useState('');
+  const [candidateLastName, setCandidateLastName] = React.useState('');
   const [candidateEmail, setCandidateEmail] = React.useState('');
   const [officeTypeId, setOfficeTypeId] = React.useState('');
   const [candidateState, setCandidateState] = React.useState('');
@@ -81,7 +84,8 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
   }, [officeTypeId, selectedOfficeType]);
 
   function resetForm() {
-    setCandidateName('');
+    setCandidateFirstName('');
+    setCandidateLastName('');
     setCandidateEmail('');
     setOfficeTypeId('');
     setCandidateState('');
@@ -90,14 +94,15 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
   }
 
   async function addCandidate() {
-    if (!candidateName.trim()) return;
+    if (!candidateFirstName.trim()) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/v1/admin/surveys/${surveyId}/candidates`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          candidateName,
+          candidateFirstName: candidateFirstName.trim(),
+          candidateLastName: candidateLastName.trim(),
           candidateEmail: candidateEmail || undefined,
           candidateOffice: selectedOfficeType?.name || undefined,
           candidateDistrict: candidateDistrict || undefined,
@@ -111,7 +116,7 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
         toast({ title: 'Error', description: data.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Candidate added', description: `Survey link generated for ${candidateName}` });
+      toast({ title: 'Candidate added', description: `Survey link generated for ${candidateFirstName} ${candidateLastName}`.trim() });
       resetForm();
       setShowAddForm(false);
       router.refresh();
@@ -269,9 +274,16 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
             <div className="grid gap-3 md:grid-cols-2">
               <input
                 type="text"
-                value={candidateName}
-                onChange={(e) => setCandidateName(e.target.value)}
-                placeholder="Candidate name *"
+                value={candidateFirstName}
+                onChange={(e) => setCandidateFirstName(e.target.value)}
+                placeholder="First name *"
+                className={inputClass}
+              />
+              <input
+                type="text"
+                value={candidateLastName}
+                onChange={(e) => setCandidateLastName(e.target.value)}
+                placeholder="Last name"
                 className={inputClass}
               />
               <input
@@ -366,10 +378,10 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
                           href={`/admin/surveys/${surveyId}/candidates/${c.id}`}
                           className="text-sm font-medium text-rlc-red hover:underline"
                         >
-                          {c.candidate_name}
+                          {formatCandidateName(c.candidate_first_name, c.candidate_last_name)}
                         </Link>
                       ) : (
-                        <p className="text-sm font-medium">{c.candidate_name}</p>
+                        <p className="text-sm font-medium">{formatCandidateName(c.candidate_first_name, c.candidate_last_name)}</p>
                       )}
                       {c.candidate_email && (
                         <p className="text-xs text-muted-foreground">{c.candidate_email}</p>

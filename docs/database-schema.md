@@ -338,7 +338,8 @@ In-person and virtual events with registration management.
 |--------|------|----------|---------|-------|
 | `id` | uuid | | `uuid()` | PK |
 | `survey_id` | uuid | | | FK `rlc_surveys.id` (cascade delete) |
-| `candidate_name` | text | | | |
+| `candidate_first_name` | text | | | |
+| `candidate_last_name` | text | | `''` | |
 | `candidate_email` | text | yes | | |
 | `candidate_party` | text | yes | | |
 | `candidate_office` | text | yes | | |

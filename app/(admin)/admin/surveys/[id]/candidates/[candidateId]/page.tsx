@@ -4,6 +4,7 @@ import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
+import { formatCandidateName } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { VettingSurveyTab } from '@/components/admin/vetting/tabs/vetting-survey-tab';
 import type { SurveyResponseData, SurveyAnswerData } from '@/components/admin/vetting/types';
@@ -17,11 +18,11 @@ export async function generateMetadata({ params }: CandidateDetailPageProps): Pr
   const supabase = createServerClient();
   const { data } = await supabase
     .from('rlc_candidate_responses')
-    .select('candidate_name')
+    .select('candidate_first_name, candidate_last_name')
     .eq('id', candidateId)
     .single();
-  const candidate = data as { candidate_name: string } | null;
-  return { title: candidate ? `${candidate.candidate_name} - Survey Response` : 'Candidate Detail' };
+  const candidate = data as { candidate_first_name: string; candidate_last_name: string } | null;
+  return { title: candidate ? `${formatCandidateName(candidate.candidate_first_name, candidate.candidate_last_name)} - Survey Response` : 'Candidate Detail' };
 }
 
 export default async function CandidateDetailPage({ params }: CandidateDetailPageProps) {
@@ -37,7 +38,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
   const { data: responseData, error: responseError } = await supabase
     .from('rlc_candidate_responses')
     .select(`
-      id, candidate_name, candidate_email, candidate_party, candidate_office,
+      id, candidate_first_name, candidate_last_name, candidate_email, candidate_party, candidate_office,
       candidate_district, candidate_state, candidate_county, contact_id,
       total_score, status, submitted_at, created_at,
       contact:rlc_contacts(id, first_name, last_name, email, membership_status),
@@ -51,7 +52,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
   if (responseError || !responseData) notFound();
 
   const response = responseData as unknown as {
-    id: string; candidate_name: string; candidate_email: string | null;
+    id: string; candidate_first_name: string; candidate_last_name: string; candidate_email: string | null;
     candidate_party: string | null; candidate_office: string | null;
     candidate_district: string | null; candidate_state: string | null;
     candidate_county: string | null; contact_id: string | null;
@@ -77,7 +78,8 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
   // Build SurveyResponseData to reuse VettingSurveyTab
   const surveyResponse: SurveyResponseData = {
     id: response.id,
-    candidate_name: response.candidate_name,
+    candidate_first_name: response.candidate_first_name,
+    candidate_last_name: response.candidate_last_name,
     candidate_email: response.candidate_email,
     candidate_party: response.candidate_party,
     candidate_office: response.candidate_office,
@@ -109,7 +111,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
           &larr; Back to Survey
         </Link>
         <PageHeader
-          title={response.candidate_name}
+          title={formatCandidateName(response.candidate_first_name, response.candidate_last_name)}
           className="mt-2"
         />
         <p className="text-muted-foreground">{officeDisplay}</p>

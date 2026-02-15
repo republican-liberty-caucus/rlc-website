@@ -14,6 +14,7 @@ import {
   canCastBoardVote,
 } from '@/lib/vetting/permissions';
 import { calculateVettingProgress } from '@/lib/vetting/engine';
+import { formatCandidateName } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { VettingDetailTabs } from '@/components/admin/vetting/vetting-detail-tabs';
 import type {
@@ -120,7 +121,7 @@ export default async function VettingDetailPage({
     const { data: response, error: responseError } = await supabase
       .from('rlc_candidate_responses')
       .select(`
-        id, candidate_name, candidate_email, candidate_party, candidate_office,
+        id, candidate_first_name, candidate_last_name, candidate_email, candidate_party, candidate_office,
         candidate_district, contact_id, total_score, status, submitted_at, created_at,
         contact:rlc_contacts(id, first_name, last_name, email, membership_status),
         survey:rlc_surveys(id, title, election_type, election_date, state)
@@ -172,7 +173,7 @@ export default async function VettingDetailPage({
   return (
     <div>
       <PageHeader
-        title={vetting.candidate_name}
+        title={formatCandidateName(vetting.candidate_first_name, vetting.candidate_last_name)}
         className="mb-8"
       />
 

@@ -104,7 +104,8 @@ export async function POST(request: Request, { params }: RouteParams) {
     // Load vetting data for context
     interface VettingRow {
       id: string;
-      candidate_name: string;
+      candidate_first_name: string;
+      candidate_last_name: string;
       candidate_state: string | null;
       candidate_office: string | null;
       candidate_district: string | null;
@@ -113,7 +114,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const { data: rawVetting, error: vettingError } = await supabase
       .from('rlc_candidate_vettings')
-      .select('id, candidate_name, candidate_state, candidate_office, candidate_district, candidate_party')
+      .select('id, candidate_first_name, candidate_last_name, candidate_state, candidate_office, candidate_district, candidate_party')
       .eq('id', id)
       .single();
 
@@ -214,7 +215,8 @@ export async function POST(request: Request, { params }: RouteParams) {
         }));
 
         aiDraftData = await draftCandidateBackground({
-          candidateName: vetting.candidate_name,
+          candidateFirstName: vetting.candidate_first_name,
+          candidateLastName: vetting.candidate_last_name,
           office: vetting.candidate_office,
           state: vetting.candidate_state,
           district: vetting.candidate_district,
@@ -238,7 +240,8 @@ export async function POST(request: Request, { params }: RouteParams) {
         }
 
         aiDraftData = await generateExecutiveSummary({
-          candidateName: vetting.candidate_name,
+          candidateFirstName: vetting.candidate_first_name,
+          candidateLastName: vetting.candidate_last_name,
           office: vetting.candidate_office,
           state: vetting.candidate_state,
           party: vetting.candidate_party,

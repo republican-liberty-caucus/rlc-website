@@ -46,7 +46,8 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
 
   const defaultSurveyId = surveys.length === 1 ? surveys[0].id : '';
   const [selectedSurveyId, setSelectedSurveyId] = React.useState(defaultSurveyId);
-  const [candidateName, setCandidateName] = React.useState('');
+  const [candidateFirstName, setCandidateFirstName] = React.useState('');
+  const [candidateLastName, setCandidateLastName] = React.useState('');
   const [candidateEmail, setCandidateEmail] = React.useState('');
   const [officeTypeId, setOfficeTypeId] = React.useState('');
   const [candidateState, setCandidateState] = React.useState('');
@@ -89,7 +90,8 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
 
   function resetForm() {
     setSelectedSurveyId(defaultSurveyId);
-    setCandidateName('');
+    setCandidateFirstName('');
+    setCandidateLastName('');
     setCandidateEmail('');
     setOfficeTypeId('');
     setCandidateState('');
@@ -109,8 +111,8 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
       toast({ title: 'Error', description: 'Please select a survey', variant: 'destructive' });
       return;
     }
-    if (!candidateName.trim()) {
-      toast({ title: 'Error', description: 'Candidate name is required', variant: 'destructive' });
+    if (!candidateFirstName.trim()) {
+      toast({ title: 'Error', description: 'First name is required', variant: 'destructive' });
       return;
     }
 
@@ -120,7 +122,8 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          candidateName,
+          candidateFirstName: candidateFirstName.trim(),
+          candidateLastName: candidateLastName.trim(),
           candidateEmail: candidateEmail || undefined,
           candidateOffice: selectedOfficeType?.name || undefined,
           candidateDistrict: candidateDistrict || undefined,
@@ -134,7 +137,7 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
         toast({ title: 'Error', description: data.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Candidate added', description: `${candidateName} added to the pipeline` });
+      toast({ title: 'Candidate added', description: `${candidateFirstName} ${candidateLastName}`.trim() + ' added to the pipeline' });
       resetForm();
       setOpen(false);
       router.refresh();
@@ -181,14 +184,23 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
             <p className="text-sm text-destructive">No active surveys. Create a survey first.</p>
           )}
 
-          {/* Name & Email */}
-          <input
-            type="text"
-            value={candidateName}
-            onChange={(e) => setCandidateName(e.target.value)}
-            placeholder="Candidate name *"
-            className={fieldClass}
-          />
+          {/* Name fields */}
+          <div className="grid grid-cols-2 gap-2">
+            <input
+              type="text"
+              value={candidateFirstName}
+              onChange={(e) => setCandidateFirstName(e.target.value)}
+              placeholder="First name *"
+              className={fieldClass}
+            />
+            <input
+              type="text"
+              value={candidateLastName}
+              onChange={(e) => setCandidateLastName(e.target.value)}
+              placeholder="Last name"
+              className={fieldClass}
+            />
+          </div>
           <input
             type="email"
             value={candidateEmail}

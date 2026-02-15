@@ -1,5 +1,6 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
+import { formatCandidateName } from '@/lib/utils';
 import type { ExecutiveSummaryInput, ExecutiveSummaryOutput } from './types';
 
 const SYSTEM_PROMPT = `You are a senior political analyst for the Republican Liberty Caucus (RLC). Your role is to synthesize all available vetting research into a concise executive summary for the endorsement committee.
@@ -48,7 +49,7 @@ export async function generateExecutiveSummary(input: ExecutiveSummaryInput): Pr
   }
 
   const parts: string[] = [
-    `Candidate: ${input.candidateName}`,
+    `Candidate: ${formatCandidateName(input.candidateFirstName, input.candidateLastName)}`,
   ];
   if (input.office) parts.push(`Office: ${input.office}`);
   if (input.state) parts.push(`State: ${input.state}`);

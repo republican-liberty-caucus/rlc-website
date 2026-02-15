@@ -4,7 +4,7 @@ import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
 import { getWPPageContent, sanitizeWPContent } from '@/lib/wordpress/content';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatCandidateName } from '@/lib/utils';
 
 export const metadata: Metadata = {
   title: 'Endorsements',
@@ -13,7 +13,8 @@ export const metadata: Metadata = {
 
 interface EndorsedCandidate {
   id: string;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_office: string | null;
   candidate_state: string | null;
   candidate_district: string | null;
@@ -28,7 +29,7 @@ async function getEndorsedCandidates(): Promise<EndorsedCandidate[]> {
   const { data, error } = await supabase
     .from('rlc_candidate_vettings')
     .select(`
-      id, candidate_name, candidate_office, candidate_state, candidate_district,
+      id, candidate_first_name, candidate_last_name, candidate_office, candidate_state, candidate_district,
       endorsed_at, press_release_post_id,
       press_release_post:rlc_posts!press_release_post_id(slug, status)
     `)
@@ -88,7 +89,7 @@ export default async function EndorsementsPage() {
                         key={candidate.id}
                         className="rounded-lg border bg-card p-5 hover:border-rlc-red transition-colors"
                       >
-                        <h3 className="font-semibold text-lg">{candidate.candidate_name}</h3>
+                        <h3 className="font-semibold text-lg">{formatCandidateName(candidate.candidate_first_name, candidate.candidate_last_name)}</h3>
                         {candidate.candidate_office && (
                           <p className="text-sm text-muted-foreground mt-1">
                             {candidate.candidate_office}

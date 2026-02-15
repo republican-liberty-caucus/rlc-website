@@ -143,7 +143,7 @@ async function main() {
   // Fetch candidate responses that have candidate_office set but no office_type_id
   const { data: responses, error: respError } = await supabase
     .from('rlc_candidate_responses')
-    .select('id, candidate_name, candidate_office, candidate_district, office_type_id')
+    .select('id, candidate_first_name, candidate_last_name, candidate_office, candidate_district, office_type_id')
     .not('candidate_office', 'is', null);
 
   if (respError || !responses) {
@@ -178,7 +178,7 @@ async function main() {
     }
 
     if (!slug) {
-      unmatched.push({ id: r.id, name: r.candidate_name, office: r.candidate_office });
+      unmatched.push({ id: r.id, name: `${r.candidate_first_name} ${r.candidate_last_name}`.trim(), office: r.candidate_office });
       continue;
     }
 
@@ -193,7 +193,7 @@ async function main() {
       ? normalizeDistrict(r.candidate_district)
       : null;
 
-    console.log(`  ${r.candidate_name}: "${r.candidate_office}" → ${slugToName.get(slug)} (${slug})`);
+    console.log(`  ${r.candidate_first_name} ${r.candidate_last_name}: "${r.candidate_office}" → ${slugToName.get(slug)} (${slug})`);
     if (r.candidate_district && normalizedDistrict !== r.candidate_district) {
       console.log(`    District: "${r.candidate_district}" → "${normalizedDistrict}"`);
     }

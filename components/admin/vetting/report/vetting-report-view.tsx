@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
+import { cn, formatCandidateName } from '@/lib/utils';
 import type { VettingReportSectionType, VettingRecommendation, BoardVoteChoice } from '@/types';
 
 // Section data type mirrors ReportSectionWithAssignments but simplified for report
@@ -34,7 +34,8 @@ interface VoteSummary {
 
 interface VettingReportData {
   id: string;
-  candidate_name: string;
+  candidate_first_name: string;
+  candidate_last_name: string;
   candidate_state: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
@@ -302,7 +303,7 @@ export function VettingReportView({ data }: VettingReportViewProps) {
         </div>
         <h1 className="text-2xl font-bold mt-2">Candidate Vetting Report</h1>
         <p className="text-muted-foreground mt-1">
-          {data.candidate_name}
+          {formatCandidateName(data.candidate_first_name, data.candidate_last_name)}
           {data.candidate_party && ` (${data.candidate_party})`}
         </p>
         <p className="text-sm text-muted-foreground">

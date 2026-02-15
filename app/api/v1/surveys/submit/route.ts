@@ -132,14 +132,15 @@ export async function POST(request: Request) {
   try {
     const { data: candidateInfo } = await supabase
       .from('rlc_candidate_responses')
-      .select('contact_id, candidate_name, candidate_email, candidate_state')
+      .select('contact_id, candidate_first_name, candidate_last_name, candidate_email, candidate_state')
       .eq('id', candidateResponse.id)
       .single();
 
     if (candidateInfo && !(candidateInfo as { contact_id: string | null }).contact_id) {
-      const ci = candidateInfo as { candidate_name: string; candidate_email: string | null; candidate_state: string | null };
+      const ci = candidateInfo as { candidate_first_name: string; candidate_last_name: string; candidate_email: string | null; candidate_state: string | null };
       const { contactId } = await findOrCreateCandidateContact({
-        candidateName: ci.candidate_name,
+        candidateFirstName: ci.candidate_first_name,
+        candidateLastName: ci.candidate_last_name,
         candidateEmail: ci.candidate_email,
         candidateState: ci.candidate_state,
       });

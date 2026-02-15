@@ -27,3 +27,11 @@ export function slugify(text: string): string {
     .replace(/[\s_-]+/g, '-')
     .replace(/^-+|-+$/g, '');
 }
+
+export function formatCandidateName(firstName: string, lastName: string): string {
+  const f = firstName.trim();
+  const l = lastName.trim();
+  if (!l) return f;
+  if (!f) return l;
+  return `${f} ${l}`;
+}

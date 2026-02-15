@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { MainNav } from '@/components/navigation/main-nav';
 import { Footer } from '@/components/layout/footer';
 import { createServerClient } from '@/lib/supabase/server';
-import { formatDate } from '@/lib/utils';
+import { formatDate, formatCandidateName } from '@/lib/utils';
 
 interface SurveyResultsPageProps {
   params: Promise<{ slug: string }>;
@@ -42,13 +42,13 @@ export default async function SurveyResultsPage({ params }: SurveyResultsPagePro
   // Get submitted candidates with scores
   const { data: candidatesData } = await supabase
     .from('rlc_candidate_responses')
-    .select('id, candidate_name, candidate_party, candidate_office, candidate_district, candidate_state, status, total_score, submitted_at, office_type:rlc_office_types(name, district_label)')
+    .select('id, candidate_first_name, candidate_last_name, candidate_party, candidate_office, candidate_district, candidate_state, status, total_score, submitted_at, office_type:rlc_office_types(name, district_label)')
     .eq('survey_id', survey.id)
     .in('status', ['submitted', 'endorsed', 'not_endorsed'])
     .order('total_score', { ascending: false, nullsFirst: false });
 
   const candidates = (candidatesData || []) as {
-    id: string; candidate_name: string; candidate_party: string | null;
+    id: string; candidate_first_name: string; candidate_last_name: string; candidate_party: string | null;
     candidate_office: string | null; candidate_district: string | null;
     candidate_state: string | null;
     office_type: { name: string; district_label: string | null } | null;
@@ -96,7 +96,7 @@ export default async function SurveyResultsPage({ params }: SurveyResultsPagePro
                     </div>
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <p className="font-semibold">{c.candidate_name}</p>
+                        <p className="font-semibold">{formatCandidateName(c.candidate_first_name, c.candidate_last_name)}</p>
                         {c.candidate_party && (
                           <span className="text-xs text-muted-foreground">({c.candidate_party})</span>
                         )}

@@ -4,7 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canCastBoardVote } from '@/lib/vetting/permissions';
 import { tallyVotes, getEndorsementResult } from '@/lib/vetting/engine';
 import { logger } from '@/lib/logger';
-import { slugify } from '@/lib/utils';
+import { slugify, formatCandidateName } from '@/lib/utils';
 import { generateEndorsementShareKit } from '@/lib/share/kit-generator';
 import type { BoardVoteChoice, VettingRecommendation } from '@/types';
 
@@ -94,7 +94,7 @@ export async function POST(
     // Fetch vetting — check stage and that it hasn't been finalized yet
     const { data: rawVetting, error: vettingError } = await supabase
       .from('rlc_candidate_vettings')
-      .select('id, stage, endorsed_at, candidate_response_id, candidate_name, candidate_office, candidate_state, candidate_district')
+      .select('id, stage, endorsed_at, candidate_response_id, candidate_first_name, candidate_last_name, candidate_office, candidate_state, candidate_district')
       .eq('id', id)
       .single();
 
@@ -111,7 +111,8 @@ export async function POST(
       stage: string;
       endorsed_at: string | null;
       candidate_response_id: string;
-      candidate_name: string;
+      candidate_first_name: string;
+      candidate_last_name: string;
       candidate_office: string | null;
       candidate_state: string | null;
       candidate_district: string | null;
@@ -201,12 +202,13 @@ export async function POST(
     // Auto-create draft press release post (non-fatal)
     let pressReleasePostId: string | null = null;
     try {
-      const title = buildPressReleaseTitle(endorsementResult, vetting.candidate_name, vetting.candidate_office);
+      const candidateFullName = formatCandidateName(vetting.candidate_first_name, vetting.candidate_last_name);
+      const title = buildPressReleaseTitle(endorsementResult, candidateFullName, vetting.candidate_office);
       const dateSlug = new Date().toISOString().slice(0, 10);
-      const slug = `press-release-${slugify(vetting.candidate_name)}-${id.slice(0, 8)}-${dateSlug}`;
+      const slug = `press-release-${slugify(candidateFullName)}-${id.slice(0, 8)}-${dateSlug}`;
       const content = buildPressReleaseContent(
         endorsementResult,
-        vetting.candidate_name,
+        candidateFullName,
         vetting.candidate_office,
         vetting.candidate_state,
         vetting.candidate_district,
@@ -263,7 +265,8 @@ export async function POST(
     try {
       shareKitId = await generateEndorsementShareKit({
         vettingId: id,
-        candidateName: vetting.candidate_name,
+        candidateFirstName: vetting.candidate_first_name,
+        candidateLastName: vetting.candidate_last_name,
         candidateOffice: vetting.candidate_office,
         candidateState: vetting.candidate_state,
         endorsementResult,
