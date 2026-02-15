@@ -69,7 +69,7 @@ export function ScorecardSwitcher({ currentSlug, sessions }: ScorecardSwitcherPr
       <p className="text-xs font-medium uppercase tracking-widest text-white/50">Browse Scorecards</p>
       <div className="flex items-center gap-2">
         <Select value={String(selectedYear)} onValueChange={handleYearChange}>
-          <SelectTrigger className="h-9 w-[100px] border-white/20 bg-white/10 text-sm text-white hover:bg-white/20 focus:ring-white/30">
+          <SelectTrigger className="h-9 w-auto min-w-[80px] border-white/20 bg-white/10 text-sm text-white hover:bg-white/20 focus:ring-white/30">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -86,7 +86,7 @@ export function ScorecardSwitcher({ currentSlug, sessions }: ScorecardSwitcherPr
           onValueChange={handleChamberChange}
           disabled={chambersForYear.length <= 1}
         >
-          <SelectTrigger className="h-9 w-[150px] border-white/20 bg-white/10 text-sm text-white hover:bg-white/20 focus:ring-white/30 disabled:opacity-50">
+          <SelectTrigger className="h-9 w-auto min-w-[100px] border-white/20 bg-white/10 text-sm text-white hover:bg-white/20 focus:ring-white/30 disabled:opacity-50">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

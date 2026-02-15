@@ -80,9 +80,9 @@ export function CampaignManagement({ campaign, participationCount }: Props) {
         </Link>
       </div>
 
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold">{campaign.title}</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{campaign.title}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {chamberLabel}
             {campaign.target_state_code ? ` (${campaign.target_state_code})` : ''}
@@ -142,11 +142,11 @@ export function CampaignManagement({ campaign, participationCount }: Props) {
       {status === 'active' && (
         <div className="mb-8 rounded-lg border bg-card p-4">
           <h2 className="mb-2 text-sm font-medium">Share Campaign</h2>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 rounded bg-muted px-3 py-2 text-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <code className="min-w-0 flex-1 overflow-x-auto rounded bg-muted px-3 py-2 text-sm">
               /action-center/contact?campaign={campaign.slug}
             </code>
-            <Button variant="outline" size="sm" onClick={copyShareUrl}>
+            <Button variant="outline" size="sm" className="self-start sm:self-auto" onClick={copyShareUrl}>
               {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
             </Button>
           </div>

@@ -212,7 +212,7 @@ export function ShareKitEditor({ kit }: ShareKitEditorProps) {
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <Button type="submit" disabled={saving} className="bg-rlc-red hover:bg-rlc-red/90">
           {saving ? 'Saving...' : 'Save Changes'}
         </Button>
