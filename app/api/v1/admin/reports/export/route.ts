@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { getDescendantIds } from '@/lib/admin/report-helpers';
+import { escapeCsvField } from '@/lib/csv';
 import { logger } from '@/lib/logger';
 import type { Charter } from '@/types';
 
@@ -95,17 +96,17 @@ export async function GET(request: Request) {
       ? `${row.member.first_name} ${row.member.last_name}`
       : 'Anonymous';
     const email = row.member?.email || '';
-    const line = [
+    const fields = [
       new Date(row.created_at).toLocaleDateString(),
-      `"${name}"`,
+      name,
       email,
       row.contribution_type,
       Number(row.amount).toFixed(2),
       row.is_recurring ? 'Yes' : 'No',
       row.charter?.name || 'National',
       row.payment_status,
-    ].join(',');
-    csvLines.push(line);
+    ];
+    csvLines.push(fields.map(escapeCsvField).join(','));
   }
 
   const csv = csvLines.join('\n');

@@ -2,6 +2,7 @@ import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext, applyMemberFilters } from '@/lib/admin/permissions';
+import { escapeCsvField } from '@/lib/csv';
 import { formatDate } from '@/lib/utils';
 import type { MembershipTier, MembershipStatus } from '@/types';
 import { logger } from '@/lib/logger';
@@ -18,13 +19,6 @@ interface ExportRow {
   membership_join_date: string | null;
   membership_expiry_date: string | null;
   primary_charter: { name: string } | null;
-}
-
-function escapeCsvField(value: string): string {
-  if (value.includes(',') || value.includes('"') || value.includes('\n')) {
-    return `"${value.replace(/"/g, '""')}"`;
-  }
-  return value;
 }
 
 export async function GET(request: Request) {

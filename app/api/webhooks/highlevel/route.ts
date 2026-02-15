@@ -54,17 +54,17 @@ export async function POST(req: Request) {
 
   if (!webhookSecret) {
     logger.error('HighLevel webhook: HIGHLEVEL_WEBHOOK_SECRET not configured');
-    return new Response('Webhook secret not configured', { status: 500 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   if (!signature) {
     logger.error('HighLevel webhook: Missing x-highlevel-signature header');
-    return new Response('Missing signature', { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   if (!verifySharedSecret(signature, webhookSecret)) {
     logger.error('HighLevel webhook: Invalid signature');
-    return new Response('Invalid signature', { status: 401 });
+    return new Response('Unauthorized', { status: 401 });
   }
 
   const rawBody = await req.text();
@@ -203,6 +203,19 @@ async function handleOpportunityCreated(
 
   // Create contribution if the opportunity has a monetary value
   if (opportunity.monetaryValue > 0) {
+    // Idempotency: check if we already created a contribution for this opportunity
+    const { data: existing } = await supabase
+      .from('rlc_contributions')
+      .select('id')
+      .contains('metadata', { highlevel_opportunity_id: opportunity.id })
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      logger.info(`Contribution already exists for HighLevel opportunity ${opportunity.id}, skipping`);
+      return;
+    }
+
     const { error: insertError } = await supabase.from('rlc_contributions').insert({
       contact_id: member.id,
       contribution_type: 'donation',
