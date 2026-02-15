@@ -58,7 +58,11 @@ async function createMembershipRecord(
       } as never);
 
     if (error) {
-      logger.error(`Failed to create membership record for contact ${params.contactId} (non-fatal):`, error);
+      if (error.code === '23505') {
+        logger.info(`Membership record already exists for contact ${params.contactId}, skipping duplicate`);
+      } else {
+        logger.error(`Failed to create membership record for contact ${params.contactId} (non-fatal):`, error);
+      }
     }
   } catch (err) {
     logger.error(`Failed to create membership record for contact ${params.contactId} (non-fatal):`, err);
