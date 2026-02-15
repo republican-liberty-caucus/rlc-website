@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
+import { rpc } from '@/lib/supabase/rpc';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { formatCurrency } from '@/lib/utils';
 import { StatCard } from '@/components/ui/stat-card';
@@ -14,11 +15,6 @@ export const metadata: Metadata = {
   title: 'Admin Dashboard',
   description: 'RLC Admin Dashboard',
 };
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database type doesn't include RPC function signatures
-function rpc(supabase: any, fn: string, args: Record<string, unknown>) {
-  return supabase.rpc(fn, args);
-}
 
 /** Apply charter scoping to a Supabase query builder */
 function scopeByCharter<T extends { in: (col: string, vals: string[]) => T }>(
@@ -80,21 +76,21 @@ async function getDashboardStats(visibleCharterIds: string[] | null): Promise<Da
       visibleCharterIds, 'charter_id'
     ),
     // 4: Monthly contributions — RPC to avoid 1000-row limit
-    rpc(supabase, 'get_contribution_summary', {
+    rpc<{ total_amount: number; contribution_type: string }[]>(supabase, 'get_contribution_summary', {
       p_start_date: startOfMonthISO,
       p_end_date: nowISO,
       p_charter_ids: rpcCharterIds,
     }),
     // 5: New members this month — RPC uses membership_join_date (not created_at)
-    rpc(supabase, 'get_new_members_count', {
+    rpc<number>(supabase, 'get_new_members_count', {
       p_start_date: startOfMonthISO,
       p_end_date: nowISO,
       p_charter_ids: rpcCharterIds,
     }),
     // 6: Members by tier (current only) — RPC to avoid 1000-row limit
-    rpc(supabase, 'get_members_by_tier', { p_charter_ids: rpcCharterIds }),
+    rpc<{ membership_tier: string; count: number }[]>(supabase, 'get_members_by_tier', { p_charter_ids: rpcCharterIds }),
     // 7: Members by status (all) — RPC to avoid 1000-row limit
-    rpc(supabase, 'get_members_by_status', { p_charter_ids: rpcCharterIds }),
+    rpc<{ membership_status: string; count: number }[]>(supabase, 'get_members_by_status', { p_charter_ids: rpcCharterIds }),
     // 8: Expiring in 30 days (head-only count)
     scopeByCharter(
       supabase.from('rlc_contacts').select('*', { count: 'exact', head: true })

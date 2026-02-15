@@ -1,8 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 import Link from 'next/link';
-import { getAdminContext } from '@/lib/admin/permissions';
-import { createServerClient } from '@/lib/supabase/server';
+import { rpc } from '@/lib/supabase/rpc';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatCard } from '@/components/ui/stat-card';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,27 +9,17 @@ import { DollarSign, Building2, Clock, FileText } from 'lucide-react';
 
 export const metadata = { title: 'Dues Sharing - Admin' };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any -- Database type doesn't include RPC function signatures
-function rpc(supabase: any, fn: string, args: Record<string, unknown>) {
-  return supabase.rpc(fn, args);
-}
-
 function formatCurrency(amount: number): string {
   return `$${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 
 export default async function DuesSharingDashboard() {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
-
-  const supabase = createServerClient();
+  const { ctx, supabase } = await requireAdmin();
   const charterIds = ctx.visibleCharterIds;
 
   const [summaryRes, topChartersRes, accountsRes] = await Promise.all([
-    rpc(supabase, 'get_ledger_summary', { p_charter_ids: charterIds }),
-    rpc(supabase, 'get_top_receiving_charters', { p_charter_ids: charterIds, p_limit: 10 }),
+    rpc<{ total_distributed: number; total_pending: number; monthly_distributed: number; entry_count: number }[]>(supabase, 'get_ledger_summary', { p_charter_ids: charterIds }),
+    rpc<{ charter_id: string; charter_name: string; total_amount: number }[]>(supabase, 'get_top_receiving_charters', { p_charter_ids: charterIds, p_limit: 10 }),
     charterIds !== null
       ? supabase.from('rlc_charter_stripe_accounts').select('charter_id, status').in('charter_id', charterIds)
       : supabase.from('rlc_charter_stripe_accounts').select('charter_id, status'),
