@@ -22,6 +22,7 @@ import {
   Shield,
   UserCheck,
   CalendarClock,
+  Share2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -62,6 +63,7 @@ const navSections: NavSection[] = [
     items: [
       { href: '/admin/scorecards', label: 'Scorecards', icon: Target },
       { href: '/admin/campaigns', label: 'Campaigns', icon: Megaphone },
+      { href: '/admin/share-kits', label: 'Share Kits', icon: Share2 },
     ],
   },
   {

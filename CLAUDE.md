@@ -29,6 +29,13 @@ vercel env pull .env.vercel --environment production
 # REMEMBER: Delete .env.vercel after use (contains secrets)
 ```
 
+## Migration Rules
+
+1. **Always use Prisma for schema migrations** — never use Supabase MCP `apply_migration`, raw `psql` DDL, or `prisma db execute` for schema changes. The workflow is: write migration SQL in `prisma/migrations/`, then `prisma migrate deploy`.
+2. **Always verify actual column types before writing migration SQL** — check referenced tables with `psql` to confirm data types (e.g., `rlc_members.id` and `rlc_charters.id` are TEXT, not UUID). Never assume UUID for FK columns.
+3. **Use `.env` for Prisma commands, not `.env.production.local`** — the `.env.production.local` file (from `vercel env pull`) has quoted values with trailing `\n` that can cause connection issues. Prisma's own `.env` file has clean URLs.
+4. **`psql` for data-only operations** — INSERT, UPDATE, DELETE, and SELECT queries are fine via `psql`. Only DDL (CREATE TABLE, ALTER TABLE, etc.) must go through Prisma migrations.
+
 ## Dues Sharing Architecture
 
 - `lib/dues-sharing/split-engine.ts` — Core split calculation + charter resolution
