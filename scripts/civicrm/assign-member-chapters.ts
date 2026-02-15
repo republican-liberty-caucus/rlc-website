@@ -47,7 +47,7 @@ async function assignChapters() {
 
   while (true) {
     const { data: batch, error: memberError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id, civicrm_contact_id')
       .not('civicrm_contact_id', 'is', null)
       .range(offset, offset + LOAD_BATCH - 1);
@@ -127,7 +127,7 @@ async function assignChapters() {
     try {
       // Use UPDATE instead of upsert to only modify primary_chapter_id
       const { error } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .update({ primary_chapter_id: chapterIds[0] })
         .eq('id', memberId);
 
@@ -157,12 +157,12 @@ async function assignChapters() {
 
   // Show final stats
   const { count: withChapter } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .not('primary_chapter_id', 'is', null);
 
   const { count: total } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true });
 
   console.log(`\nFinal: ${withChapter}/${total} members have chapters assigned`);

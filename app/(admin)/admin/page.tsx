@@ -61,12 +61,12 @@ async function getDashboardStats(visibleCharterIds: string[] | null): Promise<Da
   const results = await Promise.all([
     // 0: Total members (all statuses — head-only count, no row limit)
     scopeByCharter(
-      supabase.from('rlc_members').select('*', { count: 'exact', head: true }),
+      supabase.from('rlc_contacts').select('*', { count: 'exact', head: true }),
       visibleCharterIds
     ),
     // 1: Active members (current only — head-only count)
     scopeByCharter(
-      supabase.from('rlc_members').select('*', { count: 'exact', head: true }).eq('membership_status', 'current'),
+      supabase.from('rlc_contacts').select('*', { count: 'exact', head: true }).eq('membership_status', 'current'),
       visibleCharterIds
     ),
     // 2: Active charters (head-only count)
@@ -97,7 +97,7 @@ async function getDashboardStats(visibleCharterIds: string[] | null): Promise<Da
     rpc(supabase, 'get_members_by_status', { p_charter_ids: rpcCharterIds }),
     // 8: Expiring in 30 days (head-only count)
     scopeByCharter(
-      supabase.from('rlc_members').select('*', { count: 'exact', head: true })
+      supabase.from('rlc_contacts').select('*', { count: 'exact', head: true })
         .in('membership_status', ['current', 'expiring'])
         .lte('membership_expiry_date', thirtyDaysFromNow.toISOString())
         .gte('membership_expiry_date', nowISO),
@@ -177,7 +177,7 @@ async function getRecentActivity(visibleCharterIds: string[] | null) {
 
   const [membersResult, contribResult] = await Promise.all([
     scopeByCharter(
-      supabase.from('rlc_members')
+      supabase.from('rlc_contacts')
         .select('id, first_name, last_name, email, created_at, membership_tier')
         .order('created_at', { ascending: false })
         .limit(5),
@@ -187,7 +187,7 @@ async function getRecentActivity(visibleCharterIds: string[] | null) {
       supabase.from('rlc_contributions')
         .select(`
           id, amount, contribution_type, payment_status, created_at,
-          member:rlc_members(first_name, last_name)
+          member:rlc_contacts(first_name, last_name)
         `)
         .eq('payment_status', 'completed')
         .order('created_at', { ascending: false })

@@ -11,7 +11,7 @@ interface MemberContribution {
   id: string;
   amount: number;
   created_at: string;
-  rlc_members: {
+  rlc_contacts: {
     first_name: string;
     last_name: string;
     email: string;
@@ -81,9 +81,9 @@ export default function MemberDuesPage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="font-medium">
-                        {item.rlc_members.first_name} {item.rlc_members.last_name}
+                        {item.rlc_contacts.first_name} {item.rlc_contacts.last_name}
                       </p>
-                      <p className="text-sm text-muted-foreground">{item.rlc_members.email}</p>
+                      <p className="text-sm text-muted-foreground">{item.rlc_contacts.email}</p>
                     </div>
                     <div className="text-right">
                       <p className="font-mono font-bold">{formatCurrency(Number(item.amount))}</p>

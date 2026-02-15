@@ -67,7 +67,7 @@ async function getHomePageData(): Promise<HomePageData> {
   ] = await Promise.all([
     // Total member count
     supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id', { count: 'exact', head: true }),
 
     // Charter count

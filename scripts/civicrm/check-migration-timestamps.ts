@@ -11,7 +11,7 @@ const supabase = createClient(
 async function checkTimestamps() {
   // Get counts by updated_at time
   const { data: members } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('updated_at, membership_tier, created_at')
     .not('membership_tier', 'is', null)
     .order('updated_at', { ascending: false })

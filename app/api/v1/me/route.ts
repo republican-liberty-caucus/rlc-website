@@ -6,7 +6,7 @@ import type { Database } from '@/lib/supabase/client';
 import { z } from 'zod';
 import { logger } from '@/lib/logger';
 
-type MemberUpdate = Database['public']['Tables']['rlc_members']['Update'];
+type MemberUpdate = Database['public']['Tables']['rlc_contacts']['Update'];
 
 // Input validation schema for profile updates
 const profileUpdateSchema = z.object({
@@ -103,7 +103,7 @@ export async function PATCH(request: Request) {
     };
 
     const { data, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update(updatePayload as never)
       .eq('id', member.id)
       .select()

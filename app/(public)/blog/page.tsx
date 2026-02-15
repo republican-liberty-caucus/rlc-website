@@ -39,7 +39,7 @@ async function getPosts(page: number): Promise<{ posts: PostRow[]; total: number
     .select(
       `
       id, title, slug, excerpt, featured_image_url, published_at, categories, tags,
-      author:rlc_members(first_name, last_name),
+      author:rlc_contacts(first_name, last_name),
       charter:rlc_charters(name, slug)
     `,
       { count: 'exact' }

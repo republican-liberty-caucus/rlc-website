@@ -190,7 +190,7 @@ export function getMembershipPaymentDescription(tierConfig: TierConfig): string 
 /**
  * Find or create a Stripe Customer scoped to the website.
  * Never searches Stripe by email (would find HighLevel-created Customers).
- * Instead: checks rlc_members for existing stripe_customer_id, or creates new.
+ * Instead: checks rlc_contacts for existing stripe_customer_id, or creates new.
  */
 async function findOrCreateWebsiteCustomer(
   stripe: Stripe,
@@ -202,7 +202,7 @@ async function findOrCreateWebsiteCustomer(
     const { createServerClient } = await import('@/lib/supabase/server');
     const supabase = createServerClient();
     const { data } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('stripe_customer_id')
       .eq('id', memberId)
       .single();
@@ -240,7 +240,7 @@ async function findOrCreateWebsiteCustomer(
     const { createServerClient: createClient } = await import('@/lib/supabase/server');
     const sb = createClient();
     const { error: saveError } = await sb
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({ stripe_customer_id: newCustomer.id } as never)
       .eq('id', memberId);
 

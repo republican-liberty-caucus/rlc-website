@@ -112,7 +112,7 @@ async function handleUserDeleted(evt: WebhookEvent) {
 
   // Find the member by clerk_user_id
   const { data, error } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*')
     .eq('clerk_user_id', clerkUserId)
     .single();
@@ -136,7 +136,7 @@ async function handleUserDeleted(evt: WebhookEvent) {
   // If this is a household primary member, clear household linkage for dependents
   if (member.household_role === 'primary' && member.household_id) {
     const { error: householdError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({
         membership_status: 'cancelled',
         household_id: null,
@@ -154,7 +154,7 @@ async function handleUserDeleted(evt: WebhookEvent) {
   }
 
   const { error: updateError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .update(updatePayload as never)
     .eq('id', member.id);
 

@@ -40,21 +40,21 @@ async function runValidations(): Promise<ValidationResult[]> {
   } else {
     // Fallback query if RPC doesn't exist
     const { count: total } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*', { count: 'exact', head: true });
 
     const { count: fromCiviCRM } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*', { count: 'exact', head: true })
       .not('civicrm_contact_id', 'is', null);
 
     const { count: fromHighLevel } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*', { count: 'exact', head: true })
       .not('highlevel_contact_id', 'is', null);
 
     const { count: bothSources } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*', { count: 'exact', head: true })
       .not('civicrm_contact_id', 'is', null)
       .not('highlevel_contact_id', 'is', null);
@@ -68,7 +68,7 @@ async function runValidations(): Promise<ValidationResult[]> {
 
   // 2. Check for duplicate HighLevel IDs
   const { data: duplicates, error: dupError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('highlevel_contact_id')
     .not('highlevel_contact_id', 'is', null);
 
@@ -115,7 +115,7 @@ async function runValidations(): Promise<ValidationResult[]> {
 
   // 4. Check for members with HighLevel ID but no email
   const { data: noEmail, error: emailError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id, highlevel_contact_id')
     .not('highlevel_contact_id', 'is', null)
     .is('email', null);
@@ -130,7 +130,7 @@ async function runValidations(): Promise<ValidationResult[]> {
 
   // 5. Check for members with HighLevel ID but no membership tier
   const { data: noTier, error: tierError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id, highlevel_contact_id, email')
     .not('highlevel_contact_id', 'is', null)
     .is('membership_tier', null);

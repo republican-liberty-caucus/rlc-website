@@ -115,7 +115,7 @@ async function main() {
 
   if (civicrmCharterIds.length > 0) {
     const { data: membersData, error: membersError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id, first_name, last_name, state, primary_charter_id')
       .in('primary_charter_id', civicrmCharterIds);
 
@@ -213,7 +213,7 @@ async function main() {
         console.log(`  [DRY RUN] ${member.first_name} ${member.last_name} → ${targetName}`);
       } else {
         const { error: updateError } = await supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .update({ primary_charter_id: targetCharterId })
           .eq('id', member.id);
 
@@ -240,7 +240,7 @@ async function main() {
       if (!DRY_RUN) {
         // Move any members from the duplicate to the primary national charter
         const { error: moveError } = await supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .update({ primary_charter_id: nationalCharters[0].id })
           .eq('primary_charter_id', dup.id);
 
@@ -277,7 +277,7 @@ async function main() {
     } else {
       // Clear member FK references before deletion
       const { error: memberCleanupError } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .update({ primary_charter_id: nationalCharter?.id || null })
         .in('primary_charter_id', civicrmCharterIds);
 

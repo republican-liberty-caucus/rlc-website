@@ -97,7 +97,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       .select(`
         *,
         committee_member:rlc_candidate_vetting_committee_members(
-          id, role, contact:rlc_members(id, first_name, last_name, email)
+          id, role, contact:rlc_contacts(id, first_name, last_name, email)
         )
       `)
       .single();

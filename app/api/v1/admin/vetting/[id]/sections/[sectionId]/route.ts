@@ -31,7 +31,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
         assignments:rlc_candidate_vetting_section_assignments(
           *,
           committee_member:rlc_candidate_vetting_committee_members(
-            id, role, contact:rlc_members(id, first_name, last_name, email)
+            id, role, contact:rlc_contacts(id, first_name, last_name, email)
           )
         )
       `)

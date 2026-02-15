@@ -19,7 +19,7 @@ export async function GET(
 
   // Check member exists and is visible
   const { data: memberRaw, error: memberError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id, primary_charter_id')
     .eq('id', memberId)
     .single();
@@ -44,7 +44,7 @@ export async function GET(
     .select(`
       id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
       charter:rlc_charters(id, name),
-      appointed_by:rlc_members!rlc_organizational_positions_appointed_by_id_fkey(first_name, last_name)
+      appointed_by:rlc_contacts!rlc_organizational_positions_appointed_by_id_fkey(first_name, last_name)
     `)
     .eq('contact_id', memberId)
     .order('is_active', { ascending: false })

@@ -60,7 +60,7 @@ export default async function VettingCommitteePage() {
   if (committeeIds.length > 0) {
     const { data: memberData } = await supabase
       .from('rlc_candidate_vetting_committee_members')
-      .select('*, contact:rlc_members(id, first_name, last_name, email)')
+      .select('*, contact:rlc_contacts(id, first_name, last_name, email)')
       .in('committee_id', committeeIds)
       .order('role', { ascending: true });
 

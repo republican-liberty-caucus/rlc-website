@@ -56,7 +56,7 @@ async function createSnapshot(): Promise<Snapshot> {
 
   while (true) {
     const { data: page, error: pageError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select(
         `
         id, email, first_name, last_name, phone,

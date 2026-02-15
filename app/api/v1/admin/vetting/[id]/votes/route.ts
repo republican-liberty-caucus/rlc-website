@@ -23,12 +23,12 @@ export async function GET(
     const { id } = await params;
     const supabase = createServerClient();
 
-    // Fetch existing votes with voter names (voter_id FK → rlc_members)
+    // Fetch existing votes with voter names (voter_id FK → rlc_contacts)
     const { data: rawVotes, error: votesError } = await supabase
       .from('rlc_candidate_vetting_board_votes')
       .select(`
         id, vetting_id, voter_id, vote, notes, voted_at,
-        voter:rlc_members!voter_id(id, first_name, last_name)
+        voter:rlc_contacts!voter_id(id, first_name, last_name)
       `)
       .eq('vetting_id', id)
       .order('voted_at', { ascending: true });
@@ -40,7 +40,7 @@ export async function GET(
 
     // Fetch eligible voters: national_board and super_admin role holders
     const { data: rawRoles, error: rolesError } = await supabase
-      .from('rlc_member_roles')
+      .from('rlc_contact_roles')
       .select('contact_id')
       .in('role', ['national_board', 'super_admin']);
 
@@ -55,7 +55,7 @@ export async function GET(
     let eligibleVoters: { id: string; first_name: string; last_name: string }[] = [];
     if (contactIds.length > 0) {
       const { data: rawMembers, error: membersError } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .select('id, first_name, last_name')
         .in('id', contactIds);
 
@@ -142,7 +142,7 @@ export async function POST(
       );
     }
 
-    // Use the contact (member) ID as voter_id — FK references rlc_members
+    // Use the contact (member) ID as voter_id — FK references rlc_contacts
     const voterId = ctx.member.id;
 
     // Upsert: one vote per voter per vetting (unique constraint on vetting_id + voter_id)

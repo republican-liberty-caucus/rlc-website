@@ -53,7 +53,7 @@ async function getMembers(
   const offset = (page - 1) * limit;
 
   let query = supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select(`
       id, email, first_name, last_name, phone,
       city, state, membership_tier, membership_status,

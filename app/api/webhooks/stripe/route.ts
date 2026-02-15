@@ -32,7 +32,7 @@ async function findMemberByCustomerId(
   context: string
 ): Promise<Contact | null> {
   const { data, error } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*')
     .eq('stripe_customer_id', customerId)
     .single();
@@ -210,7 +210,7 @@ async function handleCheckoutComplete(
 
   if (memberId) {
     const { data, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*')
       .eq('id', memberId)
       .single();
@@ -222,7 +222,7 @@ async function handleCheckoutComplete(
 
   if (!member) {
     const { data, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*')
       .eq('email', memberEmail)
       .single();
@@ -265,7 +265,7 @@ async function handleCheckoutComplete(
     }
 
     const { data: newMember, error: createError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .insert({
         email: memberEmail,
         first_name: resolvedFirst || memberEmail.split('@')[0],
@@ -279,7 +279,7 @@ async function handleCheckoutComplete(
       // Handle race condition: concurrent webhook created the member already
       if (createError.code === '23505') {
         const { data: existingMember } = await supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .select('*')
           .eq('email', memberEmail)
           .single();
@@ -367,7 +367,7 @@ async function handleCheckoutComplete(
 
   // Update member with Stripe info, tier, dates, and charter assignment
   const { error: updateError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .update({
       stripe_customer_id: customerId,
       membership_tier: membershipTier,
@@ -459,7 +459,7 @@ async function handleSubscriptionChange(
   const membershipStatus = SUBSCRIPTION_STATUS_MAP[subscription.status] || 'pending';
 
   const { error: updateError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .update({
       membership_status: membershipStatus,
       membership_start_date: new Date(subscription.current_period_start * 1000).toISOString(),
@@ -489,7 +489,7 @@ async function handleSubscriptionCancelled(
   }
 
   const { error: updateError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .update({ membership_status: 'cancelled' } as never)
     .eq('id', member.id);
 
@@ -560,7 +560,7 @@ async function handleInvoicePaid(
 
   // Update member expiry dates for renewal
   const { error: memberUpdateError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .update({
       membership_status: 'current',
       membership_start_date: renewalStart.toISOString(),
@@ -692,7 +692,7 @@ async function handleDonationCheckout(
   let resolvedMemberId: string | null = null;
   if (memberId) {
     const { data, error: lookupErr } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id')
       .eq('id', memberId)
       .single();

@@ -183,7 +183,7 @@ describe('Stripe webhook handler', () => {
 
       // Should NOT have tried to look up member (skipped early)
       const memberLookupCalls = mockSb.from.mock.calls.filter(
-        (call: string[]) => call[0] === 'rlc_members'
+        (call: string[]) => call[0] === 'rlc_contacts'
       );
       expect(memberLookupCalls).toHaveLength(0);
     });
@@ -212,7 +212,7 @@ describe('Stripe webhook handler', () => {
 
       const mockSb = createMockSupabase({
         rlc_webhook_events: [{ data: null, error: null }],
-        rlc_members: [
+        rlc_contacts: [
           { data: member, error: null }, // lookup by member_id
         ],
         rlc_contributions: [
@@ -236,7 +236,7 @@ describe('Stripe webhook handler', () => {
 
       // Should have looked up member
       const memberLookupCalls = mockSb.from.mock.calls.filter(
-        (call: string[]) => call[0] === 'rlc_members'
+        (call: string[]) => call[0] === 'rlc_contacts'
       );
       expect(memberLookupCalls.length).toBeGreaterThan(0);
     });
@@ -275,7 +275,7 @@ describe('Stripe webhook handler', () => {
 
       // Should NOT have looked up member (skipped before customer lookup)
       const memberLookupCalls = mockSb.from.mock.calls.filter(
-        (call: string[]) => call[0] === 'rlc_members'
+        (call: string[]) => call[0] === 'rlc_contacts'
       );
       expect(memberLookupCalls).toHaveLength(0);
     });
@@ -295,7 +295,7 @@ describe('Stripe webhook handler', () => {
 
       const mockSb = createMockSupabase({
         rlc_webhook_events: [{ data: null, error: null }],
-        rlc_members: [{ data: null, error: { code: 'PGRST116', message: 'not found' } }],
+        rlc_contacts: [{ data: null, error: { code: 'PGRST116', message: 'not found' } }],
       });
 
       const { createServerClient } = await import('@/lib/supabase/server');
@@ -335,7 +335,7 @@ describe('Stripe webhook handler', () => {
       let capturedUpdate: Record<string, unknown> | null = null;
       const mockSb = createMockSupabase({
         rlc_webhook_events: [{ data: null, error: null }],
-        rlc_members: [{ data: member, error: null }],
+        rlc_contacts: [{ data: member, error: null }],
         rlc_contributions: [
           { data: null, error: { code: 'PGRST116', message: 'not found' } }, // idempotency
         ],
@@ -346,7 +346,7 @@ describe('Stripe webhook handler', () => {
       const origFrom = mockSb.from;
       mockSb.from = vi.fn().mockImplementation((table: string) => {
         const chain = origFrom(table);
-        if (table === 'rlc_members') {
+        if (table === 'rlc_contacts') {
           const origUpdate = chain.update;
           chain.update = vi.fn().mockImplementation((payload: Record<string, unknown>) => {
             capturedUpdate = payload;
@@ -398,7 +398,7 @@ describe('Stripe webhook handler', () => {
 
       const mockSb = createMockSupabase({
         rlc_webhook_events: [{ data: null, error: null }],
-        rlc_members: [{ data: null, error: { code: 'PGRST116', message: 'not found' } }],
+        rlc_contacts: [{ data: null, error: { code: 'PGRST116', message: 'not found' } }],
       });
 
       const { createServerClient } = await import('@/lib/supabase/server');
@@ -431,7 +431,7 @@ describe('Stripe webhook handler', () => {
 
       const mockSb = createMockSupabase({
         rlc_webhook_events: [{ data: null, error: null }],
-        rlc_members: [{ data: null, error: { code: 'PGRST116', message: 'not found' } }],
+        rlc_contacts: [{ data: null, error: { code: 'PGRST116', message: 'not found' } }],
       });
 
       const { createServerClient } = await import('@/lib/supabase/server');

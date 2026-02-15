@@ -59,7 +59,7 @@ export async function GET(req: Request) {
     cutoff.setDate(cutoff.getDate() - NEW_MEMBER_DAYS);
 
     const { data, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({ membership_status: 'current' as MembershipStatus } as never)
       .eq('membership_status', 'new_member')
       .lte('membership_join_date', cutoff.toISOString())
@@ -81,7 +81,7 @@ export async function GET(req: Request) {
     warningDate.setDate(warningDate.getDate() + EXPIRING_WARNING_DAYS);
 
     const { data, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({ membership_status: 'expiring' as MembershipStatus } as never)
       .eq('membership_status', 'current')
       .lte('membership_expiry_date', warningDate.toISOString())
@@ -101,7 +101,7 @@ export async function GET(req: Request) {
   // 3. expiring → grace (past expiry date)
   try {
     const { data, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({ membership_status: 'grace' as MembershipStatus } as never)
       .eq('membership_status', 'expiring')
       .lte('membership_expiry_date', now.toISOString())
@@ -123,7 +123,7 @@ export async function GET(req: Request) {
     graceExpiry.setDate(graceExpiry.getDate() - GRACE_PERIOD_DAYS);
 
     const { data, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({ membership_status: 'expired' as MembershipStatus } as never)
       .eq('membership_status', 'grace')
       .lte('membership_expiry_date', graceExpiry.toISOString())

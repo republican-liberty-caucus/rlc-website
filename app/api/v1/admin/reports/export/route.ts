@@ -49,7 +49,7 @@ export async function GET(request: Request) {
     .from('rlc_contributions')
     .select(`
       id, amount, contribution_type, payment_status, created_at, is_recurring,
-      member:rlc_members(first_name, last_name, email),
+      member:rlc_contacts(first_name, last_name, email),
       charter:rlc_charters(name)
     `)
     .eq('payment_status', 'completed')

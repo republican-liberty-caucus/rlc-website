@@ -56,7 +56,7 @@ export default async function AdminEventRegistrationsPage({ params }: Registrati
     .from('rlc_event_registrations')
     .select(`
       id, contact_id, guest_email, guest_name, registration_status, checked_in_at, created_at,
-      member:rlc_members(first_name, last_name, email)
+      member:rlc_contacts(first_name, last_name, email)
     `)
     .eq('event_id', id)
     .order('created_at', { ascending: false });

@@ -43,7 +43,7 @@ async function migrateContributionsOptimized(
 
   while (true) {
     const { data: batch, error: loadError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id, civicrm_contact_id')
       .not('civicrm_contact_id', 'is', null)
       .range(offset, offset + LOAD_BATCH_SIZE - 1);

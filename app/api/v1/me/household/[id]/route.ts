@@ -47,7 +47,7 @@ export async function DELETE(
 
     // Verify the target member is in the same household
     const { data: targetData, error: lookupError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id, email, household_id, household_role, first_name, last_name, membership_tier')
       .eq('id', targetId)
       .single();
@@ -76,7 +76,7 @@ export async function DELETE(
 
     // Clear household fields and cancel membership
     const { error: updateError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({
         household_id: null,
         household_role: null,

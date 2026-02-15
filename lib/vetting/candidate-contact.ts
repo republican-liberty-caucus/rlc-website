@@ -36,7 +36,7 @@ export async function findOrCreateCandidateContact({
   // Try to find existing contact by email
   if (email) {
     const { data: existing, error: lookupError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id')
       .ilike('email', email)
       .single();
@@ -57,7 +57,7 @@ export async function findOrCreateCandidateContact({
   const { firstName, lastName } = splitCandidateName(candidateName);
 
   const { data: newContact, error: insertError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .insert({
       first_name: firstName,
       last_name: lastName,
@@ -72,7 +72,7 @@ export async function findOrCreateCandidateContact({
     // Race condition: another request created this contact between our lookup and insert
     if (insertError.code === '23505' && email) {
       const { data: retryLookup, error: retryError } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .select('id')
         .ilike('email', email)
         .single();
@@ -104,7 +104,7 @@ async function ensureCandidateRole(contactId: string): Promise<void> {
   try {
     const supabase = createServerClient();
     await supabase
-      .from('rlc_member_roles')
+      .from('rlc_contact_roles')
       .upsert(
         {
           contact_id: contactId,

@@ -48,7 +48,7 @@ const isTeardown = process.argv.includes('--teardown');
 
 // Tables that do NOT have an updated_at column (Prisma @updatedAt has no DB default)
 const NO_UPDATED_AT = new Set([
-  'rlc_member_roles',
+  'rlc_contact_roles',
   'rlc_contributions',
   'rlc_event_registrations',
   'rlc_survey_questions',
@@ -136,7 +136,7 @@ async function teardown() {
   const charterIds = (demoCharters ?? []).map((r) => r.id);
 
   const { data: demoContacts } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id')
     .contains('metadata', DEMO_TAG);
   const contactIds = (demoContacts ?? []).map((r) => r.id);
@@ -214,14 +214,14 @@ async function teardown() {
 
   // 5. Remaining metadata tables
   logDeleted('rlc_contributions', await deleteByMeta('rlc_contributions'));
-  logDeleted('rlc_memberships', await deleteByMeta('rlc_memberships'));
+  logDeleted('rlc_contactships', await deleteByMeta('rlc_contactships'));
   logDeleted('rlc_legislators', await deleteByMeta('rlc_legislators'));
 
   // 6. Member roles cascade from contact deletion, but delete explicitly to be safe
-  logDeleted('rlc_member_roles', await deleteByFk('rlc_member_roles', 'contact_id', contactIds));
+  logDeleted('rlc_contact_roles', await deleteByFk('rlc_contact_roles', 'contact_id', contactIds));
 
   // 7. Contacts, then charters
-  logDeleted('rlc_members', await deleteByMeta('rlc_members'));
+  logDeleted('rlc_contacts', await deleteByMeta('rlc_contacts'));
   logDeleted('rlc_charters', await deleteByMeta('rlc_charters'));
 
   // 8. Remove Clerk demo users
@@ -420,7 +420,7 @@ async function seed() {
   ];
 
   for (const c of contacts) {
-    await insert('rlc_members', c);
+    await insert('rlc_contacts', c);
   }
   console.log(`  ${contacts.length} contacts created`);
 
@@ -429,22 +429,22 @@ async function seed() {
   // ------------------------------------------------------------------
   console.log('4. Creating memberships & roles...');
 
-  await insert('rlc_memberships', {
+  await insert('rlc_contactships', {
     id: id(), contact_id: adminContactId, membership_tier: 'patron', membership_status: 'current',
     start_date: '2022-01-15', expiry_date: '2027-01-15', join_date: '2022-01-15', amount: 500.0,
     metadata: DEMO_TAG,
   });
-  await insert('rlc_memberships', {
+  await insert('rlc_contactships', {
     id: id(), contact_id: memberContactId, membership_tier: 'individual', membership_status: 'current',
     start_date: '2024-06-01', expiry_date: '2027-06-01', join_date: '2024-06-01', amount: 50.0,
     metadata: DEMO_TAG,
   });
 
   // ContactRole has NO metadata column — cleaned via FK cascade from contact deletion
-  await insert('rlc_member_roles', {
+  await insert('rlc_contact_roles', {
     id: id(), contact_id: adminContactId, role: 'super_admin', charter_id: nationalId,
   });
-  await insert('rlc_member_roles', {
+  await insert('rlc_contact_roles', {
     id: id(), contact_id: memberContactId, role: 'member', charter_id: flStateId,
   });
 

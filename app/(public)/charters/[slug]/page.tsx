@@ -52,7 +52,7 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [memberCountResult, eventsResult, officersResult] = await Promise.all([
     supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*', { count: 'exact', head: true })
       .eq('primary_charter_id', charter.id),
     supabase
@@ -67,7 +67,7 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
       .from('rlc_organizational_positions')
       .select(`
         id, title, committee_name, started_at,
-        member:rlc_members!rlc_organizational_positions_contact_id_fkey(first_name, last_name)
+        member:rlc_contacts!rlc_organizational_positions_contact_id_fkey(first_name, last_name)
       `)
       .eq('charter_id', charter.id)
       .eq('is_active', true)

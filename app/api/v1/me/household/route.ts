@@ -43,7 +43,7 @@ export async function GET() {
 
     // Fetch all members in this household
     const { data: householdMembers, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id, first_name, last_name, email, household_role, membership_tier, membership_status, created_at')
       .eq('household_id', member.household_id)
       .neq('id', member.id)
@@ -132,7 +132,7 @@ export async function POST(req: Request) {
       householdId = crypto.randomUUID();
       // Only update if household_id is still null (prevents concurrent creation of different IDs)
       const { data: updatedPrimary, error: updateError } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .update({
           household_id: householdId,
           household_role: 'primary',
@@ -150,7 +150,7 @@ export async function POST(req: Request) {
       if (!updatedPrimary) {
         // Concurrent request already created the household — use existing ID
         const { data: refreshed } = await supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .select('household_id')
           .eq('id', member.id)
           .single();
@@ -164,7 +164,7 @@ export async function POST(req: Request) {
 
     // Check existing household member counts for limits
     const { data: existingMembers, error: countError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id, household_role')
       .eq('household_id', householdId)
       .neq('id', member.id);
@@ -188,7 +188,7 @@ export async function POST(req: Request) {
 
     // Check if email is already in use
     const { data: existingByEmail, error: emailError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id')
       .eq('email', email.toLowerCase().trim())
       .single();
@@ -207,7 +207,7 @@ export async function POST(req: Request) {
 
     // Create the household member record
     const { data: newMember, error: insertError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .insert({
         email: email.toLowerCase().trim(),
         first_name: firstName,
