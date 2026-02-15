@@ -9,7 +9,7 @@ const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 export async function POST(request: Request) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   let formData: FormData;
   try {

@@ -14,7 +14,12 @@ export async function requireAdmin(): Promise<{ ctx: AdminContext; supabase: Ser
   const { userId } = await auth();
   if (!userId) redirect('/sign-in');
 
-  const ctx = await getAdminContext(userId);
+  let ctx: AdminContext | null;
+  try {
+    ctx = await getAdminContext(userId);
+  } catch {
+    redirect('/dashboard?error=server-error');
+  }
   if (!ctx) redirect('/dashboard?error=unauthorized');
 
   return { ctx, supabase: createServerClient() };
@@ -33,7 +38,12 @@ export async function requireAdminApi(): Promise<
     return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
   }
 
-  const ctx = await getAdminContext(userId);
+  let ctx: AdminContext | null;
+  try {
+    ctx = await getAdminContext(userId);
+  } catch {
+    return { error: NextResponse.json({ error: 'Internal server error' }, { status: 500 }) };
+  }
   if (!ctx) {
     return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
   }

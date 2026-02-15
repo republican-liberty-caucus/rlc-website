@@ -5,7 +5,7 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 export async function GET(request: NextRequest) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   const { searchParams } = request.nextUrl;
   const stateCode = searchParams.get('stateCode');

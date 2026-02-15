@@ -10,7 +10,7 @@ export async function GET(
 ) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   const { sessionId } = await params;
 
@@ -34,7 +34,7 @@ export async function POST(
 ) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   const { sessionId } = await params;
 

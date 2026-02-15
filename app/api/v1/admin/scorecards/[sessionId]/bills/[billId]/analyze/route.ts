@@ -9,7 +9,7 @@ export async function POST(
 ) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   const { billId } = await params;
 
@@ -26,14 +26,14 @@ export async function POST(
   const bill = billData as { id: string; title: string; description: string | null };
 
   try {
-    const result = await analyzeBill(bill.title, bill.description || '');
+    const analysis = await analyzeBill(bill.title, bill.description || '');
 
     const { error: updateError } = await supabase
       .from('rlc_scorecard_bills')
       .update({
-        ai_suggested_position: result.suggestedPosition,
-        ai_analysis: result.analysis,
-        category: result.category,
+        ai_suggested_position: analysis.suggestedPosition,
+        ai_analysis: analysis.analysis,
+        category: analysis.category,
         updated_at: new Date().toISOString(),
       } as never)
       .eq('id', billId);
@@ -43,7 +43,7 @@ export async function POST(
       return NextResponse.json({ error: 'Analysis succeeded but save failed' }, { status: 500 });
     }
 
-    return NextResponse.json({ analysis: result });
+    return NextResponse.json({ analysis });
   } catch (err) {
     logger.error('AI analysis failed:', err);
     return NextResponse.json({ error: 'AI analysis failed' }, { status: 500 });

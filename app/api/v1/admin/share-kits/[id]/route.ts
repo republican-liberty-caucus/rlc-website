@@ -10,8 +10,8 @@ interface RouteParams {
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const result = await requireAdminApi();
-  if (result.error) return result.error;
-  const { ctx, supabase } = result;
+    if (result.error) return result.error;
+    const { ctx, supabase } = result;
 
     const { id } = await params;
 
@@ -90,8 +90,8 @@ export async function GET(_request: Request, { params }: RouteParams) {
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const result = await requireAdminApi();
-  if (result.error) return result.error;
-  const { ctx, supabase } = result;
+    if (result.error) return result.error;
+    const { ctx, supabase } = result;
 
     const { id } = await params;
 

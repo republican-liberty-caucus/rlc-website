@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getRollCall } from '@/lib/legiscan/client';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { logger } from '@/lib/logger';
 import type { LegislativeChamber, VoteChoice } from '@/types';
 import crypto from 'crypto';
-import { logger } from '@/lib/logger';
-import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 function mapVoteText(voteText: string): VoteChoice {
   switch (voteText) {
@@ -29,7 +29,7 @@ export async function POST(
 ) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   const { billId } = await params;
 

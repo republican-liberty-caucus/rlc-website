@@ -1,15 +1,15 @@
 import { NextResponse } from 'next/server';
-import type { Legislator } from '@/types';
-import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { logger } from '@/lib/logger';
+import type { Legislator } from '@/types';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const authResult = await requireAdminApi();
-  if (authResult.error) return authResult.error;
-  const { ctx, supabase } = authResult;
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { supabase } = result;
 
   const { sessionId } = await params;
 
@@ -89,7 +89,7 @@ export async function GET(
 
   const legislators = (legislatorsData || []) as Legislator[];
 
-  const result = legislators.map((leg) => {
+  const scoredLegislators = legislators.map((leg) => {
     const scores = legislatorScores.get(leg.id);
     const score = scores && scores.totalWeight > 0
       ? Math.round((scores.weightedSum / scores.totalWeight) * 10000) / 100
@@ -97,7 +97,7 @@ export async function GET(
     return { ...leg, computed_score: score };
   });
 
-  result.sort((a, b) => (b.computed_score ?? -1) - (a.computed_score ?? -1));
+  scoredLegislators.sort((a, b) => (b.computed_score ?? -1) - (a.computed_score ?? -1));
 
-  return NextResponse.json({ legislators: result });
+  return NextResponse.json({ legislators: scoredLegislators });
 }

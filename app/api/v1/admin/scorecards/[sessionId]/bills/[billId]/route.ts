@@ -9,7 +9,7 @@ export async function PATCH(
 ) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   const { billId } = await params;
 

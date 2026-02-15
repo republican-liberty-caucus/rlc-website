@@ -6,7 +6,6 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 export async function GET(request: Request) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
 
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q');

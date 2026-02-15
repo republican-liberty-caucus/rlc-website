@@ -11,7 +11,7 @@ export async function POST(
 ) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   const { id: surveyId } = await params;
 
@@ -69,13 +69,13 @@ export async function POST(
   // Link candidate to contact record
   let contactId: string | null = null;
   try {
-    const result = await findOrCreateCandidateContact({
+    const contactResult = await findOrCreateCandidateContact({
       candidateFirstName: input.candidateFirstName,
       candidateLastName: input.candidateLastName,
       candidateEmail: input.candidateEmail,
       candidateState: input.candidateState,
     });
-    contactId = result.contactId;
+    contactId = contactResult.contactId;
   } catch (err) {
     logger.error('Failed to link candidate to contact (non-blocking):', err);
   }

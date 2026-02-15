@@ -1,10 +1,10 @@
 import { NextResponse } from 'next/server';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { logger } from '@/lib/logger';
 import { getStepDefinition } from '@/lib/onboarding/constants';
 import { areDependenciesMet, isValidTransition } from '@/lib/onboarding/engine';
 import { STEP_DATA_SCHEMAS } from '@/lib/validations/onboarding';
-import { logger } from '@/lib/logger';
 import type { OnboardingStep, OnboardingStepStatus } from '@/types';
-import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 interface StepRow {
   id: string;

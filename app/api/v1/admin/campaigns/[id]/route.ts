@@ -7,9 +7,9 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const authResult = await requireAdminApi();
-  if (authResult.error) return authResult.error;
-  const { ctx, supabase } = authResult;
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { supabase } = result;
 
   const { id } = await params;
   const { searchParams } = request.nextUrl;
@@ -25,7 +25,7 @@ export async function GET(
     return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
   }
 
-  const result: Record<string, unknown> = { campaign };
+  const response: Record<string, unknown> = { campaign };
 
   if (include === 'participations') {
     const { data: participations } = await supabase
@@ -50,7 +50,7 @@ export async function GET(
       );
     }
 
-    result.participations = (participations || []).map((p: { id: string; action: string; legislator_id: string | null; created_at: string; contact_id: string }) => ({
+    response.participations = (participations || []).map((p: { id: string; action: string; legislator_id: string | null; created_at: string; contact_id: string }) => ({
       id: p.id,
       action: p.action,
       legislator_id: p.legislator_id,
@@ -59,7 +59,7 @@ export async function GET(
     }));
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(response);
 }
 
 export async function PATCH(
@@ -68,7 +68,7 @@ export async function PATCH(
 ) {
   const result = await requireAdminApi();
   if (result.error) return result.error;
-  const { ctx, supabase } = result;
+  const { supabase } = result;
 
   let body: unknown;
   try {

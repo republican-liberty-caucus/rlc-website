@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { canViewMember, getRoleWeight } from '@/lib/admin/permissions';
-import { adminMemberUpdateSchema } from '@/lib/validations/admin';
-import { syncMemberToHighLevel } from '@/lib/highlevel/client';
-import type { Contact } from '@/types';
-import type { Database } from '@/lib/supabase/client';
-import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { syncMemberToHighLevel } from '@/lib/highlevel/client';
+import { logger } from '@/lib/logger';
+import type { Database } from '@/lib/supabase/client';
+import { adminMemberUpdateSchema } from '@/lib/validations/admin';
+import type { Contact } from '@/types';
 
 type MemberUpdate = Database['public']['Tables']['rlc_contacts']['Update'];
 

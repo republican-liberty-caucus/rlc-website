@@ -2,9 +2,9 @@ import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function GET(request: Request) {
-  const authResult = await requireAdminApi();
-  if (authResult.error) return authResult.error;
-  const { ctx, supabase } = authResult;
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { searchParams } = new URL(request.url);
   const charterId = searchParams.get('charterId');
@@ -62,13 +62,13 @@ export async function GET(request: Request) {
     ledgerByContribution.set(cId, list);
   }
 
-  const result = (contributions || []).map((c: Record<string, unknown>) => ({
+  const withSplits = (contributions || []).map((c: Record<string, unknown>) => ({
     ...c,
     splits: ledgerByContribution.get(c.id as string) || [],
   }));
 
   return NextResponse.json({
-    data: result,
+    data: withSplits,
     total: count || 0,
     page,
     totalPages: Math.ceil((count || 0) / limit),
