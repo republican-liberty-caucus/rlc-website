@@ -179,7 +179,7 @@ export function RichTextEditor({ initialContent, onChange, onDirtyChange, onErro
           className={cn(
             'w-full min-h-[400px] rounded-b-md border bg-background p-4',
             'font-mono text-sm',
-            'focus:border-ring focus:ring-1 focus:ring-ring focus:outline-none'
+            'focus:border-slate-400 focus:ring-1 focus:ring-slate-400/50 focus:outline-none dark:focus:border-slate-500 dark:focus:ring-slate-500/50'
           )}
           spellCheck={false}
         />
@@ -191,7 +191,7 @@ export function RichTextEditor({ initialContent, onChange, onDirtyChange, onErro
             'prose-headings:text-foreground prose-a:text-rlc-red',
             'prose-img:rounded-lg prose-img:border',
             'prose-table:border-collapse prose-td:border prose-td:p-2 prose-th:border prose-th:p-2 prose-th:bg-muted',
-            'focus-within:border-ring focus-within:ring-1 focus-within:ring-ring'
+            'focus-within:border-slate-400 focus-within:ring-1 focus-within:ring-slate-400/50 dark:focus-within:border-slate-500 dark:focus-within:ring-slate-500/50'
           )}
         >
           <EditorContent editor={editor} />
