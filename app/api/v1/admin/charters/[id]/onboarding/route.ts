@@ -1,7 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { STEP_ORDER } from '@/lib/onboarding/constants';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
@@ -14,18 +12,15 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { id: charterId } = await params;
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const supabase = createServerClient();
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data, error } = await (supabase as any)
     .from('rlc_charter_onboarding')
@@ -49,16 +44,15 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
-  const ctx = await getAdminContext(userId);
-  if (!ctx || !ctx.isNational) {
+  if (!ctx.isNational) {
     return NextResponse.json({ error: 'Forbidden: national admin required' }, { status: 403 });
   }
 
   const { id: charterId } = await params;
-  const supabase = createServerClient();
 
   // Verify charter exists and is forming
   const { data: charter, error: charterError } = await supabase

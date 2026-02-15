@@ -1,26 +1,17 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import { analyzeBill } from '@/lib/ai/analyze-bill';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string; billId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { supabase } = result;
 
   const { billId } = await params;
-  const supabase = createServerClient();
 
   const { data: billData, error: billError } = await supabase
     .from('rlc_scorecard_bills')
@@ -35,14 +26,14 @@ export async function POST(
   const bill = billData as { id: string; title: string; description: string | null };
 
   try {
-    const result = await analyzeBill(bill.title, bill.description || '');
+    const analysis = await analyzeBill(bill.title, bill.description || '');
 
     const { error: updateError } = await supabase
       .from('rlc_scorecard_bills')
       .update({
-        ai_suggested_position: result.suggestedPosition,
-        ai_analysis: result.analysis,
-        category: result.category,
+        ai_suggested_position: analysis.suggestedPosition,
+        ai_analysis: analysis.analysis,
+        category: analysis.category,
         updated_at: new Date().toISOString(),
       } as never)
       .eq('id', billId);
@@ -52,7 +43,7 @@ export async function POST(
       return NextResponse.json({ error: 'Analysis succeeded but save failed' }, { status: 500 });
     }
 
-    return NextResponse.json({ analysis: result });
+    return NextResponse.json({ analysis });
   } catch (err) {
     logger.error('AI analysis failed:', err);
     return NextResponse.json({ error: 'AI analysis failed' }, { status: 500 });

@@ -1,29 +1,19 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import { getDescendantIds } from '@/lib/admin/report-helpers';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { escapeCsvField } from '@/lib/csv';
 import { logger } from '@/lib/logger';
 import type { Charter } from '@/types';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const url = new URL(request.url);
   const startParam = url.searchParams.get('start');
   const endParam = url.searchParams.get('end');
   const charterParam = url.searchParams.get('charter');
-
-  const supabase = createServerClient();
 
   // Compute effective charter IDs when charter filter is applied
   let effectiveCharterIds = ctx.visibleCharterIds;

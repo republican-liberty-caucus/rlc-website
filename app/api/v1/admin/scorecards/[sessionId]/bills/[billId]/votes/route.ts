@@ -1,11 +1,9 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import { getRollCall } from '@/lib/legiscan/client';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { logger } from '@/lib/logger';
 import type { LegislativeChamber, VoteChoice } from '@/types';
 import crypto from 'crypto';
-import { logger } from '@/lib/logger';
 
 function mapVoteText(voteText: string): VoteChoice {
   switch (voteText) {
@@ -29,18 +27,11 @@ export async function POST(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string; billId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { supabase } = result;
 
   const { billId } = await params;
-  const supabase = createServerClient();
 
   // Get bill with session info
   const { data: billData, error: billError } = await supabase

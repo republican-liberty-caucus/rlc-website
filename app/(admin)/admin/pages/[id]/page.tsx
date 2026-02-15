@@ -1,9 +1,8 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { PostEditorForm } from '@/components/admin/post-editor-form';
 import { wpautop, promoteHeadings } from '@/lib/wordpress/content';
 import type { Post } from '@/types';
@@ -21,13 +20,9 @@ export async function generateMetadata({ params }: PageDetailPageProps): Promise
 }
 
 export default async function AdminPageDetailPage({ params }: PageDetailPageProps) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { supabase } = await requireAdmin();
 
   const { id } = await params;
-  const supabase = createServerClient();
 
   const { data: postData, error: postError } = await supabase
     .from('rlc_posts').select('*').eq('id', id).eq('content_type', 'page').single();

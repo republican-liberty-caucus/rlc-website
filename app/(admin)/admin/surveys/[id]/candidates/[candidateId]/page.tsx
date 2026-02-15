@@ -1,9 +1,8 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect, notFound } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { formatCandidateName } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { VettingSurveyTab } from '@/components/admin/vetting/tabs/vetting-survey-tab';
@@ -27,12 +26,7 @@ export async function generateMetadata({ params }: CandidateDetailPageProps): Pr
 
 export default async function CandidateDetailPage({ params }: CandidateDetailPageProps) {
   const { id: surveyId, candidateId } = await params;
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
-
-  const supabase = createServerClient();
+  const { supabase } = await requireAdmin();
 
   // Fetch candidate response with survey info
   const { data: responseData, error: responseError } = await supabase

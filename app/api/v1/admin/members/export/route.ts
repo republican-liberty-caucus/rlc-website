@@ -1,11 +1,10 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, applyMemberFilters } from '@/lib/admin/permissions';
+import { applyMemberFilters } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { escapeCsvField } from '@/lib/csv';
+import { logger } from '@/lib/logger';
 import { formatDate } from '@/lib/utils';
 import type { MembershipTier, MembershipStatus } from '@/types';
-import { logger } from '@/lib/logger';
 
 interface ExportRow {
   first_name: string;
@@ -22,15 +21,9 @@ interface ExportRow {
 }
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { searchParams } = new URL(request.url);
   const search = searchParams.get('search');
@@ -39,8 +32,6 @@ export async function GET(request: Request) {
   const source = searchParams.get('source');
   const joined_after = searchParams.get('joined_after');
   const joined_before = searchParams.get('joined_before');
-
-  const supabase = createServerClient();
 
   let query = supabase
     .from('rlc_contacts')

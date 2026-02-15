@@ -1,8 +1,7 @@
-import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { OnboardingWizard } from '@/components/admin/onboarding/onboarding-wizard';
 import { ArrowLeft } from 'lucide-react';
 import type { Charter, CharterOnboarding, CharterOnboardingStep } from '@/types';
@@ -25,10 +24,7 @@ export default async function CharterOnboardingPage({
   params: Promise<{ id: string }>;
   searchParams: Promise<{ step?: string }>;
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { ctx, supabase } = await requireAdmin();
 
   const { id } = await params;
   const { step: activeStep } = await searchParams;
@@ -36,8 +32,6 @@ export default async function CharterOnboardingPage({
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(id)) {
     redirect('/admin/charters?error=forbidden');
   }
-
-  const supabase = createServerClient();
 
   const { data: charterData, error: charterError } = await supabase
     .from('rlc_charters')

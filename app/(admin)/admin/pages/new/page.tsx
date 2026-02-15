@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { PostEditorForm } from '@/components/admin/post-editor-form';
 
 export const metadata: Metadata = {
@@ -10,10 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminCreatePagePage() {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  await requireAdmin();
 
   return (
     <div>

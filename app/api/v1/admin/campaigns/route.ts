@@ -1,23 +1,13 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { campaignCreateSchema } from '@/lib/validations/campaign';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
 export async function GET(request: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
-
-  const supabase = createServerClient();
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
   const { searchParams } = request.nextUrl;
   const status = searchParams.get('status');
 
@@ -45,15 +35,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   let body: unknown;
   try {
@@ -71,8 +55,6 @@ export async function POST(request: Request) {
   }
 
   const input = parseResult.data;
-  const supabase = createServerClient();
-  const member = await getMemberByClerkId(userId);
 
   const { data, error } = await supabase
     .from('rlc_action_campaigns')
@@ -87,7 +69,7 @@ export async function POST(request: Request) {
       target_state_code: input.targetStateCode || null,
       message_template: input.messageTemplate || null,
       status: 'draft',
-      created_by: member?.id || null,
+      created_by: ctx.member.id,
       starts_at: input.startsAt || null,
       ends_at: input.endsAt || null,
     } as never)

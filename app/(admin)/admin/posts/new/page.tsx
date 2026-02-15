@@ -1,9 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { PostEditorForm } from '@/components/admin/post-editor-form';
 
 export const metadata: Metadata = {
@@ -15,10 +12,7 @@ interface AdminCreatePostPageProps {
 }
 
 export default async function AdminCreatePostPage({ searchParams }: AdminCreatePostPageProps) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { ctx, supabase } = await requireAdmin();
 
   const params = await searchParams;
   const contentType = params.contentType === 'press_release' ? 'press_release'
@@ -28,8 +22,6 @@ export default async function AdminCreatePostPage({ searchParams }: AdminCreateP
     : contentType === 'press_release' ? 'Press Release' : 'Post';
   const backPath = contentType === 'page' ? '/admin/pages'
     : contentType === 'press_release' ? '/admin/press-releases' : '/admin/posts';
-
-  const supabase = createServerClient();
 
   let charterQuery = supabase
     .from('rlc_charters')

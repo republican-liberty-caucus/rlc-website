@@ -1,22 +1,12 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { logger } from '@/lib/logger';
 
 export async function GET() {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const ctx = await getAdminContext(userId);
-    if (!ctx) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-
-    const supabase = createServerClient();
+    const result = await requireAdminApi();
+    if (result.error) return result.error;
+    const { ctx, supabase } = result;
 
     let query = supabase
       .from('rlc_share_kits')
@@ -29,7 +19,7 @@ export async function GET() {
 
     const { data, error } = await query;
     if (error) {
-      logger.error('Failed to fetch share kits:', { error, userId });
+      logger.error('Failed to fetch share kits:', { error, memberId: ctx.member.id });
       return NextResponse.json({ error: 'Failed to fetch share kits' }, { status: 500 });
     }
 

@@ -1,9 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status-badge';
@@ -81,11 +79,7 @@ export default async function AdminContributionsPage({
 }: {
   searchParams: Promise<SearchParams>;
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  await requireAdmin();
 
   const params = await searchParams;
   const { contributions, total, page, totalPages } = await getContributions(params);

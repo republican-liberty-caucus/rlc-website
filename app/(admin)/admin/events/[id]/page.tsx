@@ -1,9 +1,8 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { EventDetailForm } from '@/components/admin/event-detail-form';
 import type { Event } from '@/types';
 
@@ -20,13 +19,9 @@ export async function generateMetadata({ params }: EventDetailPageProps): Promis
 }
 
 export default async function AdminEventDetailPage({ params }: EventDetailPageProps) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { ctx, supabase } = await requireAdmin();
 
   const { id } = await params;
-  const supabase = createServerClient();
 
   const { data: eventData, error: eventError } = await supabase
     .from('rlc_events')

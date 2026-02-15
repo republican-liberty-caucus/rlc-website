@@ -1,26 +1,17 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import { campaignUpdateSchema } from '@/lib/validations/campaign';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { supabase } = result;
 
   const { id } = await params;
-  const supabase = createServerClient();
   const { searchParams } = request.nextUrl;
   const include = searchParams.get('include');
 
@@ -34,7 +25,7 @@ export async function GET(
     return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
   }
 
-  const result: Record<string, unknown> = { campaign };
+  const response: Record<string, unknown> = { campaign };
 
   if (include === 'participations') {
     const { data: participations } = await supabase
@@ -59,7 +50,7 @@ export async function GET(
       );
     }
 
-    result.participations = (participations || []).map((p: { id: string; action: string; legislator_id: string | null; created_at: string; contact_id: string }) => ({
+    response.participations = (participations || []).map((p: { id: string; action: string; legislator_id: string | null; created_at: string; contact_id: string }) => ({
       id: p.id,
       action: p.action,
       legislator_id: p.legislator_id,
@@ -68,22 +59,16 @@ export async function GET(
     }));
   }
 
-  return NextResponse.json(result);
+  return NextResponse.json(response);
 }
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { supabase } = result;
 
   let body: unknown;
   try {
@@ -102,7 +87,6 @@ export async function PATCH(
 
   const input = parseResult.data;
   const { id } = await params;
-  const supabase = createServerClient();
 
   const updateFields: Record<string, unknown> = {};
   if (input.title !== undefined) updateFields.title = input.title;

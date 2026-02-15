@@ -1,11 +1,9 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { logger } from '@/lib/logger';
 import { getStepDefinition } from '@/lib/onboarding/constants';
 import { areDependenciesMet, isValidTransition } from '@/lib/onboarding/engine';
 import { STEP_DATA_SCHEMAS } from '@/lib/validations/onboarding';
-import { logger } from '@/lib/logger';
 import type { OnboardingStep, OnboardingStepStatus } from '@/types';
 
 interface StepRow {
@@ -19,18 +17,14 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string; step: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { id: charterId, step } = await params;
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-
-  const supabase = createServerClient();
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: onboarding, error: onboardingError } = await (supabase as any)
@@ -70,11 +64,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string; step: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { id: charterId, step: stepName } = await params;
 
@@ -94,8 +86,6 @@ export async function PATCH(
   if (!validActions.includes(action)) {
     return NextResponse.json({ error: `Invalid action. Must be one of: ${validActions.join(', ')}` }, { status: 400 });
   }
-
-  const supabase = createServerClient();
 
   // Fetch onboarding and all steps
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

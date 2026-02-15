@@ -1,12 +1,11 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, canViewMember, getRoleWeight } from '@/lib/admin/permissions';
-import { adminMemberUpdateSchema } from '@/lib/validations/admin';
+import { canViewMember, getRoleWeight } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
-import type { Contact } from '@/types';
-import type { Database } from '@/lib/supabase/client';
 import { logger } from '@/lib/logger';
+import type { Database } from '@/lib/supabase/client';
+import { adminMemberUpdateSchema } from '@/lib/validations/admin';
+import type { Contact } from '@/types';
 
 type MemberUpdate = Database['public']['Tables']['rlc_contacts']['Update'];
 
@@ -17,18 +16,11 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { id } = await params;
-  const supabase = createServerClient();
 
   // Fetch the member to verify the admin can see their charter
   const { data: existing, error: fetchError } = await supabase

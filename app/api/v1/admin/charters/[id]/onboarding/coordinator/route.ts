@@ -1,7 +1,5 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { logger } from '@/lib/logger';
 import { z } from 'zod';
 
@@ -13,11 +11,11 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
-  const ctx = await getAdminContext(userId);
-  if (!ctx || !ctx.isNational) {
+  if (!ctx.isNational) {
     return NextResponse.json({ error: 'Forbidden: national admin required' }, { status: 403 });
   }
 
@@ -36,7 +34,6 @@ export async function POST(
   }
 
   const { coordinatorId } = parseResult.data;
-  const supabase = createServerClient();
 
   // Verify member exists
   const { data: member, error: memberError } = await supabase

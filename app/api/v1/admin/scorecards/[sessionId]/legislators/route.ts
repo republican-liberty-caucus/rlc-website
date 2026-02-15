@@ -1,26 +1,17 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
-import type { Legislator } from '@/types';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { logger } from '@/lib/logger';
+import type { Legislator } from '@/types';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { supabase } = result;
 
   const { sessionId } = await params;
-  const supabase = createServerClient();
 
   // Get all bills for this session
   const { data: billsData, error: billsError } = await supabase
@@ -98,7 +89,7 @@ export async function GET(
 
   const legislators = (legislatorsData || []) as Legislator[];
 
-  const result = legislators.map((leg) => {
+  const scoredLegislators = legislators.map((leg) => {
     const scores = legislatorScores.get(leg.id);
     const score = scores && scores.totalWeight > 0
       ? Math.round((scores.weightedSum / scores.totalWeight) * 10000) / 100
@@ -106,7 +97,7 @@ export async function GET(
     return { ...leg, computed_score: score };
   });
 
-  result.sort((a, b) => (b.computed_score ?? -1) - (a.computed_score ?? -1));
+  scoredLegislators.sort((a, b) => (b.computed_score ?? -1) - (a.computed_score ?? -1));
 
-  return NextResponse.json({ legislators: result });
+  return NextResponse.json({ legislators: scoredLegislators });
 }

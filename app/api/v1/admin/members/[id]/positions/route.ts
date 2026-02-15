@@ -1,21 +1,17 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, canViewMember } from '@/lib/admin/permissions';
+import { canViewMember } from '@/lib/admin/permissions';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { id: memberId } = await params;
-  const supabase = createServerClient();
 
   // Check member exists and is visible
   const { data: memberRaw, error: memberError } = await supabase

@@ -1,10 +1,8 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import { charterUpdateSchema } from '@/lib/validations/admin';
 import type { Database } from '@/lib/supabase/client';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 type CharterUpdate = Database['public']['Tables']['rlc_charters']['Update'];
 
@@ -12,15 +10,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { id } = await params;
 
@@ -56,8 +48,6 @@ export async function PATCH(
   if (input.facebookUrl !== undefined) updatePayload.facebook_url = input.facebookUrl;
   if (input.twitterUrl !== undefined) updatePayload.twitter_url = input.twitterUrl;
   if (input.bylawsUrl !== undefined) updatePayload.bylaws_url = input.bylawsUrl;
-
-  const supabase = createServerClient();
 
   const { data, error } = await supabase
     .from('rlc_charters')
