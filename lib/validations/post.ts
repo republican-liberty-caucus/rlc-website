@@ -8,7 +8,7 @@ export const postCreateSchema = z.object({
   featuredImageUrl: z.string().url().optional().nullable(),
   charterId: z.string().uuid().optional().nullable(),
   status: z.enum(['draft', 'published']).default('draft'),
-  contentType: z.enum(['post', 'page']).default('post'),
+  contentType: z.enum(['post', 'page', 'press_release']).default('post'),
   categories: z.array(z.string()).default([]),
   tags: z.array(z.string()).default([]),
   seoTitle: z.string().max(200).optional().nullable(),

@@ -47,7 +47,7 @@ export async function PATCH(
     // Fetch current vetting stage + recommendation
     const { data: rawVetting, error: vettingError } = await supabase
       .from('rlc_candidate_vettings')
-      .select('id, stage, recommendation')
+      .select('id, stage, recommendation, endorsement_result')
       .eq('id', id)
       .single();
 
@@ -59,7 +59,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
     }
 
-    const vetting = rawVetting as unknown as { id: string; stage: string; recommendation: string | null };
+    const vetting = rawVetting as unknown as { id: string; stage: string; recommendation: string | null; endorsement_result: string | null };
 
     // Fetch sections for gate checks
     const { data: rawSections, error: sectionsError } = await supabase
@@ -78,7 +78,7 @@ export async function PATCH(
       vetting.stage as VettingStage,
       targetStage as VettingStage,
       sectionStates,
-      { hasRecommendation: !!vetting.recommendation }
+      { hasRecommendation: !!vetting.recommendation, hasEndorsementResult: !!vetting.endorsement_result }
     );
 
     if (!gateResult.allowed) {

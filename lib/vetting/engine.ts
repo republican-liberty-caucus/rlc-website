@@ -12,7 +12,9 @@ const STAGE_TRANSITIONS: Record<VettingStage, VettingStage[]> = {
   research: ['interview'],
   interview: ['committee_review'],
   committee_review: ['board_vote'],
-  board_vote: [],
+  board_vote: ['press_release_created'],
+  press_release_created: ['press_release_published'],
+  press_release_published: [],
 };
 
 // Sections that must be completed before advancing to committee_review
@@ -57,6 +59,7 @@ export function canAdvanceStage(
   sections: SectionState[],
   options?: {
     hasRecommendation?: boolean;
+    hasEndorsementResult?: boolean;
   }
 ): { allowed: boolean; reason?: string } {
   if (!isValidStageTransition(from, to)) {
@@ -79,6 +82,16 @@ export function canAdvanceStage(
       return {
         allowed: false,
         reason: 'Committee chair must submit a recommendation before board vote',
+      };
+    }
+  }
+
+  // Gate: board_vote → press_release_created requires finalized vote
+  if (to === 'press_release_created') {
+    if (!options?.hasEndorsementResult) {
+      return {
+        allowed: false,
+        reason: 'Board vote must be finalized before creating press release',
       };
     }
   }

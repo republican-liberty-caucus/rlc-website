@@ -97,9 +97,33 @@ export async function PATCH(
     .select()
     .single();
 
-  if (error) {
+  if (error || !data) {
     logger.error('Error updating post:', error);
     return NextResponse.json({ error: 'Failed to update post' }, { status: 500 });
+  }
+
+  // Auto-advance vetting stage when a press release is published
+  const updatedPost = data as { id: string; content_type: string; status: string };
+  if (updatedPost.content_type === 'press_release' && updatedPost.status === 'published') {
+    try {
+      const { error: vettingAdvanceError } = await supabase
+        .from('rlc_candidate_vettings')
+        .update({ stage: 'press_release_published' } as never)
+        .eq('press_release_post_id', id)
+        .eq('stage', 'press_release_created');
+
+      if (vettingAdvanceError) {
+        logger.warn('Failed to auto-advance vetting on press release publish:', {
+          postId: id,
+          error: vettingAdvanceError,
+        });
+      }
+    } catch (vettingErr) {
+      logger.warn('Unexpected error auto-advancing vetting on press release publish:', {
+        postId: id,
+        error: vettingErr,
+      });
+    }
   }
 
   return NextResponse.json({ post: data });

@@ -13,7 +13,7 @@ import { uploadFile } from '@/lib/upload';
 interface PostEditorFormProps {
   post: Post | null;
   charters: { id: string; name: string }[];
-  contentType?: 'post' | 'page';
+  contentType?: 'post' | 'page' | 'press_release';
 }
 
 function slugify(text: string): string {
@@ -30,7 +30,8 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
   const featuredImageRef = useRef<HTMLInputElement>(null);
 
   const isPage = contentType === 'page';
-  const entityLabel = isPage ? 'Page' : 'Post';
+  const isPressRelease = contentType === 'press_release';
+  const entityLabel = isPage ? 'Page' : isPressRelease ? 'Press Release' : 'Post';
 
   async function handleFeaturedImageUpload() {
     const input = document.createElement('input');
@@ -90,6 +91,10 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
       body.tags = [];
     }
 
+    if (isPressRelease && (!body.categories || (body.categories as string[]).length === 0)) {
+      body.categories = ['press-release'];
+    }
+
     const isCreate = !post;
     const url = isCreate ? '/api/v1/admin/posts' : `/api/v1/admin/posts/${post.id}`;
     const method = isCreate ? 'POST' : 'PATCH';
@@ -113,7 +118,7 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
         description: `"${body.title}" has been ${isCreate ? 'created' : 'updated'}.`,
       });
 
-      const backPath = isPage ? '/admin/pages' : '/admin/posts';
+      const backPath = isPage ? '/admin/pages' : isPressRelease ? '/admin/press-releases' : '/admin/posts';
       if (isCreate && data.post?.id) {
         router.push(`${backPath}/${data.post.id}`);
       } else {
@@ -262,7 +267,7 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
         {post && (
           <Button type="button" variant="outline" asChild>
             <a
-              href={isPage ? `/${post.slug}` : `/blog/${post.slug}`}
+              href={isPage ? `/${post.slug}` : isPressRelease ? `/press-releases/${post.slug}` : `/blog/${post.slug}`}
               target="_blank"
               rel="noopener noreferrer"
             >
