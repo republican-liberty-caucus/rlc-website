@@ -7,9 +7,9 @@ import { getVettingContext, canViewPipeline, canCreateVetting } from '@/lib/vett
 import { calculateUrgency } from '@/lib/vetting/engine';
 import { PageHeader } from '@/components/ui/page-header';
 import { PipelineTable } from '@/components/admin/vetting/pipeline-table';
-import { PendingSubmissions } from '@/components/admin/vetting/pending-submissions';
 import { Button } from '@/components/ui/button';
 import { ClipboardList } from 'lucide-react';
+import type { PipelineRow } from '@/components/admin/vetting/pipeline-table';
 
 export const metadata: Metadata = {
   title: 'Candidate Vetting - Admin',
@@ -18,6 +18,7 @@ export const metadata: Metadata = {
 
 interface VettingRow {
   id: string;
+  candidate_response_id: string | null;
   candidate_name: string;
   candidate_state: string | null;
   candidate_office: string | null;
@@ -33,7 +34,7 @@ interface VettingRow {
   } | null;
 }
 
-interface PendingCandidate {
+interface SubmissionRow {
   id: string;
   candidate_name: string;
   candidate_office: string | null;
@@ -41,7 +42,6 @@ interface PendingCandidate {
   candidate_district: string | null;
   total_score: number | null;
   submitted_at: string | null;
-  survey: { id: string; title: string } | null;
 }
 
 export default async function VettingPipelinePage() {
@@ -56,7 +56,7 @@ export default async function VettingPipelinePage() {
   // Fetch active vettings and pending submissions in parallel
   let vettingQuery = supabase
     .from('rlc_candidate_vettings')
-    .select('id, candidate_name, candidate_state, candidate_office, candidate_district, charter_id, stage, recommendation, created_at, office_type:rlc_office_types(name, district_label), election_deadline:rlc_candidate_election_deadlines(primary_date, general_date)')
+    .select('id, candidate_response_id, candidate_name, candidate_state, candidate_office, candidate_district, charter_id, stage, recommendation, created_at, office_type:rlc_office_types(name, district_label), election_deadline:rlc_candidate_election_deadlines(primary_date, general_date)')
     .order('created_at', { ascending: false });
 
   if (ctx.visibleCharterIds !== null) {
@@ -65,14 +65,9 @@ export default async function VettingPipelinePage() {
 
   const [vettingRes, pendingRes] = await Promise.all([
     vettingQuery,
-    // Submitted responses that don't have a vetting yet
     supabase
       .from('rlc_candidate_responses')
-      .select(`
-        id, candidate_name, candidate_office, candidate_state, candidate_district,
-        total_score, submitted_at,
-        survey:rlc_surveys(id, title)
-      `)
+      .select('id, candidate_name, candidate_office, candidate_state, candidate_district, total_score, submitted_at')
       .eq('status', 'submitted')
       .order('submitted_at', { ascending: false }),
   ]);
@@ -82,8 +77,7 @@ export default async function VettingPipelinePage() {
 
   const vettings = (vettingRes.data || []) as VettingRow[];
 
-  // Check the full vettings table for response IDs since the pipeline query
-  // may be charter-scoped but pending submissions should only show truly un-vetted ones
+  // Filter out submissions that already have a vetting
   const { data: allVettingResponseIds, error: linkedIdsError } = await supabase
     .from('rlc_candidate_vettings')
     .select('candidate_response_id');
@@ -96,21 +90,55 @@ export default async function VettingPipelinePage() {
       .filter(Boolean)
   );
 
-  const pending = ((pendingRes.data || []) as PendingCandidate[]).filter(
+  const pendingSubmissions = ((pendingRes.data || []) as SubmissionRow[]).filter(
     (p) => !allLinkedIds.has(p.id)
   );
 
-  // Enrich vettings with urgency
-  const enriched = vettings.map((v) => ({
-    ...v,
-    urgency: calculateUrgency(v.election_deadline?.primary_date ?? null),
+  // Build unified pipeline rows: new submissions first, then active vettings
+  const submissionRows: PipelineRow[] = pendingSubmissions.map((s) => ({
+    id: s.id,
+    type: 'submission' as const,
+    candidate_name: s.candidate_name,
+    candidate_state: s.candidate_state,
+    candidate_office: s.candidate_office,
+    candidate_district: s.candidate_district,
+    office_type: null,
+    stage: 'submitted',
+    total_score: s.total_score,
+    recommendation: null,
+    date: s.submitted_at ?? '',
+    urgency: 'normal' as const,
+    election_deadline: null,
   }));
+
+  const vettingRows: PipelineRow[] = vettings.map((v) => ({
+    id: v.id,
+    type: 'vetting' as const,
+    candidate_name: v.candidate_name,
+    candidate_state: v.candidate_state,
+    candidate_office: v.candidate_office,
+    candidate_district: v.candidate_district,
+    office_type: v.office_type,
+    stage: v.stage,
+    total_score: null,
+    recommendation: v.recommendation,
+    date: v.created_at,
+    urgency: calculateUrgency(v.election_deadline?.primary_date ?? null),
+    election_deadline: v.election_deadline,
+  }));
+
+  const rows = [...submissionRows, ...vettingRows];
+
+  // Summary counts
+  const newCount = submissionRows.length;
+  const activeCount = vettingRows.length;
+  const totalCount = rows.length;
 
   return (
     <div>
       <PageHeader
         title="Candidate Pipeline"
-        count={vettings.length}
+        count={totalCount}
         className="mb-8"
         action={
           <Button asChild variant="outline" size="sm">
@@ -122,12 +150,25 @@ export default async function VettingPipelinePage() {
         }
       />
 
-      {/* Pending Review Section */}
-      {pending.length > 0 && canCreate && (
-        <PendingSubmissions candidates={pending} />
+      {/* Summary bar */}
+      {totalCount > 0 && (
+        <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
+          {newCount > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+              {newCount} new {newCount === 1 ? 'submission' : 'submissions'}
+            </span>
+          )}
+          {activeCount > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+              {activeCount} in progress
+            </span>
+          )}
+        </div>
       )}
 
-      <PipelineTable vettings={enriched} />
+      <PipelineTable rows={rows} canCreate={canCreate} />
     </div>
   );
 }

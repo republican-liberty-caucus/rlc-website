@@ -69,6 +69,7 @@ const statusColorMap: Record<StatusType, Record<string, string>> = {
     published: 'bg-green-100 text-green-700 dark:bg-green-950 dark:text-green-400',
   },
   vetting: {
+    submitted: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-400',
     survey_submitted: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
     auto_audit: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-400',
     assigned: 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-400',
