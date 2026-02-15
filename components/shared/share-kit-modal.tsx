@@ -98,13 +98,15 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
 
     recordShare(platform);
 
-    // LinkedIn doesn't support pre-filling text via URL — copy it to clipboard
-    if (platform === 'linkedin') {
+    // Facebook and LinkedIn don't reliably support pre-filling text via URL params.
+    // Copy the platform-specific text to clipboard so the user can paste it.
+    if (platform === 'facebook' || platform === 'linkedin') {
+      const platformLabel = platform === 'facebook' ? 'Facebook' : 'LinkedIn';
       try {
-        await navigator.clipboard.writeText(getCopyForPlatform('linkedin'));
+        await navigator.clipboard.writeText(getCopyForPlatform(platform));
         toast({
           title: 'Post text copied!',
-          description: 'Paste it into your LinkedIn post.',
+          description: `Paste it into your ${platformLabel} post.`,
         });
       } catch {
         // Silent fail — the share window will still open
@@ -113,7 +115,7 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
 
     const shareUrls: Record<string, string> = {
       x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(getCopyForPlatform('x'))}&url=${encodeURIComponent(url)}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(getCopyForPlatform('facebook'))}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
       email: `mailto:?subject=${encodeURIComponent(kit.title)}&body=${encodeURIComponent(getCopyForPlatform('facebook'))}%0A%0A${encodeURIComponent(url)}`,
     };
