@@ -28,6 +28,9 @@ const isPublicRoute = createRouteMatcher([
   '/data(.*)',
   '/privacy(.*)',
   '/terms(.*)',
+  '/press-releases(.*)',
+  '/s/(.*)',
+  '/api/og/(.*)',
 ]);
 
 // Define admin routes that require specific roles
@@ -38,7 +41,7 @@ const ADMIN_ROLES = ['super_admin', 'national_board', 'regional_coordinator', 's
 
 // Known top-level route prefixes — skip WP slug lookup for these
 const KNOWN_PREFIXES = new Set([
-  'about', 'admin', 'api', 'action-center', 'blog', 'candidate-surveys',
+  'about', 'admin', 'api', 'action-center', 'blog', 'candidate-surveys', 'press-releases', 's',
   'charters', 'contact', 'dashboard', 'data', 'donate', 'endorsements',
   'events', 'join', 'privacy', 'scorecards', 'sign-in', 'sign-up',
   'terms', 'unauthorized', '_next',
