@@ -131,7 +131,7 @@ export function VettingSurveyTab({ surveyResponse }: VettingSurveyTabProps) {
                     )}
                   </div>
 
-                  <div className="mt-3 flex items-start gap-6">
+                  <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-start sm:gap-6">
                     <div className="flex-1">
                       <p className="text-xs text-muted-foreground">Answer</p>
                       <p className="mt-0.5 text-sm">{a.answer}</p>

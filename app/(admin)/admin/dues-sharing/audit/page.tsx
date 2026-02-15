@@ -78,7 +78,7 @@ export default function AuditTrailPage() {
       />
 
       {/* Filters */}
-      <div className="flex items-end gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
         <div>
           <Label>Status</Label>
           <Select value={statusFilter} onValueChange={(v) => { setStatusFilter(v); setPage(1); }}>

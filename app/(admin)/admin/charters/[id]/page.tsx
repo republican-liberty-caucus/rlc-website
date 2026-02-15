@@ -139,9 +139,9 @@ export default async function AdminCharterDetailPage({
         </Link>
       </div>
 
-      <div className="mb-8 flex items-start justify-between">
+      <div className="mb-8">
         <div>
-          <h1 className="text-3xl font-bold">{charter.name}</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl">{charter.name}</h1>
           <div className="mt-2 flex items-center gap-3">
             <span className={`rounded-full px-2 py-1 text-xs font-medium capitalize ${statusColors[charter.status] || 'bg-gray-100'}`}>
               {charter.status}
@@ -156,7 +156,7 @@ export default async function AdminCharterDetailPage({
 
       {/* Onboarding Banner for forming charters */}
       {charter.status === 'forming' && (
-        <div className="mb-8 rounded-lg border bg-yellow-50 p-4 flex items-center justify-between">
+        <div className="mb-8 rounded-lg border bg-yellow-50 p-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className="font-medium text-yellow-800">This charter is in the onboarding process</p>
             <p className="text-sm text-yellow-700">Complete the 8-step onboarding wizard to activate this charter.</p>

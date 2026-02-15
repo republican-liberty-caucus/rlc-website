@@ -117,7 +117,7 @@ export function OrganizationalMeetingStep({
         <div className="space-y-3">
           {officers.map((o, idx) => (
             <div key={idx} className="flex items-start gap-2 rounded border bg-muted/30 p-3">
-              <div className="flex-1 grid grid-cols-2 gap-2">
+              <div className="flex-1 grid gap-2 sm:grid-cols-2">
                 <div>
                   <label className="block text-xs font-medium mb-1">Name</label>
                   <input

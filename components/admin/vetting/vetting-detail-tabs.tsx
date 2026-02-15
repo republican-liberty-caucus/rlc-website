@@ -26,7 +26,7 @@ export function VettingDetailTabs({ vetting, permissions, committeeMembers, surv
 
   return (
     <Tabs defaultValue="overview">
-      <TabsList className="w-full justify-start">
+      <TabsList className="w-full justify-start overflow-x-auto">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="survey">Survey</TabsTrigger>
         <TabsTrigger value="audit">Digital Audit</TabsTrigger>

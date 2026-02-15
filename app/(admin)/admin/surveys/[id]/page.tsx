@@ -86,9 +86,9 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
         <Link href="/admin/surveys" className="text-sm text-muted-foreground hover:underline">
           &larr; Back to Surveys
         </Link>
-        <div className="mt-2 flex items-center justify-between">
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold">{survey.title}</h1>
+            <h1 className="text-2xl font-bold sm:text-3xl">{survey.title}</h1>
             <p className="mt-1 text-muted-foreground">
               {survey.election_type && <span className="capitalize">{survey.election_type} </span>}
               {survey.state && <span>{survey.state} </span>}
@@ -97,7 +97,7 @@ export default async function AdminSurveyDetailPage({ params }: SurveyDetailPage
               | {questions.length} questions | {candidates.length} candidates
             </p>
           </div>
-          <span className={`rounded-full px-3 py-1 text-sm font-medium capitalize ${
+          <span className={`self-start rounded-full px-3 py-1 text-sm font-medium capitalize ${
             survey.status === 'active' ? 'bg-green-100 text-green-800' :
             survey.status === 'closed' ? 'bg-red-100 text-red-800' :
             'bg-gray-100 text-gray-800'

@@ -63,8 +63,8 @@ export default async function AdminEventDetailPage({ params }: EventDetailPagePr
         <Link href="/admin/events" className="text-sm text-muted-foreground hover:underline">
           &larr; Back to Events
         </Link>
-        <div className="mt-2 flex items-center justify-between">
-          <h1 className="text-3xl font-bold">{event.title}</h1>
+        <div className="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h1 className="text-2xl font-bold sm:text-3xl">{event.title}</h1>
           <div className="flex items-center gap-4">
             <span className="text-sm text-muted-foreground">
               {regCountResult.count || 0} registrations
