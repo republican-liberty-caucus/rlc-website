@@ -122,7 +122,7 @@ async function handleContactUpdate(
     };
 
     const { error: updateError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update(updatePayload as never)
       .eq('id', supabaseMemberId);
 
@@ -135,7 +135,7 @@ async function handleContactUpdate(
   } else {
     // Try to find by email
     const { data, error: selectError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id')
       .eq('email', contact.email)
       .single();
@@ -150,7 +150,7 @@ async function handleContactUpdate(
     if (member) {
       // Link existing member to HighLevel contact
       const { error: linkError } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .update({ highlevel_contact_id: contact.id } as never)
         .eq('id', member.id);
 
@@ -185,7 +185,7 @@ async function handleOpportunityCreated(
 ) {
   // Find member by HighLevel contact ID
   const { data, error: selectError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id')
     .eq('highlevel_contact_id', opportunity.contactId)
     .single();

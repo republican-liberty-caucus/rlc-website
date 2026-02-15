@@ -42,7 +42,7 @@ async function getCharters(visibleCharterIds: string[] | null): Promise<CharterW
 
   // Single query for all member counts (avoids N+1)
   const { data: memberRows, error: memberCountError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('primary_charter_id')
     .in('primary_charter_id', charters.map((c) => c.id));
 

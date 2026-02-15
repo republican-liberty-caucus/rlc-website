@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
   const supabase = createServerClient();
 
   let q = supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id, first_name, last_name')
     .or(`first_name.ilike.%${safe}%,last_name.ilike.%${safe}%,email.ilike.%${safe}%`)
     .order('last_name')

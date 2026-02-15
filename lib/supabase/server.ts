@@ -23,7 +23,7 @@ export function createServerClient() {
 export async function getMemberByClerkId(clerkUserId: string): Promise<Contact | null> {
   const supabase = createServerClient();
   const { data, error } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*')
     .eq('clerk_user_id', clerkUserId)
     .single();
@@ -61,7 +61,7 @@ export async function upsertMemberFromClerk(clerkUser: {
 
   // Check if member already exists by email (e.g. migrated from CiviCRM without clerk_user_id)
   const { data: existingByEmail, error: emailLookupError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*')
     .eq('email', primaryEmail)
     .single();
@@ -84,7 +84,7 @@ export async function upsertMemberFromClerk(clerkUser: {
     }
 
     const { data, error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update(updatePayload as never)
       .eq('id', member.id)
       .select()
@@ -109,7 +109,7 @@ export async function upsertMemberFromClerk(clerkUser: {
   };
 
   const { data, error } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .upsert(upsertPayload as never, {
       onConflict: 'clerk_user_id',
     })

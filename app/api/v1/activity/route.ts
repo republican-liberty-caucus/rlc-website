@@ -13,7 +13,7 @@ export async function GET() {
         id,
         action,
         created_at,
-        member:rlc_members(first_name, state),
+        member:rlc_contacts(first_name, state),
         campaign:rlc_action_campaigns(title)
       `)
       .order('created_at', { ascending: false })

@@ -58,7 +58,7 @@ export default async function CharterOnboardingPage({
     .from('rlc_charter_onboarding')
     .select(`
       *,
-      coordinator:rlc_members!rlc_charter_onboarding_coordinator_id_fkey(id, first_name, last_name, email),
+      coordinator:rlc_contacts!rlc_charter_onboarding_coordinator_id_fkey(id, first_name, last_name, email),
       steps:rlc_charter_onboarding_steps(*)
     `)
     .eq('charter_id', id)

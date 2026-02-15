@@ -49,7 +49,7 @@ export async function GET(request: Request) {
   const supabase = createServerClient();
 
   let query = supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select(`
       first_name, last_name, email, phone,
       city, state, membership_tier, membership_status,

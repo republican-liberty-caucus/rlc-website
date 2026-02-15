@@ -206,7 +206,7 @@ async function syncMember(
   if (result?.id) {
     // Update member with HighLevel ID
     await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({ highlevel_contact_id: result.id })
       .eq('id', member.id);
 
@@ -255,7 +255,7 @@ async function main() {
 
   // Get members to sync — include new fields
   const { data: members, error } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select(`
       id, email, first_name, last_name, phone,
       address_line1, city, state, postal_code,

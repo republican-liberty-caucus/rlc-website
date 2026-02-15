@@ -62,7 +62,7 @@ export default async function AdminCharterDetailPage({
       .eq('parent_charter_id', id)
       .order('name'),
     supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id, first_name, last_name, email, membership_status')
       .eq('primary_charter_id', id)
       .order('last_name')
@@ -75,7 +75,7 @@ export default async function AdminCharterDetailPage({
           .single()
       : Promise.resolve({ data: null }),
     supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*', { count: 'exact', head: true })
       .eq('primary_charter_id', id),
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -83,8 +83,8 @@ export default async function AdminCharterDetailPage({
       .from('rlc_organizational_positions')
       .select(`
         id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
-        member:rlc_members!rlc_organizational_positions_contact_id_fkey(id, first_name, last_name, email),
-        appointed_by:rlc_members!rlc_organizational_positions_appointed_by_id_fkey(first_name, last_name)
+        member:rlc_contacts!rlc_organizational_positions_contact_id_fkey(id, first_name, last_name, email),
+        appointed_by:rlc_contacts!rlc_organizational_positions_appointed_by_id_fkey(first_name, last_name)
       `)
       .eq('charter_id', id)
       .order('is_active', { ascending: false })

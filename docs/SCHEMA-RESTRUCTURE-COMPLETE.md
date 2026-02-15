@@ -11,7 +11,7 @@
 Successfully restructured the database schema to separate contact information from membership data, following CiviCRM's industry-standard architecture pattern.
 
 **Before:** Single `rlc_members` table mixing contact + membership data
-**After:** `rlc_members` table (mapped to `Contact` model) + `rlc_memberships` table (mapped to `Membership` model)
+**After:** `rlc_contacts` table (mapped to `Contact` model) + `rlc_memberships` table (mapped to `Membership` model)
 
 ---
 
@@ -19,8 +19,8 @@ Successfully restructured the database schema to separate contact information fr
 
 ### Database Tables
 
-**rlc_members** (still named this for backward compatibility)
-- Now mapped to TypeScript `Contact` model via Prisma `@@map("rlc_members")`
+**rlc_contacts** (renamed from `rlc_members` in Phase 4)
+- Mapped to TypeScript `Contact` model via Prisma `@@map("rlc_contacts")`
 - Removed membership-specific fields (moved to `rlc_memberships`)
 - Contains: contact info, chapter affiliation, external IDs, preferences, household data
 - 11,315 contacts total
@@ -100,7 +100,7 @@ All `member_id` columns renamed to `contact_id`:
 ### Database Schema
 
 ```prisma
-// rlc_members table (@@map from Contact model)
+// rlc_contacts table
 model Contact {
   id                   String           @id @default(uuid())
 
@@ -123,7 +123,7 @@ model Contact {
   contributions        Contribution[]
   // ... other relations
 
-  @@map("rlc_members")
+  @@map("rlc_contacts")
 }
 
 // rlc_memberships table
@@ -141,13 +141,13 @@ model Membership {
   @@map("rlc_memberships")
 }
 
-// rlc_member_roles table (still named this)
+// rlc_contact_roles table
 model ContactRole {
   id          String    @id @default(uuid())
   contactId   String    @map("contact_id")
   contact     Contact   @relation("ContactRoles", fields: [contactId], references: [id], onDelete: Cascade)
 
-  @@map("rlc_member_roles")
+  @@map("rlc_contact_roles")
 }
 ```
 
@@ -174,8 +174,8 @@ model ContactRole {
 - `ContactRole` = admin/officer role
 - No more confusion between "member" (person with membership) vs "member" (database record)
 
-✅ **Backward Compatibility**
-- Table names unchanged (`rlc_members`, `rlc_member_roles`)
+✅ **Full Rename Consistency**
+- Table names now match code models: `rlc_contacts`, `rlc_contact_roles`
 - Used Prisma `@@map` directives for seamless transition
 - Zero downtime during migration
 
@@ -187,32 +187,32 @@ model ContactRole {
 2. `20260208000001_add_email_validation_fields` - Email validation fields
 3. `20260208000002_add_memberships_table` - Added Membership model
 4. `20260208205756_rename_member_to_contact_columns` - Renamed member_id → contact_id
+5. `20260215100000_rename_members_to_contacts` - Renamed tables rlc_members → rlc_contacts, rlc_member_roles → rlc_contact_roles
 
 ---
 
-## Phase 4: Cleanup (DEFERRED)
+## Phase 4: Table Rename ✅
 
-**Status:** Not started (low priority)
+**Status:** ✅ Complete
+**Completed:** February 15, 2026
 
-The following cleanup tasks were identified but deferred as they're not blocking:
+Renamed database tables to match the TypeScript model names:
 
-1. Remove redundant membership fields from `rlc_members` table
+1. ✅ `rlc_members` → `rlc_contacts` (via `ALTER TABLE RENAME`)
+2. ✅ `rlc_member_roles` → `rlc_contact_roles` (via `ALTER TABLE RENAME`)
+3. ✅ All constraint and index names updated for consistency
+4. ✅ All 73 application code files updated (`.from()` calls, Supabase join syntax)
+5. ✅ All 15 script files updated for consistency
+
+**Migration:** `20260215100000_rename_members_to_contacts`
+
+### Remaining Cleanup (DEFERRED)
+
+1. Remove redundant membership fields from `rlc_contacts` table
    - These fields are now in `rlc_memberships` but kept for backward compatibility
    - Fields: `membership_tier`, `membership_status`, `membership_start_date`, `membership_expiry_date`, `membership_join_date`
    - **Risk:** Breaking change if any code still uses these fields directly
    - **When to do:** After thorough audit of all queries and codebase
-
-2. Consider renaming `rlc_members` → `rlc_contacts` in database
-   - Currently: table name `rlc_members`, TypeScript model `Contact`
-   - **Risk:** Breaking change for any raw SQL or external integrations
-   - **When to do:** Only if strong need for consistency (low priority)
-
-3. Consider renaming `rlc_member_roles` → `rlc_contact_roles` in database
-   - Currently: table name `rlc_member_roles`, TypeScript model `ContactRole`
-   - **Risk:** Breaking change for any raw SQL
-   - **When to do:** Only if renaming rlc_members (low priority)
-
-**Recommendation:** Leave these cleanup tasks for a future maintenance sprint. Current state is functional, consistent, and maintainable.
 
 ---
 

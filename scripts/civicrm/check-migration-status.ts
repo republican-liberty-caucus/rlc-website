@@ -11,7 +11,7 @@ const supabase = createClient(
 async function checkDataQuality() {
   // Sample 10 random members with membership data
   const { data: samples } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('first_name, last_name, membership_join_date, membership_tier, membership_status, created_at')
     .not('membership_tier', 'is', null)
     .limit(10);
@@ -28,18 +28,18 @@ async function checkDataQuality() {
   // Check how many have join dates from CiviCRM (not today)
   const today = '2026-02-09';
   const { count: withOldJoinDates } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .not('membership_join_date', 'is', null)
     .lt('membership_join_date', today);
 
   const { count: withTodayJoinDates } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .gte('membership_join_date', today);
 
   const { count: nullJoinDates } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .is('membership_join_date', null);
 

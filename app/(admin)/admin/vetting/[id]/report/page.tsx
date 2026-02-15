@@ -50,7 +50,7 @@ export default async function VettingReportPage({
   // Fetch board votes with voter names
   const { data: votes } = await supabase
     .from('rlc_candidate_vetting_board_votes')
-    .select('vote, notes, voter:rlc_members!voter_id(first_name, last_name)')
+    .select('vote, notes, voter:rlc_contacts!voter_id(first_name, last_name)')
     .eq('vetting_id', id)
     .order('voted_at', { ascending: true });
 

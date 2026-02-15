@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         memberId = member.id;
       } else if (!memberEmail) {
         // New user who signed up through Clerk but hasn't completed checkout yet —
-        // no rlc_members record exists. Get their email from Clerk directly.
+        // no rlc_contacts record exists. Get their email from Clerk directly.
         const clerk = await clerkClient();
         const clerkUser = await clerk.users.getUser(userId);
         memberEmail = clerkUser.emailAddresses[0]?.emailAddress;

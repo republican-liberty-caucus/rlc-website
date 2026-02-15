@@ -50,7 +50,7 @@ export async function PATCH(
     .from('rlc_candidate_vetting_committee_members')
     .update(updates as never)
     .eq('id', memberId)
-    .select('*, contact:rlc_members(id, first_name, last_name, email)')
+    .select('*, contact:rlc_contacts(id, first_name, last_name, email)')
     .single();
 
   if (error) {

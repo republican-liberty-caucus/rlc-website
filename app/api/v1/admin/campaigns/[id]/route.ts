@@ -50,7 +50,7 @@ export async function GET(
 
     if (memberIds.length > 0) {
       const { data: members } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .select('id, full_name, email')
         .in('id', memberIds);
 

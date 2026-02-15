@@ -8,7 +8,7 @@ import type { Contact } from '@/types';
 import type { Database } from '@/lib/supabase/client';
 import { logger } from '@/lib/logger';
 
-type MemberUpdate = Database['public']['Tables']['rlc_members']['Update'];
+type MemberUpdate = Database['public']['Tables']['rlc_contacts']['Update'];
 
 // Fields only national_board+ can modify
 const RESTRICTED_FIELDS = ['membershipTier', 'membershipStatus', 'primaryCharterId', 'membershipExpiryDate'] as const;
@@ -32,7 +32,7 @@ export async function PATCH(
 
   // Fetch the member to verify the admin can see their charter
   const { data: existing, error: fetchError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*')
     .eq('id', id)
     .single();
@@ -106,7 +106,7 @@ export async function PATCH(
   if (input.doNotPhone !== undefined) updatePayload.do_not_phone = input.doNotPhone;
 
   const { data, error } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .update(updatePayload as never)
     .eq('id', id)
     .select()

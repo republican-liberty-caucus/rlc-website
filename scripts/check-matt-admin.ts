@@ -15,7 +15,7 @@ async function checkMattAdmin() {
 
   // Find Matt
   const { data: matts } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id, email, first_name, last_name, clerk_user_id, primary_chapter_id')
     .or('email.ilike.%matt%nye%,email.eq.matt.nye@nyecorp.com');
 
@@ -36,7 +36,7 @@ async function checkMattAdmin() {
   for (const matt of matts) {
     console.log(`\n--- Roles for ${matt.email} ---`);
     const { data: roles } = await supabase
-      .from('rlc_member_roles')
+      .from('rlc_contact_roles')
       .select('role, chapter_id, granted_at, expires_at')
       .eq('contact_id', matt.id);
 
@@ -58,16 +58,16 @@ async function checkMattAdmin() {
   console.log('===========================================\n');
 
   const { count: total } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true });
 
   const { count: withChapter } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .not('primary_chapter_id', 'is', null);
 
   const { count: withoutChapter } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .is('primary_chapter_id', null);
 
@@ -89,7 +89,7 @@ async function checkMattAdmin() {
   // Count members per chapter
   for (const chapter of chapters || []) {
     const { count } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('*', { count: 'exact', head: true })
       .eq('primary_chapter_id', chapter.id);
 

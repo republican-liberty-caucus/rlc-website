@@ -89,7 +89,7 @@ async function rollbackImport(
   // Get current database state
   console.log('\nFetching current database state...');
   const { data: currentContacts, error: fetchError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id, email, highlevel_contact_id, civicrm_contact_id');
 
   if (fetchError) {
@@ -155,7 +155,7 @@ async function rollbackImport(
 
   // Delete contacts created during import
   for (const id of toDelete) {
-    const { error } = await supabase.from('rlc_members').delete().eq('id', id);
+    const { error } = await supabase.from('rlc_contacts').delete().eq('id', id);
 
     if (error) {
       console.error(`  ❌ Failed to delete ${id}: ${error.message}`);
@@ -168,7 +168,7 @@ async function rollbackImport(
   // Restore contacts modified during import
   for (const contact of toRestore) {
     const { error } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update({
         first_name: contact.first_name,
         last_name: contact.last_name,

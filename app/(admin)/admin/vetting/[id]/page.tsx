@@ -79,7 +79,7 @@ export default async function VettingDetailPage({
         assignments:rlc_candidate_vetting_section_assignments(
           *,
           committee_member:rlc_candidate_vetting_committee_members(
-            id, role, contact:rlc_members(id, first_name, last_name, email)
+            id, role, contact:rlc_contacts(id, first_name, last_name, email)
           )
         )
       ),
@@ -103,7 +103,7 @@ export default async function VettingDetailPage({
   if (vetting.committee?.id) {
     const { data: members, error: membersError } = await supabase
       .from('rlc_candidate_vetting_committee_members')
-      .select('id, contact_id, role, is_active, contact:rlc_members(id, first_name, last_name, email)')
+      .select('id, contact_id, role, is_active, contact:rlc_contacts(id, first_name, last_name, email)')
       .eq('committee_id', vetting.committee.id)
       .eq('is_active', true);
 
@@ -122,7 +122,7 @@ export default async function VettingDetailPage({
       .select(`
         id, candidate_name, candidate_email, candidate_party, candidate_office,
         candidate_district, contact_id, total_score, status, submitted_at, created_at,
-        contact:rlc_members(id, first_name, last_name, email, membership_status),
+        contact:rlc_contacts(id, first_name, last_name, email, membership_status),
         survey:rlc_surveys(id, title, election_type, election_date, state)
       `)
       .eq('id', vetting.candidate_response_id)

@@ -40,7 +40,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
       id, candidate_name, candidate_email, candidate_party, candidate_office,
       candidate_district, candidate_state, candidate_county, contact_id,
       total_score, status, submitted_at, created_at,
-      contact:rlc_members(id, first_name, last_name, email, membership_status),
+      contact:rlc_contacts(id, first_name, last_name, email, membership_status),
       office_type:rlc_office_types(name, district_label),
       survey:rlc_surveys(id, title, election_type, election_date, state)
     `)

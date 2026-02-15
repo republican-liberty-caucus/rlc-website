@@ -32,7 +32,7 @@ async function getPressReleases(visibleCharterIds: string[] | null): Promise<Pre
     .from('rlc_posts')
     .select(`
       id, title, slug, status, published_at, created_at,
-      author:rlc_members(first_name, last_name)
+      author:rlc_contacts(first_name, last_name)
     `)
     .eq('content_type', 'press_release')
     .order('created_at', { ascending: false });

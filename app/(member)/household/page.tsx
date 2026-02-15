@@ -64,7 +64,7 @@ export default async function HouseholdPage() {
     const supabase = createServerClient();
     const { data: primaryData, error: primaryError } = member.primary_contact_id
       ? await supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .select('first_name, last_name, email')
           .eq('id', member.primary_contact_id)
           .single()
@@ -133,7 +133,7 @@ export default async function HouseholdPage() {
 
   if (member.household_id) {
     const { data, error: fetchError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .select('id, first_name, last_name, email, household_role, membership_status, created_at')
       .eq('household_id', member.household_id)
       .neq('id', member.id)

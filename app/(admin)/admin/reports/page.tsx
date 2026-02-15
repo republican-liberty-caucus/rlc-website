@@ -171,7 +171,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
             const now = new Date();
             const in30Days = new Date();
             in30Days.setDate(in30Days.getDate() + 30);
-            let q = supabase.from('rlc_members')
+            let q = supabase.from('rlc_contacts')
               .select('id, first_name, last_name, email, phone, membership_expiry_date')
               .in('membership_status', ['current', 'expiring'])
               .gte('membership_expiry_date', now.toISOString())
@@ -194,7 +194,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
       ? [
           // Current period per-charter
           (() => {
-            let q = supabase.from('rlc_members')
+            let q = supabase.from('rlc_contacts')
               .select('primary_charter_id')
               .not('primary_charter_id', 'is', null)
               .not('membership_join_date', 'is', null)
@@ -208,7 +208,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           })(),
           // Previous period per-charter
           (() => {
-            let q = supabase.from('rlc_members')
+            let q = supabase.from('rlc_contacts')
               .select('primary_charter_id')
               .not('primary_charter_id', 'is', null)
               .not('membership_join_date', 'is', null)
@@ -325,7 +325,7 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
     const in30Days = new Date();
     in30Days.setDate(in30Days.getDate() + 30);
     const { count: expiringCount } = await scopeByCharter(
-      supabase.from('rlc_members')
+      supabase.from('rlc_contacts')
         .select('*', { count: 'exact', head: true })
         .in('membership_status', ['current', 'expiring'])
         .gte('membership_expiry_date', now.toISOString())

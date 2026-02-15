@@ -59,7 +59,7 @@ export type Database = {
         Insert: Omit<Database['public']['Tables']['rlc_charters']['Row'], 'id' | 'created_at' | 'updated_at'>;
         Update: Partial<Database['public']['Tables']['rlc_charters']['Insert']>;
       };
-      rlc_members: {
+      rlc_contacts: {
         Row: {
           id: string;
           clerk_user_id: string | null;
@@ -92,10 +92,10 @@ export type Database = {
           created_at: string;
           updated_at: string;
         };
-        Insert: Omit<Database['public']['Tables']['rlc_members']['Row'], 'id' | 'created_at' | 'updated_at'>;
-        Update: Partial<Database['public']['Tables']['rlc_members']['Insert']>;
+        Insert: Omit<Database['public']['Tables']['rlc_contacts']['Row'], 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_contacts']['Insert']>;
       };
-      rlc_member_roles: {
+      rlc_contact_roles: {
         Row: {
           id: string;
           member_id: string;
@@ -105,8 +105,8 @@ export type Database = {
           granted_at: string;
           expires_at: string | null;
         };
-        Insert: Omit<Database['public']['Tables']['rlc_member_roles']['Row'], 'id' | 'granted_at'>;
-        Update: Partial<Database['public']['Tables']['rlc_member_roles']['Insert']>;
+        Insert: Omit<Database['public']['Tables']['rlc_contact_roles']['Row'], 'id' | 'granted_at'>;
+        Update: Partial<Database['public']['Tables']['rlc_contact_roles']['Insert']>;
       };
       rlc_contributions: {
         Row: {

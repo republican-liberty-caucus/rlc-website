@@ -386,7 +386,7 @@ async function importMember(
 
   // Check for existing contact by email
   const { data: existingContact, error: selectError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id, highlevel_contact_id, civicrm_contact_id')
     .eq('email', hlContact.email)
     .maybeSingle();
@@ -446,7 +446,7 @@ async function importMember(
 
     // Update existing contact
     const { error: updateError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .update(contactData as never)
       .eq('id', existingContact.id);
 
@@ -481,7 +481,7 @@ async function importMember(
     const createdAt = joinDateISO || hlContact.dateAdded || now;
 
     const { data: newContact, error: insertError } = await supabase
-      .from('rlc_members')
+      .from('rlc_contacts')
       .insert({ ...contactData, id: randomUUID(), created_at: createdAt } as never)
       .select('id')
       .single();

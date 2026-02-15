@@ -37,7 +37,7 @@ async function migrateContributions(
     try {
       // Find the member by CiviCRM contact ID
       const { data: member } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .select('id')
         .eq('civicrm_contact_id', contribution.civicrm_contact_id)
         .single();

@@ -22,21 +22,21 @@ async function getFinalStatus() {
 
   // Members
   const { count: totalMembers } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true });
 
   const { count: withEmail } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .not('email', 'is', null);
 
   const { count: withMembership } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .not('membership_tier', 'is', null);
 
   const { count: withHistoricalJoinDate } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .not('membership_join_date', 'is', null)
     .lt('membership_join_date', '2026-02-09');
@@ -67,14 +67,14 @@ async function getFinalStatus() {
 
   // Member roles
   const { count: rolesCount } = await supabase
-    .from('rlc_member_roles')
+    .from('rlc_contact_roles')
     .select('*', { count: 'exact', head: true });
 
   console.log(`\nMember roles: ${rolesCount || 0} total`);
 
   // Sample member data quality check
   const { data: sample } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('first_name, last_name, membership_join_date, membership_tier, created_at, updated_at')
     .not('membership_tier', 'is', null)
     .limit(5);

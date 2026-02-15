@@ -33,7 +33,7 @@ async function getPosts(visibleCharterIds: string[] | null): Promise<PostRow[]> 
     .from('rlc_posts')
     .select(`
       id, title, slug, status, published_at, created_at,
-      author:rlc_members(first_name, last_name),
+      author:rlc_contacts(first_name, last_name),
       charter:rlc_charters(name)
     `)
     .eq('content_type', 'post')

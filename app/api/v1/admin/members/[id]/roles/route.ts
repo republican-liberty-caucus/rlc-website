@@ -16,7 +16,7 @@ async function fetchMemberRef(
   memberId: string
 ): Promise<ContactRef | null> {
   const { data, error } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id, clerk_user_id')
     .eq('id', memberId)
     .single();
@@ -34,7 +34,7 @@ async function trySyncRoleToClerk(
   if (!clerkUserId) return null;
   try {
     const { data: roles } = await supabase
-      .from('rlc_member_roles')
+      .from('rlc_contact_roles')
       .select('id, role, charter_id, granted_by, granted_at, expires_at')
       .eq('contact_id', memberId);
 
@@ -100,7 +100,7 @@ export async function POST(
 
   // Insert role
   const { data: roleData, error: insertError } = await supabase
-    .from('rlc_member_roles')
+    .from('rlc_contact_roles')
     .insert({
       contact_id: memberId,
       role,
@@ -155,7 +155,7 @@ export async function DELETE(
 
   // Verify the role belongs to this member
   const { data: roleRow, error: roleError } = await supabase
-    .from('rlc_member_roles')
+    .from('rlc_contact_roles')
     .select('id, contact_id')
     .eq('id', roleId)
     .eq('contact_id', memberId)
@@ -167,7 +167,7 @@ export async function DELETE(
 
   // Delete the role
   const { error: deleteError } = await supabase
-    .from('rlc_member_roles')
+    .from('rlc_contact_roles')
     .delete()
     .eq('id', roleId);
 

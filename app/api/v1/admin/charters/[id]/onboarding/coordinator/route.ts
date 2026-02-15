@@ -40,7 +40,7 @@ export async function POST(
 
   // Verify member exists
   const { data: member, error: memberError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('id')
     .eq('id', coordinatorId)
     .single();

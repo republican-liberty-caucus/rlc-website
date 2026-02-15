@@ -183,7 +183,7 @@ export const getAdminContext = cache(async (clerkUserId: string): Promise<AdminC
 
   // Fetch admin-level roles, excluding expired ones
   const { data: roleData, error: roleError } = await supabase
-    .from('rlc_member_roles')
+    .from('rlc_contact_roles')
     .select('id, role, charter_id, granted_by, granted_at, expires_at')
     .eq('contact_id', member.id)
     .in('role', ADMIN_ROLES)

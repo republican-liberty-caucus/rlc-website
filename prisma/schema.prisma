@@ -416,7 +416,7 @@ model Contact {
   shareKitsCreated          ShareKit[]                        @relation("ShareKitCreatedBy")
   shareLinks                ShareLink[]                       @relation("ShareLinkMember")
 
-  @@map("rlc_members")
+  @@map("rlc_contacts")
 }
 
 /// Membership records (1-to-many with Contact for membership history)
@@ -458,7 +458,7 @@ model ContactRole {
   expiresAt   DateTime? @map("expires_at")
 
   @@unique([contactId, role, charterId])
-  @@map("rlc_member_roles")
+  @@map("rlc_contact_roles")
 }
 
 /// Contributions/Donations

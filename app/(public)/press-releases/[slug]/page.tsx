@@ -35,7 +35,7 @@ async function getPressRelease(slug: string): Promise<PostRow | null> {
     .from('rlc_posts')
     .select(`
       *,
-      author:rlc_members(first_name, last_name)
+      author:rlc_contacts(first_name, last_name)
     `)
     .eq('slug', slug)
     .eq('status', 'published')

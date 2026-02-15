@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const supabase = createServerClient();
   const { data } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('first_name, last_name')
     .eq('id', id)
     .single();
@@ -49,7 +49,7 @@ export default async function AdminMemberDetailPage({
 
   // Fetch member
   const { data: memberData, error: memberError } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*')
     .eq('id', id)
     .single();
@@ -75,21 +75,21 @@ export default async function AdminMemberDetailPage({
       .order('created_at', { ascending: false })
       .limit(10),
     supabase
-      .from('rlc_memberships')
+      .from('rlc_contactships')
       .select('*')
       .eq('contact_id', id)
       .order('join_date', { ascending: false }),
     supabase
-      .from('rlc_member_roles')
+      .from('rlc_contact_roles')
       .select(`
         id, role, charter_id, granted_by, granted_at, expires_at,
         charter:rlc_charters(name),
-        granter:rlc_members!rlc_member_roles_granted_by_fkey(first_name, last_name)
+        granter:rlc_contacts!rlc_contact_roles_granted_by_fkey(first_name, last_name)
       `)
       .eq('contact_id', id),
     member.household_id
       ? supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .select('id, first_name, last_name, email, household_role')
           .eq('household_id', member.household_id)
           .neq('id', id)
@@ -100,7 +100,7 @@ export default async function AdminMemberDetailPage({
       .select(`
         id, title, committee_name, started_at, ended_at, is_active, notes, created_at,
         charter:rlc_charters(id, name),
-        appointed_by:rlc_members!rlc_organizational_positions_appointed_by_id_fkey(first_name, last_name)
+        appointed_by:rlc_contacts!rlc_organizational_positions_appointed_by_id_fkey(first_name, last_name)
       `)
       .eq('contact_id', id)
       .order('is_active', { ascending: false })

@@ -37,7 +37,7 @@ export async function GET() {
   if (committeeIds.length > 0) {
     const { data: memberData, error: memberError } = await supabase
       .from('rlc_candidate_vetting_committee_members')
-      .select('*, contact:rlc_members(id, first_name, last_name, email)')
+      .select('*, contact:rlc_contacts(id, first_name, last_name, email)')
       .in('committee_id', committeeIds)
       .order('role', { ascending: true });
 

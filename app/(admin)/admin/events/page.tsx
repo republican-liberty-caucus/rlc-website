@@ -34,7 +34,7 @@ async function getEvents(visibleCharterIds: string[] | null): Promise<EventWithC
     .select(`
       *,
       charter:rlc_charters(id, name),
-      organizer:rlc_members(first_name, last_name)
+      organizer:rlc_contacts(first_name, last_name)
     `)
     .order('start_date', { ascending: false });
 

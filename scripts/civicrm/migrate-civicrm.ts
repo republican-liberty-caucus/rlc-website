@@ -387,7 +387,7 @@ async function migrateContacts(
           console.log(`  [DRY RUN] Processed ${result.success} contacts...`);
         }
       } else {
-        const { error } = await supabase.from('rlc_members').upsert(memberData as never, {
+        const { error } = await supabase.from('rlc_contacts').upsert(memberData as never, {
           onConflict: 'civicrm_contact_id',
         });
 
@@ -438,7 +438,7 @@ async function migrateMemberships(
     try {
       // Find the member by CiviCRM contact ID
       const { data: member } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .select('id')
         .eq('civicrm_contact_id', membership.civicrm_contact_id)
         .single();
@@ -461,7 +461,7 @@ async function migrateMemberships(
 
       if (!dryRun) {
         const { error } = await supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .update({
             membership_tier: tier,
             membership_status: status,
@@ -491,13 +491,13 @@ async function migrateMemberships(
     for (const contactId of boardMemberContactIds) {
       try {
         const { data: member } = await supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .select('id')
           .eq('civicrm_contact_id', contactId)
           .single();
 
         if (member) {
-          await supabase.from('rlc_member_roles').upsert(
+          await supabase.from('rlc_contact_roles').upsert(
             {
               member_id: member.id,
               role: 'national_board',
@@ -535,7 +535,7 @@ async function migrateContributions(
     try {
       // Find the member by CiviCRM contact ID
       const { data: member } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .select('id')
         .eq('civicrm_contact_id', contribution.civicrm_contact_id)
         .single();
@@ -645,7 +645,7 @@ async function migrateHouseholds(
     try {
       // Look up the primary member
       const { data: primaryMember } = await supabase
-        .from('rlc_members')
+        .from('rlc_contacts')
         .select('id, membership_tier')
         .eq('civicrm_contact_id', primaryContactId)
         .single();
@@ -671,7 +671,7 @@ async function migrateHouseholds(
       } else {
         // Set primary member's household fields
         await supabase
-          .from('rlc_members')
+          .from('rlc_contacts')
           .update({
             household_id: householdId,
             household_role: 'primary',
@@ -691,14 +691,14 @@ async function migrateHouseholds(
           }
 
           const { data: depMember } = await supabase
-            .from('rlc_members')
+            .from('rlc_contacts')
             .select('id')
             .eq('civicrm_contact_id', dep.contactId)
             .single();
 
           if (depMember) {
             await supabase
-              .from('rlc_members')
+              .from('rlc_contacts')
               .update({
                 household_id: householdId,
                 household_role: dep.role,
@@ -730,12 +730,12 @@ async function validateMigration(): Promise<void> {
 
   // Count members
   const { count: memberCount } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true });
 
   // Count migrated members (those with CiviCRM ID)
   const { count: migratedMemberCount } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('*', { count: 'exact', head: true })
     .not('civicrm_contact_id', 'is', null);
 
@@ -760,7 +760,7 @@ async function validateMigration(): Promise<void> {
 
   // Count households
   const { data: householdData } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('household_id')
     .not('household_id', 'is', null);
 
@@ -768,7 +768,7 @@ async function validateMigration(): Promise<void> {
 
   // Count by tier
   const { data: tierData } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('membership_tier');
 
   const tierCounts: Record<string, number> = {};
@@ -778,7 +778,7 @@ async function validateMigration(): Promise<void> {
 
   // Count by status
   const { data: statusData } = await supabase
-    .from('rlc_members')
+    .from('rlc_contacts')
     .select('membership_status');
 
   const statusCounts: Record<string, number> = {};
