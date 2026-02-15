@@ -5,6 +5,7 @@ import { getVettingContext, canCastBoardVote } from '@/lib/vetting/permissions';
 import { tallyVotes, getEndorsementResult } from '@/lib/vetting/engine';
 import { logger } from '@/lib/logger';
 import { slugify } from '@/lib/utils';
+import { generateEndorsementShareKit } from '@/lib/share/kit-generator';
 import type { BoardVoteChoice, VettingRecommendation } from '@/types';
 
 function escapeHtml(str: string): string {
@@ -257,11 +258,26 @@ export async function POST(
       logger.warn('Unexpected error creating press release draft:', { vettingId: id, error: prError });
     }
 
+    // Auto-create share kit (non-fatal)
+    let shareKitId: string | null = null;
+    try {
+      shareKitId = await generateEndorsementShareKit({
+        vettingId: id,
+        candidateName: vetting.candidate_name,
+        candidateOffice: vetting.candidate_office,
+        candidateState: vetting.candidate_state,
+        endorsementResult,
+      });
+    } catch (skError) {
+      logger.warn('Failed to generate share kit on finalize:', { vettingId: id, error: skError });
+    }
+
     return NextResponse.json({
       vetting: updated,
       tally,
       endorsementResult,
       pressReleasePostId,
+      shareKitId,
     });
   } catch (err) {
     logger.error('Unhandled error in POST /api/v1/admin/vetting/[id]/votes/finalize:', err);

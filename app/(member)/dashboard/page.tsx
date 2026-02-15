@@ -12,8 +12,9 @@ import { ImpactSummary } from '@/components/dashboard/impact-summary';
 import { UrgentActions } from '@/components/dashboard/urgent-actions';
 import { MyRepsPreview } from '@/components/dashboard/my-reps-preview';
 import { ActivityTimeline } from '@/components/dashboard/activity-timeline';
+import { PromoteSection } from '@/components/dashboard/promote-section';
 import type { ActivityItem } from '@/components/dashboard/activity-timeline';
-import type { MembershipTier } from '@/types';
+import type { MembershipTier, ShareKit } from '@/types';
 import { ArrowRight, Shield, CreditCard, Calendar, User, Users } from 'lucide-react';
 import { logger } from '@/lib/logger';
 
@@ -57,6 +58,7 @@ export default async function DashboardPage() {
     registrationsResult,
     activeCampaignsResult,
     contributionsResult,
+    shareKitsResult,
   ] = await Promise.all([
     getMemberContributionTotal(member.id),
     supabase
@@ -84,6 +86,12 @@ export default async function DashboardPage() {
       .eq('payment_status', 'completed')
       .order('created_at', { ascending: false })
       .limit(10),
+    supabase
+      .from('rlc_share_kits')
+      .select('id, content_type, content_id, title, description, social_copy, og_image_url, og_image_override_url, status, scope, charter_id, created_by, created_at, updated_at')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false })
+      .limit(10),
   ]);
 
   const dataErrors: string[] = [];
@@ -102,6 +110,10 @@ export default async function DashboardPage() {
   if (contributionsResult.error) {
     logger.error('Error fetching contributions:', contributionsResult.error);
     dataErrors.push('contributions');
+  }
+  if (shareKitsResult.error) {
+    logger.error('Error fetching share kits:', shareKitsResult.error);
+    dataErrors.push('share kits');
   }
 
   const participations = (participationsResult.data || []) as Array<{
@@ -128,6 +140,7 @@ export default async function DashboardPage() {
     amount: number;
     created_at: string;
   }>;
+  const activeShareKits = (shareKitsResult.data || []) as ShareKit[];
 
   // Impact stats
   const campaignIds = new Set(participations.map((p) => p.campaign?.slug).filter(Boolean));
@@ -252,6 +265,13 @@ export default async function DashboardPage() {
       <div className="mb-6">
         <UrgentActions campaigns={urgentCampaigns} />
       </div>
+
+      {/* Promote — share endorsements, campaigns, events */}
+      {activeShareKits.length > 0 && (
+        <div className="mb-6">
+          <PromoteSection shareKits={activeShareKits} />
+        </div>
+      )}
 
       {/* Two-column layout: Reps + Membership Card */}
       <div className="mb-6 grid gap-6 lg:grid-cols-2">
