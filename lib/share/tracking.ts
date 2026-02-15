@@ -29,6 +29,7 @@ export async function resolveDestinationUrl(
 
   switch (contentType) {
     case 'endorsement': {
+      // Try vetting record first (content_id = vetting ID)
       const { data, error } = await supabase
         .from('rlc_candidate_vettings')
         .select('press_release_post_id, press_release_post:rlc_posts!press_release_post_id(slug)')
@@ -43,6 +44,23 @@ export async function resolveDestinationUrl(
       if (vetting?.press_release_post?.slug) {
         return `/press-releases/${vetting.press_release_post.slug}`;
       }
+
+      // Fallback: content_id may be a post ID directly (endorsements created outside vetting pipeline)
+      const { data: post, error: postError } = await supabase
+        .from('rlc_posts')
+        .select('slug')
+        .eq('id', contentId)
+        .single();
+
+      if (postError && postError.code !== 'PGRST116') {
+        logger.error('Failed to resolve endorsement post destination:', { contentId, error: postError });
+      }
+
+      const resolvedPost = post as { slug: string } | null;
+      if (resolvedPost?.slug) {
+        return `/press-releases/${resolvedPost.slug}`;
+      }
+
       return '/endorsements';
     }
 
