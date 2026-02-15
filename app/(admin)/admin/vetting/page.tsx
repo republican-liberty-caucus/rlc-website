@@ -1,14 +1,12 @@
 import { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canViewPipeline, canCreateVetting } from '@/lib/vetting/permissions';
 import { calculateUrgency } from '@/lib/vetting/engine';
 import { PageHeader } from '@/components/ui/page-header';
 import { PipelineTable } from '@/components/admin/vetting/pipeline-table';
-import { Button } from '@/components/ui/button';
-import { ClipboardList } from 'lucide-react';
+import { AddCandidateDialog } from '@/components/admin/vetting/add-candidate-dialog';
 import type { PipelineRow } from '@/components/admin/vetting/pipeline-table';
 
 export const metadata: Metadata = {
@@ -63,32 +61,47 @@ export default async function VettingPipelinePage() {
     vettingQuery = vettingQuery.in('charter_id', ctx.visibleCharterIds);
   }
 
-  const [vettingRes, pendingRes] = await Promise.all([
+  const [vettingRes, pendingRes, surveysRes] = await Promise.all([
     vettingQuery,
     supabase
       .from('rlc_candidate_responses')
       .select('id, candidate_name, candidate_office, candidate_state, candidate_district, total_score, submitted_at')
       .eq('status', 'submitted')
       .order('submitted_at', { ascending: false }),
+    supabase
+      .from('rlc_surveys')
+      .select('id, title, state')
+      .eq('status', 'active')
+      .order('created_at', { ascending: false }),
   ]);
 
   if (vettingRes.error) throw new Error(`Failed to fetch vettings: ${vettingRes.error.message}`);
   if (pendingRes.error) throw new Error(`Failed to fetch pending submissions: ${pendingRes.error.message}`);
+  if (surveysRes.error) throw new Error(`Failed to fetch surveys: ${surveysRes.error.message}`);
+
+  const activeSurveys = (surveysRes.data || []) as { id: string; title: string; state: string | null }[];
 
   const vettings = (vettingRes.data || []) as VettingRow[];
 
-  // Filter out submissions that already have a vetting
-  const { data: allVettingResponseIds, error: linkedIdsError } = await supabase
-    .from('rlc_candidate_vettings')
-    .select('candidate_response_id');
-
-  if (linkedIdsError) throw new Error(`Failed to fetch linked vetting IDs: ${linkedIdsError.message}`);
-
-  const allLinkedIds = new Set(
-    (allVettingResponseIds || [])
-      .map((v: { candidate_response_id: string | null }) => v.candidate_response_id)
-      .filter(Boolean)
-  );
+  // Filter out submissions that already have a vetting.
+  // When the user sees all charters (visibleCharterIds === null), the first query
+  // already fetched every vetting, so we can reuse those IDs directly.
+  let allLinkedIds: Set<string>;
+  if (ctx.visibleCharterIds === null) {
+    allLinkedIds = new Set(
+      vettings.map((v) => v.candidate_response_id).filter(Boolean) as string[]
+    );
+  } else {
+    const { data: allVettingResponseIds, error: linkedIdsError } = await supabase
+      .from('rlc_candidate_vettings')
+      .select('candidate_response_id');
+    if (linkedIdsError) throw new Error(`Failed to fetch linked vetting IDs: ${linkedIdsError.message}`);
+    allLinkedIds = new Set(
+      (allVettingResponseIds || [])
+        .map((v: { candidate_response_id: string | null }) => v.candidate_response_id)
+        .filter(Boolean) as string[]
+    );
+  }
 
   const pendingSubmissions = ((pendingRes.data || []) as SubmissionRow[]).filter(
     (p) => !allLinkedIds.has(p.id)
@@ -133,14 +146,7 @@ export default async function VettingPipelinePage() {
         title="Candidate Pipeline"
         count={vettingRows.length + submissionRows.length}
         className="mb-8"
-        action={
-          <Button asChild variant="outline" size="sm">
-            <Link href="/admin/surveys" className="gap-2">
-              <ClipboardList className="h-4 w-4" />
-              New Questionnaire
-            </Link>
-          </Button>
-        }
+        action={<AddCandidateDialog surveys={activeSurveys} />}
       />
 
       {/* Section 1: In Progress */}
