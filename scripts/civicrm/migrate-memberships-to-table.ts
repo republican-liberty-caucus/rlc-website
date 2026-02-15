@@ -46,7 +46,7 @@ const membershipStatusMap: { [key: string]: string } = {
 
 async function migrateMemberships() {
   console.log('===========================================');
-  console.log('Importing CiviCRM Memberships to rlc_contactships');
+  console.log('Importing CiviCRM Memberships to rlc_memberships');
   console.log('===========================================\\n');
 
   // Load membership data
@@ -149,7 +149,7 @@ async function migrateMemberships() {
   for (let i = 0; i < membershipRecords.length; i += BATCH_SIZE) {
     const batch = membershipRecords.slice(i, i + BATCH_SIZE);
     const { error } = await supabase
-      .from('rlc_contactships')
+      .from('rlc_memberships')
       .upsert(batch, { onConflict: 'civicrm_membership_id' });
 
     if (error) {
@@ -169,14 +169,14 @@ async function migrateMemberships() {
 
   // Show stats
   const { count: totalMemberships } = await supabase
-    .from('rlc_contactships')
+    .from('rlc_memberships')
     .select('*', { count: 'exact', head: true });
 
   console.log(`\\nTotal memberships in database: ${totalMemberships}`);
 
   // Show status breakdown
   const { data: statusStats } = await supabase
-    .from('rlc_contactships')
+    .from('rlc_memberships')
     .select('membership_status')
     .then(res => {
       const stats: { [key: string]: number } = {};
