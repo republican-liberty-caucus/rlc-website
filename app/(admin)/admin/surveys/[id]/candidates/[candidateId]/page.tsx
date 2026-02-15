@@ -41,7 +41,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
       candidate_district, candidate_state, candidate_county, total_score, status,
       submitted_at, created_at,
       office_type:rlc_office_types(name, district_label),
-      survey:rlc_surveys(title, election_type, election_date, state)
+      survey:rlc_surveys(id, title, election_type, election_date, state)
     `)
     .eq('id', candidateId)
     .eq('survey_id', surveyId)
@@ -56,7 +56,7 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
     candidate_county: string | null; total_score: number | null;
     status: string; submitted_at: string | null; created_at: string;
     office_type: { name: string; district_label: string | null } | null;
-    survey: { title: string; election_type: string | null; election_date: string | null; state: string | null } | null;
+    survey: { id: string; title: string; election_type: string | null; election_date: string | null; state: string | null } | null;
   };
 
   // Fetch survey answers

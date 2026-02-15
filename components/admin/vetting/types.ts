@@ -129,6 +129,7 @@ export interface SurveyResponseData {
   submitted_at: string | null;
   created_at: string;
   survey: {
+    id: string;
     title: string;
     election_type: string | null;
     election_date: string | null;

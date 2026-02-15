@@ -122,7 +122,7 @@ export default async function VettingDetailPage({
       .select(`
         id, candidate_name, candidate_email, candidate_party, candidate_office,
         candidate_district, total_score, status, submitted_at, created_at,
-        survey:rlc_surveys(title, election_type, election_date, state)
+        survey:rlc_surveys(id, title, election_type, election_date, state)
       `)
       .eq('id', vetting.candidate_response_id)
       .single();
@@ -233,6 +233,22 @@ export default async function VettingDetailPage({
             className="block rounded-lg border bg-rlc-red text-white text-center text-sm font-medium py-2 px-4 hover:bg-rlc-red/90 transition-colors"
           >
             View Full Report
+          </Link>
+
+          {vetting.candidate_response_id && surveyResponse?.survey?.id && (
+            <Link
+              href={`/admin/surveys/${surveyResponse.survey.id}/candidates/${vetting.candidate_response_id}`}
+              className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+            >
+              View Questionnaire Submission
+            </Link>
+          )}
+
+          <Link
+            href="/admin/vetting/committee"
+            className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            Manage Committee
           </Link>
 
           <Link
