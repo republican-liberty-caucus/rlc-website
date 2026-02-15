@@ -1,10 +1,13 @@
 import { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canManageDeadlines } from '@/lib/vetting/permissions';
 import { PageHeader } from '@/components/ui/page-header';
 import { DeadlineManager } from '@/components/admin/vetting/deadline-manager';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Election Deadlines - Admin',
@@ -50,6 +53,14 @@ export default async function VettingDeadlinesPage() {
         title="Election Deadlines"
         count={deadlines.length}
         className="mb-8"
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/vetting" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Pipeline
+            </Link>
+          </Button>
+        }
       />
 
       <DeadlineManager deadlines={deadlines} canManage={isManager} />

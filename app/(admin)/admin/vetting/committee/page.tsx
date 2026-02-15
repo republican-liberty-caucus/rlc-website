@@ -1,10 +1,13 @@
 import { Metadata } from 'next';
 import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
+import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canManageCommittee } from '@/lib/vetting/permissions';
 import { PageHeader } from '@/components/ui/page-header';
 import { CommitteeManager } from '@/components/admin/vetting/committee-manager';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
 
 export const metadata: Metadata = {
   title: 'Vetting Committee - Admin',
@@ -70,6 +73,14 @@ export default async function VettingCommitteePage() {
         title="Vetting Committee"
         count={members.filter((m) => m.is_active).length}
         className="mb-8"
+        action={
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin/vetting" className="gap-2">
+              <ArrowLeft className="h-4 w-4" />
+              Back to Pipeline
+            </Link>
+          </Button>
+        }
       />
 
       <CommitteeManager

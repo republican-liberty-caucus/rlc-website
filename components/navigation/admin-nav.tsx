@@ -67,8 +67,8 @@ const navSections: NavSection[] = [
   {
     label: 'Candidates',
     items: [
-      { href: '/admin/surveys', label: 'Surveys', icon: ClipboardList },
       { href: '/admin/vetting', label: 'Pipeline', icon: Shield },
+      { href: '/admin/surveys', label: 'Questionnaires', icon: ClipboardList },
       { href: '/admin/vetting/committee', label: 'Committee', icon: UserCheck },
       { href: '/admin/vetting/deadlines', label: 'Deadlines', icon: CalendarClock },
     ],
