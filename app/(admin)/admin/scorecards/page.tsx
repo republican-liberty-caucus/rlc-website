@@ -65,7 +65,7 @@ export default async function AdminScorecardsPage() {
                 <th className="px-4 py-3 text-left text-sm font-medium">Jurisdiction</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Year</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Created</th>
+                <th className="hidden px-4 py-3 text-left text-sm font-medium md:table-cell">Created</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
               </tr>
             </thead>
@@ -80,7 +80,7 @@ export default async function AdminScorecardsPage() {
                   <td className="px-4 py-3 text-sm">
                     <StatusBadge status={session.status} type="scorecard" />
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  <td className="hidden px-4 py-3 text-sm text-muted-foreground md:table-cell">
                     {formatDate(session.created_at)}
                   </td>
                   <td className="px-4 py-3">

@@ -54,7 +54,7 @@ export default async function AdminShareKitsPage() {
                 <th className="px-4 py-3 text-left text-sm font-medium">Type</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Scope</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Status</th>
-                <th className="px-4 py-3 text-left text-sm font-medium">Created</th>
+                <th className="hidden px-4 py-3 text-left text-sm font-medium md:table-cell">Created</th>
                 <th className="px-4 py-3 text-left text-sm font-medium">Actions</th>
               </tr>
             </thead>
@@ -73,7 +73,7 @@ export default async function AdminShareKitsPage() {
                   <td className="px-4 py-3 text-sm">
                     <StatusBadge status={kit.status} type="post" />
                   </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
+                  <td className="hidden px-4 py-3 text-sm text-muted-foreground md:table-cell">
                     {formatDate(kit.created_at)}
                   </td>
                   <td className="px-4 py-3">
