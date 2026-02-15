@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { canViewMember } from '@/lib/admin/permissions';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(
   _request: Request,
@@ -23,15 +24,15 @@ export async function GET(
   if (memberError || !memberRaw) {
     if (memberError && memberError.code !== 'PGRST116') {
       logger.error('Error looking up member for positions:', memberError);
-      return NextResponse.json({ error: 'Failed to verify member' }, { status: 500 });
+      return apiError('Failed to verify member', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+    return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const member = memberRaw as { id: string; primary_charter_id: string | null };
 
   if (!canViewMember(ctx, member.primary_charter_id)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +49,7 @@ export async function GET(
 
   if (error) {
     logger.error('Error fetching member positions:', error);
-    return NextResponse.json({ error: 'Failed to fetch positions' }, { status: 500 });
+    return apiError('Failed to fetch positions', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ positions: data });

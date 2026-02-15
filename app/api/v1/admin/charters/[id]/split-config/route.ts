@@ -3,6 +3,7 @@ import { getRoleWeight } from '@/lib/admin/permissions';
 import { splitConfigUpdateWithValidation } from '@/lib/validations/split-config';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function GET(
   _request: Request,
@@ -15,7 +16,7 @@ export async function GET(
   const { id: charterId } = await params;
 
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   // Get config
@@ -79,28 +80,25 @@ export async function PUT(
 
   // Require state_chair or higher
   if (getRoleWeight(ctx.highestRole) < getRoleWeight('state_chair')) {
-    return NextResponse.json({ error: 'Forbidden: state_chair role required' }, { status: 403 });
+    return apiError('Forbidden: state_chair role required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: charterId } = await params;
 
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = splitConfigUpdateWithValidation.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -119,7 +117,7 @@ export async function PUT(
 
   if (configError || !config) {
     logger.error(`Failed to upsert split config for ${charterId}:`, configError);
-    return NextResponse.json({ error: 'Failed to save config' }, { status: 500 });
+    return apiError('Failed to save config', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const configId = (config as { id: string }).id;
@@ -134,7 +132,7 @@ export async function PUT(
 
     if (deleteError) {
       logger.error(`Failed to delete existing split rules for config ${configId}:`, deleteError);
-      return NextResponse.json({ error: 'Failed to update rules' }, { status: 500 });
+      return apiError('Failed to update rules', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     if (input.rules.length > 0) {
@@ -152,7 +150,7 @@ export async function PUT(
 
       if (rulesError) {
         logger.error(`Failed to insert split rules for config ${configId}:`, rulesError);
-        return NextResponse.json({ error: 'Failed to save rules' }, { status: 500 });
+        return apiError('Failed to save rules', ApiErrorCode.INTERNAL_ERROR, 500);
       }
     }
   }

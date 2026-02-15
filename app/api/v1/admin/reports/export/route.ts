@@ -4,6 +4,7 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { escapeCsvField } from '@/lib/csv';
 import { logger } from '@/lib/logger';
 import type { Charter } from '@/types';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: Request) {
   const result = await requireAdminApi();
@@ -61,7 +62,7 @@ export async function GET(request: Request) {
 
   if (error) {
     logger.error('Report export failed:', error);
-    return NextResponse.json({ error: 'Export failed' }, { status: 500 });
+    return apiError('Export failed', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   type ContributionRow = {

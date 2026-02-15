@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: Request) {
   const result = await requireAdminApi();
@@ -12,7 +13,7 @@ export async function GET(request: Request) {
   const charterId = searchParams.get('charterId');
 
   if (charterId && ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   // Get entries for the last N months

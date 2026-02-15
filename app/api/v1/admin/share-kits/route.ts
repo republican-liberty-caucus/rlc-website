@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET() {
   try {
@@ -20,12 +21,12 @@ export async function GET() {
     const { data, error } = await query;
     if (error) {
       logger.error('Failed to fetch share kits:', { error, memberId: ctx.member.id });
-      return NextResponse.json({ error: 'Failed to fetch share kits' }, { status: 500 });
+      return apiError('Failed to fetch share kits', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ shareKits: data });
   } catch (err) {
     logger.error('Unhandled error in share-kits GET:', { error: err });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

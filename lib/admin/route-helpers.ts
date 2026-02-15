@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext, type AdminContext } from '@/lib/admin/permissions';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 type ServerClient = ReturnType<typeof createServerClient>;
 
@@ -35,17 +36,17 @@ export async function requireAdminApi(): Promise<
 > {
   const { userId } = await auth();
   if (!userId) {
-    return { error: NextResponse.json({ error: 'Unauthorized' }, { status: 401 }) };
+    return { error: apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401) };
   }
 
   let ctx: AdminContext | null;
   try {
     ctx = await getAdminContext(userId);
   } catch {
-    return { error: NextResponse.json({ error: 'Internal server error' }, { status: 500 }) };
+    return { error: apiError('Internal server error', ApiErrorCode.INTERNAL_ERROR, 500) };
   }
   if (!ctx) {
-    return { error: NextResponse.json({ error: 'Forbidden' }, { status: 403 }) };
+    return { error: apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403) };
   }
 
   return { ctx, supabase: createServerClient() };

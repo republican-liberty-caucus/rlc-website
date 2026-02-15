@@ -8,6 +8,7 @@ import { auditTriggerSchema } from '@/lib/validations/vetting';
 import { runAudit } from '@/lib/vetting/audit-engine';
 import { logger } from '@/lib/logger';
 import type { AuditStatus } from '@/types';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 /**
  * GET /api/v1/admin/vetting/[id]/audit
@@ -20,12 +21,12 @@ export async function GET(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || (!ctx.isCommitteeMember && !ctx.isNational)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -42,7 +43,7 @@ export async function GET(
 
     if (auditErr) {
       logger.error('Error fetching audit:', { vettingId: id, error: auditErr });
-      return NextResponse.json({ error: 'Failed to fetch audit' }, { status: 500 });
+      return apiError('Failed to fetch audit', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     if (!rawAudit) {
@@ -71,7 +72,7 @@ export async function GET(
     });
   } catch (err) {
     logger.error('Unhandled error in GET /api/v1/admin/vetting/[id]/audit:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -86,12 +87,12 @@ export async function POST(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || (!ctx.isChair && !ctx.isNational)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -112,10 +113,7 @@ export async function POST(
 
     const parseResult = auditTriggerSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 },
-      );
+      return validationError(parseResult.error);
     }
 
     const { force } = parseResult.data;
@@ -130,10 +128,10 @@ export async function POST(
 
     if (vErr) {
       if (vErr.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching vetting for audit:', { id, error: vErr });
-      return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
+      return apiError('Failed to fetch vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Check for existing running audit (prevent duplicates)
@@ -150,17 +148,11 @@ export async function POST(
       const existing = existingRaw as { id: string; status: string } | null;
 
       if (existing?.status === 'running') {
-        return NextResponse.json(
-          { error: 'Audit already running', auditId: existing.id },
-          { status: 409 },
-        );
+        return apiError('Audit already running', ApiErrorCode.CONFLICT, 409, { auditId: existing.id });
       }
 
       if (existing?.status === 'audit_completed') {
-        return NextResponse.json(
-          { error: 'Audit already completed. Use force=true to re-run.', auditId: existing.id },
-          { status: 409 },
-        );
+        return apiError('Audit already completed. Use force=true to re-run.', ApiErrorCode.CONFLICT, 409, { auditId: existing.id });
       }
     }
 
@@ -177,13 +169,10 @@ export async function POST(
 
     if (insertErr) {
       if (insertErr.code === '23505') {
-        return NextResponse.json(
-          { error: 'An audit is already in progress for this vetting' },
-          { status: 409 },
-        );
+        return apiError('An audit is already in progress for this vetting', ApiErrorCode.CONFLICT, 409);
       }
       logger.error('Error creating audit record:', { vettingId: id, error: insertErr });
-      return NextResponse.json({ error: 'Failed to create audit' }, { status: 500 });
+      return apiError('Failed to create audit', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Run audit in background (runAudit handles its own error → audit_failed status)
@@ -217,6 +206,6 @@ export async function POST(
     );
   } catch (err) {
     logger.error('Unhandled error in POST /api/v1/admin/vetting/[id]/audit:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

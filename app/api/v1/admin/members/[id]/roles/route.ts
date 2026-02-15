@@ -6,6 +6,7 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { roleAssignmentSchema } from '@/lib/validations/admin';
 import type { AdminRole } from '@/lib/admin/permissions';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 interface ContactRef {
   id: string;
@@ -60,7 +61,7 @@ export async function POST(
   const { ctx, supabase } = result;
 
   if (!canManageRoles(ctx)) {
-    return NextResponse.json({ error: 'Forbidden: national_board+ required' }, { status: 403 });
+    return apiError('Forbidden: national_board+ required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: memberId } = await params;
@@ -69,30 +70,24 @@ export async function POST(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return apiError('Invalid JSON in request body', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = roleAssignmentSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const { role, charterId } = parseResult.data;
 
   // Prevent assigning roles equal to or above the caller's own level
   if (getRoleWeight(role) >= getRoleWeight(ctx.highestRole)) {
-    return NextResponse.json(
-      { error: 'Cannot assign a role at or above your own level' },
-      { status: 403 }
-    );
+    return apiError('Cannot assign a role at or above your own level', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const member = await fetchMemberRef(supabase, memberId);
   if (!member) {
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+    return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   // Insert role
@@ -109,10 +104,10 @@ export async function POST(
 
   if (insertError) {
     if (insertError.code === '23505') {
-      return NextResponse.json({ error: 'This role is already assigned' }, { status: 409 });
+      return apiError('This role is already assigned', ApiErrorCode.CONFLICT, 409);
     }
     logger.error('Error assigning role:', insertError);
-    return NextResponse.json({ error: 'Failed to assign role' }, { status: 500 });
+    return apiError('Failed to assign role', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const syncWarning = await trySyncRoleToClerk(supabase, memberId, member.clerk_user_id);
@@ -130,7 +125,7 @@ export async function DELETE(
   const { ctx, supabase } = result;
 
   if (!canManageRoles(ctx)) {
-    return NextResponse.json({ error: 'Forbidden: national_board+ required' }, { status: 403 });
+    return apiError('Forbidden: national_board+ required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: memberId } = await params;
@@ -138,12 +133,12 @@ export async function DELETE(
   const roleId = searchParams.get('roleId');
 
   if (!roleId) {
-    return NextResponse.json({ error: 'roleId query parameter required' }, { status: 400 });
+    return apiError('roleId query parameter required', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   const member = await fetchMemberRef(supabase, memberId);
   if (!member) {
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+    return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   // Verify the role belongs to this member
@@ -155,7 +150,7 @@ export async function DELETE(
     .single();
 
   if (roleError || !roleRow) {
-    return NextResponse.json({ error: 'Role not found' }, { status: 404 });
+    return apiError('Role not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   // Delete the role
@@ -166,7 +161,7 @@ export async function DELETE(
 
   if (deleteError) {
     logger.error('Error revoking role:', deleteError);
-    return NextResponse.json({ error: 'Failed to revoke role' }, { status: 500 });
+    return apiError('Failed to revoke role', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const syncWarning = await trySyncRoleToClerk(supabase, memberId, member.clerk_user_id);

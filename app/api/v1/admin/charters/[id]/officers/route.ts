@@ -3,6 +3,7 @@ import { canManageRoles } from '@/lib/admin/permissions';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { assignOfficerPositionSchema } from '@/lib/validations/officer-position';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function GET(
   _request: Request,
@@ -15,7 +16,7 @@ export async function GET(
   const { id: charterId } = await params;
 
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -32,7 +33,7 @@ export async function GET(
 
   if (error) {
     logger.error('Error fetching officers:', error);
-    return NextResponse.json({ error: 'Failed to fetch officers' }, { status: 500 });
+    return apiError('Failed to fetch officers', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ officers: data });
@@ -47,7 +48,7 @@ export async function POST(
   const { ctx, supabase } = result;
 
   if (!canManageRoles(ctx)) {
-    return NextResponse.json({ error: 'Forbidden: national_board+ required' }, { status: 403 });
+    return apiError('Forbidden: national_board+ required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: charterId } = await params;
@@ -56,15 +57,12 @@ export async function POST(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = assignOfficerPositionSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const { memberId, title, committeeName, startedAt, notes } = parseResult.data;
@@ -86,13 +84,10 @@ export async function POST(
 
   if (error) {
     if (error.code === '23505') {
-      return NextResponse.json({ error: 'This position is already assigned' }, { status: 409 });
+      return apiError('This position is already assigned', ApiErrorCode.CONFLICT, 409);
     }
     logger.error('Error assigning officer:', error);
-    return NextResponse.json(
-      { error: `Failed to assign officer: ${error.message || error.code || 'unknown error'}` },
-      { status: 500 }
-    );
+    return apiError(`Failed to assign officer: ${error.message || error.code || 'unknown error'}`, ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ position: data }, { status: 201 });

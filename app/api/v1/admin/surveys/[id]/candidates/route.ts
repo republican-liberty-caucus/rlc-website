@@ -4,6 +4,7 @@ import { findOrCreateCandidateContact } from '@/lib/vetting/candidate-contact';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function POST(
   request: Request,
@@ -23,22 +24,19 @@ export async function POST(
     .single();
 
   if (surveyError || !survey) {
-    return NextResponse.json({ error: 'Survey not found' }, { status: 404 });
+    return apiError('Survey not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = candidateCreateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -52,11 +50,11 @@ export async function POST(
       .single();
 
     if (otError || !officeType) {
-      return NextResponse.json({ error: 'Invalid office type' }, { status: 400 });
+      return apiError('Invalid office type', ApiErrorCode.VALIDATION_ERROR, 400);
     }
     const ot = officeType as unknown as { id: string; is_active: boolean };
     if (!ot.is_active) {
-      return NextResponse.json({ error: 'Office type is inactive' }, { status: 400 });
+      return apiError('Office type is inactive', ApiErrorCode.VALIDATION_ERROR, 400);
     }
   }
 
@@ -105,7 +103,7 @@ export async function POST(
 
   if (insertError) {
     logger.error('Error adding candidate:', insertError);
-    return NextResponse.json({ error: 'Failed to add candidate' }, { status: 500 });
+    return apiError('Failed to add candidate', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ candidate, accessToken }, { status: 201 });

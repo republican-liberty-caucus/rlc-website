@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { shareKitUpdateSchema } from '@/lib/validations/share-kit';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -23,16 +24,16 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Share kit not found' }, { status: 404 });
+        return apiError('Share kit not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Failed to fetch share kit:', { id, error });
-      return NextResponse.json({ error: 'Failed to fetch share kit' }, { status: 500 });
+      return apiError('Failed to fetch share kit', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Charter-scoped authorization
     const kitRow = kit as { charter_id: string | null };
     if (ctx.visibleCharterIds !== null && kitRow.charter_id && !ctx.visibleCharterIds.includes(kitRow.charter_id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     // Get share stats — fetch link IDs once, reuse for both counts
@@ -43,7 +44,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (linksError) {
       logger.error('Failed to fetch share links for stats:', { shareKitId: id, error: linksError });
-      return NextResponse.json({ error: 'Failed to fetch share kit stats' }, { status: 500 });
+      return apiError('Failed to fetch share kit stats', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const linkIds = (links || []).map((l: { id: string }) => l.id);
@@ -83,7 +84,7 @@ export async function GET(_request: Request, { params }: RouteParams) {
     });
   } catch (err) {
     logger.error('Unhandled error in share-kits GET:', { error: err });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -99,15 +100,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = shareKitUpdateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 },
-      );
+      return validationError(parseResult.error);
     }
 
     // Charter-scoped authorization — fetch kit first to check access
@@ -119,15 +117,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Share kit not found' }, { status: 404 });
+        return apiError('Share kit not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Failed to fetch share kit for auth check:', { id, error: fetchError });
-      return NextResponse.json({ error: 'Failed to update share kit' }, { status: 500 });
+      return apiError('Failed to update share kit', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const existingRow = existing as { charter_id: string | null };
     if (ctx.visibleCharterIds !== null && existingRow.charter_id && !ctx.visibleCharterIds.includes(existingRow.charter_id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const updates: Record<string, unknown> = {};
@@ -138,7 +136,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (parseResult.data.status !== undefined) updates.status = parseResult.data.status;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+      return apiError('No fields to update', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     const { data, error } = await supabase
@@ -150,15 +148,15 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Share kit not found' }, { status: 404 });
+        return apiError('Share kit not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error updating share kit:', { id, error });
-      return NextResponse.json({ error: 'Failed to update share kit' }, { status: 500 });
+      return apiError('Failed to update share kit', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ shareKit: data });
   } catch (err) {
     logger.error('Unhandled error in share-kits PATCH:', { error: err });
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

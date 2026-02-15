@@ -5,6 +5,7 @@ import { createDonationCheckoutSession } from '@/lib/stripe/client';
 import { getMemberByClerkId } from '@/lib/supabase/server';
 import { applyRateLimit } from '@/lib/rate-limit';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 const donateSchema = z.object({
   amount: z.number().int().min(100).max(10000000), // $1 to $100,000 in cents
@@ -23,15 +24,12 @@ export async function POST(request: Request) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = donateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const { amount, isRecurring, email, charterId, campaignId } = parseResult.data;
@@ -62,9 +60,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url });
   } catch (error) {
     logger.error('Donation checkout creation failed:', error);
-    return NextResponse.json(
-      { error: 'Failed to create donation checkout' },
-      { status: 500 }
-    );
+    return apiError('Failed to create donation checkout', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

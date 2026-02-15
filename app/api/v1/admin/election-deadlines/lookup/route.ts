@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: NextRequest) {
   const result = await requireAdminApi();
@@ -13,10 +14,7 @@ export async function GET(request: NextRequest) {
   const officeType = searchParams.get('officeType');
 
   if (!stateCode || !cycleYear) {
-    return NextResponse.json(
-      { error: 'stateCode and cycleYear query parameters are required' },
-      { status: 400 }
-    );
+    return apiError('stateCode and cycleYear query parameters are required', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   let query = supabase
@@ -33,7 +31,7 @@ export async function GET(request: NextRequest) {
 
   if (error) {
     logger.error('Error looking up election deadline:', error);
-    return NextResponse.json({ error: 'Failed to lookup deadline' }, { status: 500 });
+    return apiError('Failed to lookup deadline', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ deadline: data });

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { logger } from '@/lib/logger';
 import type { Legislator } from '@/types';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(
   _request: Request,
@@ -20,7 +21,7 @@ export async function GET(
     .eq('session_id', sessionId);
 
   if (billsError) {
-    return NextResponse.json({ error: 'Failed to fetch bills' }, { status: 500 });
+    return apiError('Failed to fetch bills', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const bills = (billsData || []) as { id: string }[];
@@ -37,7 +38,7 @@ export async function GET(
     .in('bill_id', billIds);
 
   if (votesError) {
-    return NextResponse.json({ error: 'Failed to fetch votes' }, { status: 500 });
+    return apiError('Failed to fetch votes', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const votes = (votesData || []) as { legislator_id: string; aligned_with_liberty: boolean; bill_id: string }[];
@@ -50,7 +51,7 @@ export async function GET(
 
   if (weightsError) {
     logger.error('Failed to fetch bill weights:', weightsError);
-    return NextResponse.json({ error: 'Failed to fetch bill weights' }, { status: 500 });
+    return apiError('Failed to fetch bill weights', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const billWeights = (billWeightsData || []) as { id: string; weight: number }[];
@@ -84,7 +85,7 @@ export async function GET(
 
   if (legislatorsError) {
     logger.error('Failed to fetch legislators:', legislatorsError);
-    return NextResponse.json({ error: 'Failed to fetch legislators' }, { status: 500 });
+    return apiError('Failed to fetch legislators', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const legislators = (legislatorsData || []) as Legislator[];

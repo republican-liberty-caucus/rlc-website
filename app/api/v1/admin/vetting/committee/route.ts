@@ -5,16 +5,17 @@ import { getVettingContext, canManageCommittee } from '@/lib/vetting/permissions
 import { committeeCreateSchema } from '@/lib/validations/vetting';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function GET() {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const ctx = await getVettingContext(userId);
   if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const supabase = createServerClient();
@@ -27,7 +28,7 @@ export async function GET() {
 
   if (error) {
     logger.error('Error fetching committees:', error);
-    return NextResponse.json({ error: 'Failed to fetch committees' }, { status: 500 });
+    return apiError('Failed to fetch committees', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   // Fetch members for each committee with contact info
@@ -54,27 +55,24 @@ export async function GET() {
 export async function POST(request: Request) {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const ctx = await getVettingContext(userId);
   if (!ctx || !canManageCommittee(ctx)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = committeeCreateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const supabase = createServerClient();
@@ -91,7 +89,7 @@ export async function POST(request: Request) {
 
   if (error) {
     logger.error('Error creating committee:', error);
-    return NextResponse.json({ error: 'Failed to create committee' }, { status: 500 });
+    return apiError('Failed to create committee', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ committee: data }, { status: 201 });

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { billUpdateSchema } from '@/lib/validations/scorecard';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function PATCH(
   request: Request,
@@ -20,22 +21,19 @@ export async function PATCH(
     .single();
 
   if (fetchError || !existing) {
-    return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
+    return apiError('Bill not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = billUpdateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -62,7 +60,7 @@ export async function PATCH(
 
   if (error) {
     logger.error('Error updating bill:', error);
-    return NextResponse.json({ error: 'Failed to update bill' }, { status: 500 });
+    return apiError('Failed to update bill', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ bill: data });

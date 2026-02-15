@@ -11,6 +11,7 @@ import { draftCandidateBackground } from '@/lib/ai/vetting/draft-candidate-backg
 import { generateExecutiveSummary } from '@/lib/ai/vetting/generate-executive-summary';
 import { logger } from '@/lib/logger';
 import type { VettingReportSectionType } from '@/types';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type RouteParams = { params: Promise<{ id: string; sectionId: string }> };
 
@@ -18,12 +19,12 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id, sectionId } = await params;
@@ -39,10 +40,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     const parseResult = aiDraftGenerateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     const { force } = parseResult.data;
@@ -67,38 +65,32 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+        return apiError('Section not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching section for AI draft:', { sectionId, error: fetchError });
-      return NextResponse.json({ error: 'Failed to fetch section' }, { status: 500 });
+      return apiError('Failed to fetch section', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const section = rawSection as unknown as SectionRow;
 
     if (section.vetting_id !== id) {
-      return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+      return apiError('Section not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     // Permission check
     const assignedMemberIds = (section.assignments ?? []).map((a) => a.committee_member_id);
     if (!canEditSection(ctx, assignedMemberIds)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     // Check if AI helper exists for this section type
     if (!SECTIONS_WITH_AI_HELPER.includes(section.section)) {
-      return NextResponse.json(
-        { error: 'No AI helper available for this section type' },
-        { status: 400 }
-      );
+      return apiError('No AI helper available for this section type', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     // Guard against accidental overwrites
     if (section.ai_draft_data && !force) {
-      return NextResponse.json(
-        { error: 'AI draft already exists. Pass force: true to regenerate.' },
-        { status: 409 }
-      );
+      return apiError('AI draft already exists. Pass force: true to regenerate.', ApiErrorCode.CONFLICT, 409);
     }
 
     // Load vetting data for context
@@ -120,7 +112,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     if (vettingError || !rawVetting) {
       logger.error('Error fetching vetting for AI draft:', { id, error: vettingError });
-      return NextResponse.json({ error: 'Failed to fetch vetting data' }, { status: 500 });
+      return apiError('Failed to fetch vetting data', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const vetting = rawVetting as unknown as VettingRow;
@@ -139,10 +131,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
         const opponent = opponents?.[0] as { name: string; party: string | null } | undefined;
         if (!opponent || !opponent.name?.trim()) {
-          return NextResponse.json(
-            { error: 'No opponents added to this vetting yet. Add an opponent with a name before generating research.' },
-            { status: 400 }
-          );
+          return apiError('No opponents added to this vetting yet. Add an opponent with a name before generating research.', ApiErrorCode.VALIDATION_ERROR, 400);
         }
 
         aiDraftData = await researchOpponent({
@@ -157,10 +146,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       case 'district_data': {
         if (!vetting.candidate_state) {
-          return NextResponse.json(
-            { error: 'Candidate state is required for district research' },
-            { status: 400 }
-          );
+          return apiError('Candidate state is required for district research', ApiErrorCode.VALIDATION_ERROR, 400);
         }
 
         aiDraftData = await researchDistrict({
@@ -173,10 +159,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       case 'voting_rules': {
         if (!vetting.candidate_state) {
-          return NextResponse.json(
-            { error: 'Candidate state is required for voting rules research' },
-            { status: 400 }
-          );
+          return apiError('Candidate state is required for voting rules research', ApiErrorCode.VALIDATION_ERROR, 400);
         }
 
         aiDraftData = await researchVotingRules({
@@ -251,10 +234,7 @@ export async function POST(request: Request, { params }: RouteParams) {
       }
 
       default:
-        return NextResponse.json(
-          { error: 'No AI helper available for this section type' },
-          { status: 400 }
-        );
+        return apiError('No AI helper available for this section type', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     // Store the AI draft
@@ -268,7 +248,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     if (updateError) {
       logger.error('Error storing AI draft:', { sectionId, error: updateError });
-      return NextResponse.json({ error: 'Failed to store AI draft' }, { status: 500 });
+      return apiError('Failed to store AI draft', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ section: updated });
@@ -276,12 +256,9 @@ export async function POST(request: Request, { params }: RouteParams) {
     logger.error('Unhandled error in POST ai-draft:', err);
 
     if (err instanceof Error && err.message.includes('ANTHROPIC_API_KEY')) {
-      return NextResponse.json(
-        { error: 'AI service is not configured. Contact an administrator.' },
-        { status: 503 }
-      );
+      return apiError('AI service is not configured. Contact an administrator.', ApiErrorCode.INTERNAL_ERROR, 503);
     }
 
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

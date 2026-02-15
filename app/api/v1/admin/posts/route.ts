@@ -3,6 +3,7 @@ import { postCreateSchema } from '@/lib/validations/post';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function POST(request: Request) {
   const result = await requireAdminApi();
@@ -13,15 +14,12 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = postCreateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -29,10 +27,7 @@ export async function POST(request: Request) {
   // Scoped admins can only create posts for their visible charters
   if (input.charterId && ctx.visibleCharterIds !== null) {
     if (!ctx.visibleCharterIds.includes(input.charterId)) {
-      return NextResponse.json(
-        { error: 'Cannot create post for a charter outside your scope' },
-        { status: 403 }
-      );
+      return apiError('Cannot create post for a charter outside your scope', ApiErrorCode.FORBIDDEN, 403);
     }
   }
 
@@ -62,7 +57,7 @@ export async function POST(request: Request) {
 
   if (error) {
     logger.error('Error creating post:', error);
-    return NextResponse.json({ error: 'Failed to create post' }, { status: 500 });
+    return apiError('Failed to create post', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ post: data }, { status: 201 });

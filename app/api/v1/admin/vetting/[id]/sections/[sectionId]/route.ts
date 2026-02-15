@@ -6,6 +6,7 @@ import { sectionUpdateSchema } from '@/lib/validations/vetting';
 import { isValidSectionTransition } from '@/lib/vetting/engine';
 import { logger } from '@/lib/logger';
 import type { VettingSectionStatus } from '@/types';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type RouteParams = { params: Promise<{ id: string; sectionId: string }> };
 
@@ -13,12 +14,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canViewPipeline(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id, sectionId } = await params;
@@ -40,23 +41,23 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (error) {
       if (error.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+        return apiError('Section not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching section:', { sectionId, error });
-      return NextResponse.json({ error: 'Failed to fetch section' }, { status: 500 });
+      return apiError('Failed to fetch section', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const sectionData = data as unknown as { vetting_id: string; [key: string]: unknown };
 
     // Prevent cross-vetting access
     if (sectionData.vetting_id !== id) {
-      return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+      return apiError('Section not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     return NextResponse.json({ section: data });
   } catch (err) {
     logger.error('Unhandled error in GET sections/[sectionId]:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -64,12 +65,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id, sectionId } = await params;
@@ -94,46 +95,40 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (fetchError) {
       if (fetchError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+        return apiError('Section not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching section for update:', { sectionId, error: fetchError });
-      return NextResponse.json({ error: 'Failed to fetch section' }, { status: 500 });
+      return apiError('Failed to fetch section', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const section = rawSection as unknown as SectionWithAssignments;
 
     if (section.vetting_id !== id) {
-      return NextResponse.json({ error: 'Section not found' }, { status: 404 });
+      return apiError('Section not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     const assignedMemberIds = (section.assignments ?? []).map((a) => a.committee_member_id);
 
     if (!canEditSection(ctx, assignedMemberIds)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     let body: unknown;
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = sectionUpdateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     // Validate status transition if status is being changed
     if (parseResult.data.status) {
       if (!isValidSectionTransition(section.status as VettingSectionStatus, parseResult.data.status)) {
-        return NextResponse.json(
-          { error: `Invalid status transition from ${section.status} to ${parseResult.data.status}` },
-          { status: 400 }
-        );
+        return apiError(`Invalid status transition from ${section.status} to ${parseResult.data.status}`, ApiErrorCode.VALIDATION_ERROR, 400);
       }
     }
 
@@ -143,7 +138,7 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     if (parseResult.data.notes !== undefined) updates.notes = parseResult.data.notes;
 
     if (Object.keys(updates).length === 0) {
-      return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+      return apiError('No fields to update', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     const { data: updated, error: updateError } = await supabase
@@ -156,12 +151,12 @@ export async function PATCH(request: Request, { params }: RouteParams) {
 
     if (updateError) {
       logger.error('Error updating section:', { sectionId, error: updateError });
-      return NextResponse.json({ error: 'Failed to update section' }, { status: 500 });
+      return apiError('Failed to update section', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ section: updated });
   } catch (err) {
     logger.error('Unhandled error in PATCH sections/[sectionId]:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

@@ -3,6 +3,7 @@ import { auth } from '@clerk/nextjs/server';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { syncMemberToHighLevel } from '@/lib/highlevel/client';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 // DELETE /api/v1/me/household/[id] — remove a household member
 export async function DELETE(
@@ -12,35 +13,29 @@ export async function DELETE(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const member = await getMemberByClerkId(userId);
     if (!member) {
-      return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+      return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     // Check household exists before checking role
     if (!member.household_id) {
-      return NextResponse.json({ error: 'No household found' }, { status: 404 });
+      return apiError('No household found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     // Only primary members can remove household members
     if (member.household_role !== 'primary') {
-      return NextResponse.json(
-        { error: 'Only the primary household member can remove family members' },
-        { status: 403 }
-      );
+      return apiError('Only the primary household member can remove family members', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id: targetId } = await params;
 
     // Cannot remove yourself
     if (targetId === member.id) {
-      return NextResponse.json(
-        { error: 'Cannot remove the primary household member' },
-        { status: 400 }
-      );
+      return apiError('Cannot remove the primary household member', ApiErrorCode.VALIDATION_ERROR, 400);
     }
 
     const supabase = createServerClient();
@@ -54,10 +49,10 @@ export async function DELETE(
 
     if (lookupError) {
       if (lookupError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Household member not found' }, { status: 404 });
+        return apiError('Household member not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error looking up household member:', lookupError);
-      return NextResponse.json({ error: 'Failed to find household member' }, { status: 500 });
+      return apiError('Failed to find household member', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const targetMember = targetData as {
@@ -71,7 +66,7 @@ export async function DELETE(
     };
 
     if (targetMember.household_id !== member.household_id) {
-      return NextResponse.json({ error: 'Member is not in your household' }, { status: 403 });
+      return apiError('Member is not in your household', ApiErrorCode.FORBIDDEN, 403);
     }
 
     // Clear household fields and cancel membership
@@ -87,7 +82,7 @@ export async function DELETE(
 
     if (updateError) {
       logger.error('Error removing household member:', updateError);
-      return NextResponse.json({ error: 'Failed to remove household member' }, { status: 500 });
+      return apiError('Failed to remove household member', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     // Sync cancelled status to HighLevel (non-fatal)
@@ -112,6 +107,6 @@ export async function DELETE(
     return NextResponse.json({ success: true });
   } catch (err) {
     logger.error('Unexpected error in DELETE /api/v1/me/household/[id]:', err);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return apiError('Internal server error', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

@@ -3,6 +3,7 @@ import { canManageRoles } from '@/lib/admin/permissions';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { updateOfficerPositionSchema } from '@/lib/validations/officer-position';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function PATCH(
   request: Request,
@@ -13,7 +14,7 @@ export async function PATCH(
   const { ctx, supabase } = result;
 
   if (!canManageRoles(ctx)) {
-    return NextResponse.json({ error: 'Forbidden: national_board+ required' }, { status: 403 });
+    return apiError('Forbidden: national_board+ required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: charterId, positionId } = await params;
@@ -22,15 +23,12 @@ export async function PATCH(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = updateOfficerPositionSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   // Verify position belongs to this charter
@@ -45,9 +43,9 @@ export async function PATCH(
   if (findError || !existing) {
     if (findError && findError.code !== 'PGRST116') {
       logger.error('Error looking up officer position:', findError);
-      return NextResponse.json({ error: 'Failed to verify position' }, { status: 500 });
+      return apiError('Failed to verify position', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'Position not found' }, { status: 404 });
+    return apiError('Position not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const updates: Record<string, unknown> = {};
@@ -70,7 +68,7 @@ export async function PATCH(
 
   if (error) {
     logger.error('Error updating officer position:', error);
-    return NextResponse.json({ error: 'Failed to update position' }, { status: 500 });
+    return apiError('Failed to update position', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ position: data });
@@ -85,7 +83,7 @@ export async function DELETE(
   const { ctx, supabase } = result;
 
   if (!canManageRoles(ctx)) {
-    return NextResponse.json({ error: 'Forbidden: national_board+ required' }, { status: 403 });
+    return apiError('Forbidden: national_board+ required', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { id: charterId, positionId } = await params;
@@ -102,9 +100,9 @@ export async function DELETE(
   if (findError || !existing) {
     if (findError && findError.code !== 'PGRST116') {
       logger.error('Error looking up officer position for delete:', findError);
-      return NextResponse.json({ error: 'Failed to verify position' }, { status: 500 });
+      return apiError('Failed to verify position', ApiErrorCode.INTERNAL_ERROR, 500);
     }
-    return NextResponse.json({ error: 'Position not found' }, { status: 404 });
+    return apiError('Position not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -116,7 +114,7 @@ export async function DELETE(
 
   if (error) {
     logger.error('Error deleting officer position:', error);
-    return NextResponse.json({ error: 'Failed to delete position' }, { status: 500 });
+    return apiError('Failed to delete position', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ success: true });

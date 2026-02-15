@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canViewPipeline } from '@/lib/vetting/permissions';
 import { districtDataCreateSchema } from '@/lib/validations/vetting';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -11,12 +12,12 @@ export async function GET(_request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || !canViewPipeline(ctx)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -31,10 +32,10 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (vettingError) {
       if (vettingError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching vetting for district data:', { id, error: vettingError });
-      return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
+      return apiError('Failed to fetch vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const v = vetting as unknown as { district_data_id: string | null };
@@ -51,13 +52,13 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
     if (ddError) {
       logger.error('Error fetching district data:', { districtDataId: v.district_data_id, error: ddError });
-      return NextResponse.json({ error: 'Failed to fetch district data' }, { status: 500 });
+      return apiError('Failed to fetch district data', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ districtData });
   } catch (err) {
     logger.error('Unhandled error in GET district-data:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }
 
@@ -65,17 +66,17 @@ export async function POST(request: Request, { params }: RouteParams) {
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     // Chair or national can manage district data
     if (!ctx.isChair && !ctx.isNational) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -85,15 +86,12 @@ export async function POST(request: Request, { params }: RouteParams) {
     try {
       body = await request.json();
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+      return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
     }
 
     const parseResult = districtDataCreateSchema.safeParse(body);
     if (!parseResult.success) {
-      return NextResponse.json(
-        { error: 'Invalid input', details: parseResult.error.flatten() },
-        { status: 400 }
-      );
+      return validationError(parseResult.error);
     }
 
     // Verify vetting exists
@@ -105,10 +103,10 @@ export async function POST(request: Request, { params }: RouteParams) {
 
     if (vettingError) {
       if (vettingError.code === 'PGRST116') {
-        return NextResponse.json({ error: 'Vetting not found' }, { status: 404 });
+        return apiError('Vetting not found', ApiErrorCode.NOT_FOUND, 404);
       }
       logger.error('Error fetching vetting for district data upsert:', { id, error: vettingError });
-      return NextResponse.json({ error: 'Failed to fetch vetting' }, { status: 500 });
+      return apiError('Failed to fetch vetting', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     const v = vetting as unknown as { id: string; district_data_id: string | null };
@@ -140,7 +138,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       if (updateError) {
         logger.error('Error updating district data:', { error: updateError });
-        return NextResponse.json({ error: 'Failed to update district data' }, { status: 500 });
+        return apiError('Failed to update district data', ApiErrorCode.INTERNAL_ERROR, 500);
       }
 
       return NextResponse.json({ districtData: updated });
@@ -154,7 +152,7 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       if (createError) {
         logger.error('Error creating district data:', { error: createError });
-        return NextResponse.json({ error: 'Failed to create district data' }, { status: 500 });
+        return apiError('Failed to create district data', ApiErrorCode.INTERNAL_ERROR, 500);
       }
 
       const createdRow = created as unknown as { id: string };
@@ -168,13 +166,13 @@ export async function POST(request: Request, { params }: RouteParams) {
 
       if (linkError) {
         logger.error('Error linking district data to vetting:', { id, districtDataId, error: linkError });
-        return NextResponse.json({ error: 'District data created but failed to link to vetting' }, { status: 500 });
+        return apiError('District data created but failed to link to vetting', ApiErrorCode.INTERNAL_ERROR, 500);
       }
 
       return NextResponse.json({ districtData: created }, { status: 201 });
     }
   } catch (err) {
     logger.error('Unhandled error in POST district-data:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

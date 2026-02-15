@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { analyzeBill } from '@/lib/ai/analyze-bill';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function POST(
   _request: Request,
@@ -20,7 +21,7 @@ export async function POST(
     .single();
 
   if (billError || !billData) {
-    return NextResponse.json({ error: 'Bill not found' }, { status: 404 });
+    return apiError('Bill not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const bill = billData as { id: string; title: string; description: string | null };
@@ -40,12 +41,12 @@ export async function POST(
 
     if (updateError) {
       logger.error('Error saving AI analysis:', updateError);
-      return NextResponse.json({ error: 'Analysis succeeded but save failed' }, { status: 500 });
+      return apiError('Analysis succeeded but save failed', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ analysis });
   } catch (err) {
     logger.error('AI analysis failed:', err);
-    return NextResponse.json({ error: 'AI analysis failed' }, { status: 500 });
+    return apiError('AI analysis failed', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

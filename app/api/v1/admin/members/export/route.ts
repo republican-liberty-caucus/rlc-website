@@ -5,6 +5,7 @@ import { escapeCsvField } from '@/lib/csv';
 import { logger } from '@/lib/logger';
 import { formatDate } from '@/lib/utils';
 import type { MembershipTier, MembershipStatus } from '@/types';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 interface ExportRow {
   first_name: string;
@@ -50,7 +51,7 @@ export async function GET(request: Request) {
 
   if (error) {
     logger.error('Export query error:', error);
-    return NextResponse.json({ error: 'Export failed' }, { status: 500 });
+    return apiError('Export failed', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const rows = (data || []) as ExportRow[];

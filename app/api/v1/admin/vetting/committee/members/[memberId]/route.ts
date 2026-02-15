@@ -4,6 +4,7 @@ import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext, canManageCommittee } from '@/lib/vetting/permissions';
 import { committeeMemberUpdateSchema } from '@/lib/validations/vetting';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function PATCH(
   request: Request,
@@ -11,12 +12,12 @@ export async function PATCH(
 ) {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const ctx = await getVettingContext(userId);
   if (!ctx || !canManageCommittee(ctx)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { memberId } = await params;
@@ -25,15 +26,12 @@ export async function PATCH(
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = committeeMemberUpdateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const updates: Record<string, unknown> = {};
@@ -41,7 +39,7 @@ export async function PATCH(
   if (parseResult.data.isActive !== undefined) updates.is_active = parseResult.data.isActive;
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'No fields to update' }, { status: 400 });
+    return apiError('No fields to update', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   const supabase = createServerClient();
@@ -55,7 +53,7 @@ export async function PATCH(
 
   if (error) {
     logger.error('Error updating committee member:', error);
-    return NextResponse.json({ error: 'Failed to update member' }, { status: 500 });
+    return apiError('Failed to update member', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ member: data });
@@ -67,12 +65,12 @@ export async function DELETE(
 ) {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const ctx = await getVettingContext(userId);
   if (!ctx || !canManageCommittee(ctx)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   const { memberId } = await params;
@@ -85,7 +83,7 @@ export async function DELETE(
 
   if (error) {
     logger.error('Error removing committee member:', error);
-    return NextResponse.json({ error: 'Failed to remove member' }, { status: 500 });
+    return apiError('Failed to remove member', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ success: true });

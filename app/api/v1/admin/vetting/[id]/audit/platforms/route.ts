@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getVettingContext } from '@/lib/vetting/permissions';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 /**
  * GET /api/v1/admin/vetting/[id]/audit/platforms
@@ -15,12 +16,12 @@ export async function GET(
   try {
     const { userId } = await auth();
     if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
     }
 
     const ctx = await getVettingContext(userId);
     if (!ctx || (!ctx.isCommitteeMember && !ctx.isNational)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { id } = await params;
@@ -40,7 +41,7 @@ export async function GET(
 
     if (auditErr) {
       logger.error('Error fetching audit for platforms:', { vettingId: id, error: auditErr });
-      return NextResponse.json({ error: 'Failed to fetch audit' }, { status: 500 });
+      return apiError('Failed to fetch audit', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     if (!rawAudit) {
@@ -64,12 +65,12 @@ export async function GET(
 
     if (platErr) {
       logger.error('Error fetching platforms:', { auditId: audit.id, error: platErr });
-      return NextResponse.json({ error: 'Failed to fetch platforms' }, { status: 500 });
+      return apiError('Failed to fetch platforms', ApiErrorCode.INTERNAL_ERROR, 500);
     }
 
     return NextResponse.json({ platforms: platforms ?? [] });
   } catch (err) {
     logger.error('Unhandled error in GET /api/v1/admin/vetting/[id]/audit/platforms:', err);
-    return NextResponse.json({ error: 'An unexpected error occurred' }, { status: 500 });
+    return apiError('An unexpected error occurred', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

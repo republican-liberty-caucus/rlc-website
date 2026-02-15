@@ -6,6 +6,7 @@ import { logger } from '@/lib/logger';
 import type { Database } from '@/lib/supabase/client';
 import { adminMemberUpdateSchema } from '@/lib/validations/admin';
 import type { Contact } from '@/types';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 type MemberUpdate = Database['public']['Tables']['rlc_contacts']['Update'];
 
@@ -30,28 +31,25 @@ export async function PATCH(
     .single();
 
   if (fetchError || !existing) {
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+    return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const member = existing as Contact;
 
   if (!canViewMember(ctx, member.primary_charter_id)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON in request body' }, { status: 400 });
+    return apiError('Invalid JSON in request body', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = adminMemberUpdateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -72,10 +70,7 @@ export async function PATCH(
   // If changing primaryCharterId, verify the new charter is also in admin's scope
   if (input.primaryCharterId !== undefined && ctx.visibleCharterIds !== null) {
     if (input.primaryCharterId !== null && !ctx.visibleCharterIds.includes(input.primaryCharterId)) {
-      return NextResponse.json(
-        { error: 'Cannot move member to a charter outside your scope' },
-        { status: 403 }
-      );
+      return apiError('Cannot move member to a charter outside your scope', ApiErrorCode.FORBIDDEN, 403);
     }
   }
 
@@ -106,7 +101,7 @@ export async function PATCH(
 
   if (error) {
     logger.error('Error updating member:', error);
-    return NextResponse.json({ error: 'Failed to update member' }, { status: 500 });
+    return apiError('Failed to update member', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   const updatedMember = data as Contact;

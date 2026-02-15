@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { searchBills, getBillDetail } from '@/lib/legiscan/client';
 import { logger } from '@/lib/logger';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET(request: Request) {
   const result = await requireAdminApi();
@@ -19,12 +20,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ bill });
     } catch (err) {
       logger.error('LegiScan bill detail error:', err);
-      return NextResponse.json({ error: 'Failed to fetch bill details' }, { status: 500 });
+      return apiError('Failed to fetch bill details', ApiErrorCode.INTERNAL_ERROR, 500);
     }
   }
 
   if (!query) {
-    return NextResponse.json({ error: 'Query parameter "q" is required' }, { status: 400 });
+    return apiError('Query parameter "q" is required', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   try {
@@ -32,6 +33,6 @@ export async function GET(request: Request) {
     return NextResponse.json({ results });
   } catch (err) {
     logger.error('LegiScan search error:', err);
-    return NextResponse.json({ error: 'Failed to search LegiScan' }, { status: 500 });
+    return apiError('Failed to search LegiScan', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

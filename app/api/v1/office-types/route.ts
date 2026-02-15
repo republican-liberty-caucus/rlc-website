@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 /**
  * GET /api/v1/office-types
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
   if (charterId) {
     // Scoped admins can only look up charters they have access to
     if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return apiError('Forbidden', ApiErrorCode.FORBIDDEN, 403);
     }
 
     const { data: rawCharter, error: charterError } = await supabase
@@ -37,7 +38,7 @@ export async function GET(request: Request) {
       .single();
 
     if (charterError || !rawCharter) {
-      return NextResponse.json({ error: 'Charter not found' }, { status: 404 });
+      return apiError('Charter not found', ApiErrorCode.NOT_FOUND, 404);
     }
 
     const charter = rawCharter as unknown as { charter_level: string };
@@ -65,7 +66,7 @@ export async function GET(request: Request) {
 
   if (error) {
     logger.error('Error fetching office types:', error);
-    return NextResponse.json({ error: 'Failed to fetch office types' }, { status: 500 });
+    return apiError('Failed to fetch office types', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ officeTypes: data });

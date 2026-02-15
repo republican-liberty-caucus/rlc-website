@@ -2,16 +2,17 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode } from '@/lib/api/errors';
 
 export async function GET() {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const member = await getMemberByClerkId(userId);
   if (!member) {
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+    return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const supabase = createServerClient();
@@ -127,6 +128,6 @@ export async function GET() {
     return NextResponse.json({ data: activities.slice(0, 20) });
   } catch (err) {
     logger.error('Error fetching member activity:', err);
-    return NextResponse.json({ error: 'Failed to fetch activity' }, { status: 500 });
+    return apiError('Failed to fetch activity', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 }

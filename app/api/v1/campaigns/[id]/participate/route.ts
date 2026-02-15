@@ -4,6 +4,7 @@ import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
 import { participationCreateSchema } from '@/lib/validations/campaign';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function POST(
   request: Request,
@@ -11,27 +12,24 @@ export async function POST(
 ) {
   const { userId } = await auth();
   if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return apiError('Unauthorized', ApiErrorCode.UNAUTHORIZED, 401);
   }
 
   const member = await getMemberByClerkId(userId);
   if (!member) {
-    return NextResponse.json({ error: 'Member not found' }, { status: 404 });
+    return apiError('Member not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = participationCreateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -46,12 +44,12 @@ export async function POST(
     .single();
 
   if (campaignError || !campaign) {
-    return NextResponse.json({ error: 'Campaign not found' }, { status: 404 });
+    return apiError('Campaign not found', ApiErrorCode.NOT_FOUND, 404);
   }
 
   const campaignRow = campaign as { id: string; status: string };
   if (campaignRow.status !== 'active') {
-    return NextResponse.json({ error: 'Campaign is not active' }, { status: 400 });
+    return apiError('Campaign is not active', ApiErrorCode.VALIDATION_ERROR, 400);
   }
 
   const { data, error } = await supabase
@@ -69,10 +67,10 @@ export async function POST(
 
   if (error) {
     if (error.code === '23505') {
-      return NextResponse.json({ error: 'Already participated with this action' }, { status: 409 });
+      return apiError('Already participated with this action', ApiErrorCode.CONFLICT, 409);
     }
     logger.error('Error logging participation:', error);
-    return NextResponse.json({ error: 'Failed to log participation' }, { status: 500 });
+    return apiError('Failed to log participation', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ participation: data }, { status: 201 });

@@ -3,6 +3,7 @@ import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { sessionCreateSchema } from '@/lib/validations/scorecard';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
+import { apiError, ApiErrorCode, validationError } from '@/lib/api/errors';
 
 export async function POST(request: Request) {
   const result = await requireAdminApi();
@@ -13,15 +14,12 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    return apiError('Invalid JSON', ApiErrorCode.INVALID_JSON, 400);
   }
 
   const parseResult = sessionCreateSchema.safeParse(body);
   if (!parseResult.success) {
-    return NextResponse.json(
-      { error: 'Invalid input', details: parseResult.error.flatten() },
-      { status: 400 }
-    );
+    return validationError(parseResult.error);
   }
 
   const input = parseResult.data;
@@ -44,10 +42,10 @@ export async function POST(request: Request) {
 
   if (error) {
     if (error.code === '23505') {
-      return NextResponse.json({ error: 'A session with this slug already exists' }, { status: 409 });
+      return apiError('A session with this slug already exists', ApiErrorCode.CONFLICT, 409);
     }
     logger.error('Error creating scorecard session:', error);
-    return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
+    return apiError('Failed to create session', ApiErrorCode.INTERNAL_ERROR, 500);
   }
 
   return NextResponse.json({ session: data }, { status: 201 });
