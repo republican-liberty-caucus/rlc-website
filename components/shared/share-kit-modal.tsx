@@ -156,7 +156,7 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
           {/* Tone picker */}
           <div>
             <p className="text-xs font-medium text-muted-foreground mb-2">Tone</p>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap gap-1">
               {(Object.keys(TONE_LABELS) as Tone[]).map((t) => (
                 <button
                   key={t}
@@ -180,7 +180,7 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
           </div>
 
           {/* Share buttons */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <Button
               variant="outline"
               size="sm"

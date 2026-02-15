@@ -107,7 +107,7 @@ export default async function LegislatorDetailPage({ params }: Props) {
         <div className="container mx-auto px-4">
           <Link
             href={`/scorecards/${slug}`}
-            className="mb-4 inline-flex items-center gap-1 text-sm text-white/70 hover:text-white"
+            className="mb-4 inline-flex items-center gap-1 rounded-md px-2 py-1.5 text-sm text-white/70 hover:text-white"
           >
             <ArrowLeft className="h-4 w-4" /> Back to {session.name}
           </Link>

@@ -94,7 +94,7 @@ export default async function EmbedScorecardPage({ params }: Props) {
       </p>
 
       <div style={{ overflowX: 'auto' }}>
-      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', minWidth: '400px' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
         <thead>
           <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
             <th style={{ textAlign: 'left', padding: '8px 4px', fontWeight: 600 }}>Name</th>
