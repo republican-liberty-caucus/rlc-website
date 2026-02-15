@@ -43,3 +43,18 @@ vercel env pull .env.vercel --environment production
 - `lib/dues-sharing/constants.ts` — National fee, charter IDs
 - Stripe webhook (`app/api/webhooks/stripe/route.ts`) calls `processDuesSplit()` after creating contributions
 - Charter auto-assignment: `resolveCharterByState()` matches `rlc_contacts.state` → `rlc_charters.state_code`
+
+### Amount Convention (cents vs dollars)
+
+| Layer | Unit | Example |
+|-------|------|---------|
+| Database (`rlc_contributions.amount`, `rlc_split_ledger_entries.amount`) | **Decimal dollars** `Decimal(10,2)` | `30.00` |
+| Internal calculations (split-engine, transfer-engine) | **Integer cents** | `3000` |
+| Stripe API (all amounts) | **Integer cents** | `3000` |
+| Constants (`NATIONAL_FLAT_FEE_CENTS`) | **Integer cents** | `1500` |
+
+**Conversion happens at DB read/write boundaries only:**
+- DB → engine: `Math.round(Number(amount) * 100)`
+- Engine → DB: `amountCents / 100`
+
+When adding new code that reads or writes amounts, always convert at the boundary. See `split-engine.ts` header comment for the full convention.
