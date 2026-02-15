@@ -13,6 +13,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { useToast } from '@/lib/hooks/use-toast';
+import { formatCandidateName } from '@/lib/utils';
 import { UserPlus } from 'lucide-react';
 import type { OfficeType } from '@/types';
 import { US_STATES } from '@/lib/constants/us-states';
@@ -137,7 +138,7 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
         toast({ title: 'Error', description: data.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Candidate added', description: `${candidateFirstName} ${candidateLastName}`.trim() + ' added to the pipeline' });
+      toast({ title: 'Candidate added', description: `${formatCandidateName(candidateFirstName, candidateLastName)} added to the pipeline` });
       resetForm();
       setOpen(false);
       router.refresh();

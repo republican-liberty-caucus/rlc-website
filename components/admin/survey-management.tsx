@@ -94,7 +94,10 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
   }
 
   async function addCandidate() {
-    if (!candidateFirstName.trim()) return;
+    if (!candidateFirstName.trim()) {
+      toast({ title: 'Error', description: 'First name is required', variant: 'destructive' });
+      return;
+    }
     setSaving(true);
     try {
       const res = await fetch(`/api/v1/admin/surveys/${surveyId}/candidates`, {
@@ -116,7 +119,7 @@ export function SurveyManagement({ surveyId, surveyStatus, charterId, candidates
         toast({ title: 'Error', description: data.error, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Candidate added', description: `Survey link generated for ${candidateFirstName} ${candidateLastName}`.trim() });
+      toast({ title: 'Candidate added', description: `Survey link generated for ${formatCandidateName(candidateFirstName, candidateLastName)}` });
       resetForm();
       setShowAddForm(false);
       router.refresh();

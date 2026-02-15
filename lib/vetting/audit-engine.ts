@@ -118,7 +118,7 @@ export async function runAudit(
           oppUrls,
           'opponent',
           opponent.name,
-          { ...auditInput, candidateFirstName: opponent.name, candidateLastName: '' },
+          { ...auditInput, candidateFirstName: opponent.name.split(' ')[0], candidateLastName: opponent.name.split(' ').slice(1).join(' ') },
         );
 
         const oppAvgScore = oppPlatforms.length > 0

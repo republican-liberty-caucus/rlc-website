@@ -83,7 +83,10 @@ export function PipelineTable({ rows, canCreate, emptyMessage = 'No candidates i
         toast({ title: 'Error', description: data?.error || `Server returned ${res.status}`, variant: 'destructive' });
         return;
       }
-      toast({ title: 'Added to Pipeline', description: `${data?.vetting?.candidate_first_name ? formatCandidateName(data.vetting.candidate_first_name, data.vetting.candidate_last_name ?? '') : 'Candidate'} is now in the vetting pipeline` });
+      const name = data?.vetting?.candidate_first_name
+        ? formatCandidateName(data.vetting.candidate_first_name, data.vetting.candidate_last_name ?? '')
+        : 'Candidate';
+      toast({ title: 'Added to Pipeline', description: `${name} is now in the vetting pipeline` });
       router.refresh();
     } catch (err) {
       console.error('Failed to add to pipeline:', err);

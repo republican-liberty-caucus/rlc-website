@@ -21,10 +21,9 @@ UPDATE "rlc_candidate_responses" SET
     ELSE ''
   END;
 
--- 3. Drop default (columns are now properly populated)
+-- 3. Drop default on first_name (last_name keeps DEFAULT '' to match Prisma @default(""))
 ALTER TABLE "rlc_candidate_responses"
-  ALTER COLUMN "candidate_first_name" DROP DEFAULT,
-  ALTER COLUMN "candidate_last_name" DROP DEFAULT;
+  ALTER COLUMN "candidate_first_name" DROP DEFAULT;
 
 -- 4. Drop old column
 ALTER TABLE "rlc_candidate_responses" DROP COLUMN "candidate_name";
@@ -50,10 +49,9 @@ UPDATE "rlc_candidate_vettings" SET
     ELSE ''
   END;
 
--- 3. Drop default
+-- 3. Drop default on first_name (last_name keeps DEFAULT '' to match Prisma @default(""))
 ALTER TABLE "rlc_candidate_vettings"
-  ALTER COLUMN "candidate_first_name" DROP DEFAULT,
-  ALTER COLUMN "candidate_last_name" DROP DEFAULT;
+  ALTER COLUMN "candidate_first_name" DROP DEFAULT;
 
 -- 4. Drop old column
 ALTER TABLE "rlc_candidate_vettings" DROP COLUMN "candidate_name";
