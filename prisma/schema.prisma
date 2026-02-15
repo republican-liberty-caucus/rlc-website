@@ -325,6 +325,10 @@ model Charter {
   // Share kits
   shareKits            ShareKit[]
 
+  // Officer & onboarding relations
+  officers             OfficerPosition[]
+  onboarding           CharterOnboarding?
+
   @@map("rlc_charters")
 }
 
@@ -415,6 +419,14 @@ model Contact {
   // Share kit relations
   shareKitsCreated          ShareKit[]                        @relation("ShareKitCreatedBy")
   shareLinks                ShareLink[]                       @relation("ShareLinkMember")
+
+  // Officer & onboarding relations
+  officerPositions               OfficerPosition[]             @relation("OfficerContact")
+  appointedOfficers              OfficerPosition[]             @relation("OfficerAppointedBy")
+  coordinatedOnboardings         CharterOnboarding[]           @relation("OnboardingCoordinator")
+  approvedOnboardings            CharterOnboarding[]           @relation("OnboardingApprover")
+  completedOnboardingSteps       CharterOnboardingStep[]       @relation("StepCompletedBy")
+  reviewedOnboardingSteps        CharterOnboardingStep[]       @relation("StepReviewedBy")
 
   @@map("rlc_contacts")
 }
@@ -1373,4 +1385,77 @@ model WebhookEvent {
   processedAt   DateTime @default(now()) @map("processed_at")
 
   @@map("rlc_webhook_events")
+}
+
+// ===========================================
+// Charter Officer Positions & Onboarding
+// ===========================================
+
+/// Officer positions within charters (table already exists from migration 20260210070000)
+model OfficerPosition {
+  id            String    @id @default(uuid())
+  contactId     String    @map("contact_id")
+  contact       Contact   @relation("OfficerContact", fields: [contactId], references: [id], onDelete: Cascade)
+  charterId     String    @map("charter_id")
+  charter       Charter   @relation(fields: [charterId], references: [id], onDelete: Cascade)
+  title         String
+  committeeName String?   @map("committee_name")
+  startedAt     DateTime  @default(now()) @map("started_at")
+  endedAt       DateTime? @map("ended_at")
+  isActive      Boolean   @default(true) @map("is_active")
+  appointedById String?   @map("appointed_by_id")
+  appointedBy   Contact?  @relation("OfficerAppointedBy", fields: [appointedById], references: [id], onDelete: SetNull)
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([contactId, charterId, title, committeeName])
+  @@index([charterId])
+  @@index([contactId])
+  @@map("rlc_organizational_positions")
+}
+
+/// Charter onboarding workflow (one per forming charter)
+model CharterOnboarding {
+  id            String    @id @default(uuid())
+  charterId     String    @unique @map("charter_id")
+  charter       Charter   @relation(fields: [charterId], references: [id], onDelete: Cascade)
+  coordinatorId String    @map("coordinator_id")
+  coordinator   Contact   @relation("OnboardingCoordinator", fields: [coordinatorId], references: [id], onDelete: Restrict)
+  currentStep   String    @default("coordinator_membership") @map("current_step")
+  startedAt     DateTime  @default(now()) @map("started_at")
+  completedAt   DateTime? @map("completed_at")
+  approvedAt    DateTime? @map("approved_at")
+  approvedById  String?   @map("approved_by_id")
+  approvedBy    Contact?  @relation("OnboardingApprover", fields: [approvedById], references: [id], onDelete: SetNull)
+  metadata      Json      @default("{}")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  steps         CharterOnboardingStep[]
+
+  @@map("rlc_charter_onboarding")
+}
+
+/// Individual onboarding step progress
+model CharterOnboardingStep {
+  id            String    @id @default(uuid())
+  onboardingId  String    @map("onboarding_id")
+  onboarding    CharterOnboarding @relation(fields: [onboardingId], references: [id], onDelete: Cascade)
+  step          String
+  status        String    @default("not_started")
+  data          Json      @default("{}")
+  completedAt   DateTime? @map("completed_at")
+  completedById String?   @map("completed_by_id")
+  completedBy   Contact?  @relation("StepCompletedBy", fields: [completedById], references: [id], onDelete: SetNull)
+  reviewedAt    DateTime? @map("reviewed_at")
+  reviewedById  String?   @map("reviewed_by_id")
+  reviewedBy    Contact?  @relation("StepReviewedBy", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewNotes   String?   @map("review_notes")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  @@unique([onboardingId, step])
+  @@index([onboardingId])
+  @@map("rlc_charter_onboarding_steps")
 }
