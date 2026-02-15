@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import { Button } from '@/components/ui/button';
+import { MEMBERSHIP_TIERS } from '@/lib/stripe/client';
 
 export const metadata: Metadata = {
   title: 'Settings - Admin',
@@ -44,14 +45,17 @@ export default function AdminSettingsPage() {
           </div>
         </section>
 
-        {/* Membership Settings */}
+        {/* Membership Tiers */}
         <section className="rounded-lg border bg-card p-6">
-          <h2 className="mb-4 text-lg font-semibold">Membership</h2>
-          <div className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <div>
+          <h2 className="mb-4 text-lg font-semibold">Membership Tiers</h2>
+          <p className="mb-4 text-sm text-muted-foreground">
+            Annual membership pricing by tier. All memberships are billed yearly.
+          </p>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {MEMBERSHIP_TIERS.map((tier) => (
+              <div key={tier.tier}>
                 <label className="mb-1 block text-sm font-medium">
-                  Member Fee (Annual)
+                  {tier.name}
                 </label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
@@ -59,42 +63,14 @@ export default function AdminSettingsPage() {
                   </span>
                   <input
                     type="number"
-                    defaultValue="35"
+                    defaultValue={tier.price / 100}
                     className="w-full rounded-md border bg-background pl-8 pr-3 py-2"
+                    readOnly
                   />
                 </div>
+                <p className="mt-1 text-xs text-muted-foreground">{tier.description}</p>
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Sustaining Fee (Monthly)
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    defaultValue="10"
-                    className="w-full rounded-md border bg-background pl-8 pr-3 py-2"
-                  />
-                </div>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">
-                  Lifetime Fee
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
-                    $
-                  </span>
-                  <input
-                    type="number"
-                    defaultValue="500"
-                    className="w-full rounded-md border bg-background pl-8 pr-3 py-2"
-                  />
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </section>
 
