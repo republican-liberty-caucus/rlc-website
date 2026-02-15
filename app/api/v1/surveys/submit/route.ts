@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { surveySubmissionSchema } from '@/lib/validations/survey';
+import { findOrCreateCandidateContact } from '@/lib/vetting/candidate-contact';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
@@ -125,6 +126,31 @@ export async function POST(request: Request) {
 
   if (updateError) {
     logger.error('Error updating candidate response:', updateError);
+  }
+
+  // Link candidate to contact record (non-blocking)
+  try {
+    const { data: candidateInfo } = await supabase
+      .from('rlc_candidate_responses')
+      .select('contact_id, candidate_name, candidate_email, candidate_state')
+      .eq('id', candidateResponse.id)
+      .single();
+
+    if (candidateInfo && !(candidateInfo as { contact_id: string | null }).contact_id) {
+      const ci = candidateInfo as { candidate_name: string; candidate_email: string | null; candidate_state: string | null };
+      const { contactId } = await findOrCreateCandidateContact({
+        candidateName: ci.candidate_name,
+        candidateEmail: ci.candidate_email,
+        candidateState: ci.candidate_state,
+      });
+
+      await supabase
+        .from('rlc_candidate_responses')
+        .update({ contact_id: contactId } as never)
+        .eq('id', candidateResponse.id);
+    }
+  } catch (err) {
+    logger.error('Failed to link submitted candidate to contact (non-blocking):', err);
   }
 
   return NextResponse.json({

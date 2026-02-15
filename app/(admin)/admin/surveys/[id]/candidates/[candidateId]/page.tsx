@@ -38,8 +38,9 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
     .from('rlc_candidate_responses')
     .select(`
       id, candidate_name, candidate_email, candidate_party, candidate_office,
-      candidate_district, candidate_state, candidate_county, total_score, status,
-      submitted_at, created_at,
+      candidate_district, candidate_state, candidate_county, contact_id,
+      total_score, status, submitted_at, created_at,
+      contact:rlc_members(id, first_name, last_name, email, membership_status),
       office_type:rlc_office_types(name, district_label),
       survey:rlc_surveys(id, title, election_type, election_date, state)
     `)
@@ -53,7 +54,9 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
     id: string; candidate_name: string; candidate_email: string | null;
     candidate_party: string | null; candidate_office: string | null;
     candidate_district: string | null; candidate_state: string | null;
-    candidate_county: string | null; total_score: number | null;
+    candidate_county: string | null; contact_id: string | null;
+    contact: { id: string; first_name: string; last_name: string; email: string | null; membership_status: string } | null;
+    total_score: number | null;
     status: string; submitted_at: string | null; created_at: string;
     office_type: { name: string; district_label: string | null } | null;
     survey: { id: string; title: string; election_type: string | null; election_date: string | null; state: string | null } | null;
@@ -79,6 +82,8 @@ export default async function CandidateDetailPage({ params }: CandidateDetailPag
     candidate_party: response.candidate_party,
     candidate_office: response.candidate_office,
     candidate_district: response.candidate_district,
+    contact_id: response.contact_id,
+    contact: response.contact,
     total_score: response.total_score,
     status: response.status,
     submitted_at: response.submitted_at,

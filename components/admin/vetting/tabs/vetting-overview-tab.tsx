@@ -1,8 +1,10 @@
 'use client';
 
+import Link from 'next/link';
+import { User } from 'lucide-react';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { STAGE_ORDER, calculateUrgency } from '@/lib/vetting/engine';
-import type { VettingFullData } from '../types';
+import type { VettingFullData, SurveyResponseData } from '../types';
 
 function formatDate(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('en-US', {
@@ -20,9 +22,10 @@ function formatLabel(value: string): string {
 
 interface VettingOverviewTabProps {
   vetting: VettingFullData;
+  surveyResponse: SurveyResponseData | null;
 }
 
-export function VettingOverviewTab({ vetting }: VettingOverviewTabProps) {
+export function VettingOverviewTab({ vetting, surveyResponse }: VettingOverviewTabProps) {
   const stageIndex = STAGE_ORDER.indexOf(vetting.stage);
   const urgency = calculateUrgency(vetting.election_deadline?.primary_date ?? null);
 
@@ -46,6 +49,15 @@ export function VettingOverviewTab({ vetting }: VettingOverviewTabProps) {
             </p>
             {vetting.candidate_state && (
               <p className="mt-1 text-sm text-muted-foreground">{vetting.candidate_state}</p>
+            )}
+            {surveyResponse?.contact_id && (
+              <Link
+                href={`/admin/members/${surveyResponse.contact_id}`}
+                className="mt-2 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+              >
+                <User className="h-3.5 w-3.5" />
+                Contact Record
+              </Link>
             )}
           </div>
           <StatusBadge status={vetting.stage} type="vetting" />

@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
 import { getAdminContext } from '@/lib/admin/permissions';
 import { candidateCreateSchema } from '@/lib/validations/survey';
+import { findOrCreateCandidateContact } from '@/lib/vetting/candidate-contact';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
@@ -74,11 +75,25 @@ export async function POST(
   const tokenExpiresAt = new Date();
   tokenExpiresAt.setDate(tokenExpiresAt.getDate() + 90);
 
+  // Link candidate to contact record
+  let contactId: string | null = null;
+  try {
+    const result = await findOrCreateCandidateContact({
+      candidateName: input.candidateName,
+      candidateEmail: input.candidateEmail,
+      candidateState: input.candidateState,
+    });
+    contactId = result.contactId;
+  } catch (err) {
+    logger.error('Failed to link candidate to contact (non-blocking):', err);
+  }
+
   const { data: candidate, error: insertError } = await supabase
     .from('rlc_candidate_responses')
     .insert({
       id: crypto.randomUUID(),
       survey_id: surveyId,
+      contact_id: contactId,
       candidate_name: input.candidateName,
       candidate_email: input.candidateEmail || null,
       candidate_party: input.candidateParty || null,

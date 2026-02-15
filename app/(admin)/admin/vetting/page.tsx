@@ -38,6 +38,7 @@ interface SubmissionRow {
   candidate_office: string | null;
   candidate_state: string | null;
   candidate_district: string | null;
+  contact_id: string | null;
   total_score: number | null;
   submitted_at: string | null;
 }
@@ -65,7 +66,7 @@ export default async function VettingPipelinePage() {
     vettingQuery,
     supabase
       .from('rlc_candidate_responses')
-      .select('id, candidate_name, candidate_office, candidate_state, candidate_district, total_score, submitted_at')
+      .select('id, candidate_name, candidate_office, candidate_state, candidate_district, contact_id, total_score, submitted_at')
       .eq('status', 'submitted')
       .order('submitted_at', { ascending: false }),
     supabase
@@ -115,6 +116,7 @@ export default async function VettingPipelinePage() {
     candidate_state: s.candidate_state,
     candidate_office: s.candidate_office,
     candidate_district: s.candidate_district,
+    contact_id: s.contact_id,
     office_type: null,
     stage: 'submitted',
     total_score: s.total_score,
@@ -131,6 +133,7 @@ export default async function VettingPipelinePage() {
     candidate_state: v.candidate_state,
     candidate_office: v.candidate_office,
     candidate_district: v.candidate_district,
+    contact_id: null,
     office_type: v.office_type,
     stage: v.stage,
     total_score: null,
