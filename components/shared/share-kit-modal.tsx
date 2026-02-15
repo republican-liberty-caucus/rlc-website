@@ -27,12 +27,19 @@ const TONE_LABELS: Record<Tone, string> = {
   punchy: 'Punchy',
 };
 
+const PLATFORM_LABELS: Record<Platform, string> = {
+  x: 'X / Twitter',
+  facebook: 'Facebook',
+  linkedin: 'LinkedIn',
+};
+
 export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
   const { toast } = useToast();
   const [tone, setTone] = useState<Tone>('casual');
   const [trackedUrl, setTrackedUrl] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [previewPlatform, setPreviewPlatform] = useState<Platform>('x');
 
   const ensureTrackedUrl = useCallback(async (): Promise<string | null> => {
     if (trackedUrl) return trackedUrl;
@@ -91,9 +98,22 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
 
     recordShare(platform);
 
+    // LinkedIn doesn't support pre-filling text via URL — copy it to clipboard
+    if (platform === 'linkedin') {
+      try {
+        await navigator.clipboard.writeText(getCopyForPlatform('linkedin'));
+        toast({
+          title: 'Post text copied!',
+          description: 'Paste it into your LinkedIn post.',
+        });
+      } catch {
+        // Silent fail — the share window will still open
+      }
+    }
+
     const shareUrls: Record<string, string> = {
       x: `https://twitter.com/intent/tweet?text=${encodeURIComponent(getCopyForPlatform('x'))}&url=${encodeURIComponent(url)}`,
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(getCopyForPlatform('facebook'))}`,
       linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}`,
       email: `mailto:?subject=${encodeURIComponent(kit.title)}&body=${encodeURIComponent(getCopyForPlatform('facebook'))}%0A%0A${encodeURIComponent(url)}`,
     };
@@ -142,8 +162,7 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
     }
   }
 
-  // Preview text for the selected tone
-  const previewText = getCopyForPlatform('x');
+  const previewText = getCopyForPlatform(previewPlatform);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -175,7 +194,24 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
 
           {/* Preview */}
           <div className="rounded-lg border bg-muted/50 p-3">
-            <p className="text-xs font-medium text-muted-foreground mb-1">Preview (X/Twitter)</p>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-xs font-medium text-muted-foreground">Preview</p>
+              <div className="flex gap-1">
+                {(Object.keys(PLATFORM_LABELS) as Platform[]).map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setPreviewPlatform(p)}
+                    className={`rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                      previewPlatform === p
+                        ? 'bg-foreground/10 text-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    {PLATFORM_LABELS[p]}
+                  </button>
+                ))}
+              </div>
+            </div>
             <p className="text-sm">{previewText}</p>
           </div>
 
