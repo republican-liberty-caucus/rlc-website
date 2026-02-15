@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RLC Messaging Platform - Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f8f9fa; color: #1a1a2e; height: 100vh; overflow: hidden; }
+
+  /* Layout */
+  .app { display: flex; height: 100vh; }
+  .sidebar { width: 260px; background: #1a1a2e; color: #c8c8d4; display: flex; flex-direction: column; flex-shrink: 0; }
+  .main { flex: 1; display: flex; flex-direction: column; background: #fff; }
+  .right-panel { width: 340px; background: #fff; border-left: 1px solid #e2e8f0; flex-shrink: 0; display: flex; flex-direction: column; }
+
+  /* Sidebar */
+  .sidebar-header { padding: 16px 16px 12px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; }
+  .sidebar-header img { width: 32px; height: 32px; border-radius: 6px; }
+  .sidebar-header h1 { font-size: 15px; font-weight: 700; color: #fff; }
+  .sidebar-header .badge { background: #c41e3a; color: #fff; font-size: 10px; padding: 2px 6px; border-radius: 10px; margin-left: auto; }
+
+  .sidebar-search { padding: 8px 12px; }
+  .sidebar-search input { width: 100%; background: rgba(255,255,255,0.08); border: none; padding: 7px 10px; border-radius: 6px; color: #fff; font-size: 13px; outline: none; }
+  .sidebar-search input::placeholder { color: #8888a0; }
+
+  .sidebar-nav { flex: 1; overflow-y: auto; padding: 8px 0; }
+  .nav-section { padding: 0 12px; margin-bottom: 4px; }
+  .nav-section-header { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #8888a0; padding: 8px 4px 4px; display: flex; align-items: center; justify-content: space-between; }
+  .nav-section-header .plus { cursor: pointer; font-size: 14px; color: #8888a0; }
+  .nav-item { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 6px; font-size: 13px; cursor: pointer; position: relative; }
+  .nav-item:hover { background: rgba(255,255,255,0.06); }
+  .nav-item.active { background: rgba(196, 30, 58, 0.25); color: #fff; }
+  .nav-item .hash { color: #8888a0; font-weight: 500; font-size: 15px; width: 16px; text-align: center; }
+  .nav-item .lock { font-size: 11px; width: 16px; text-align: center; }
+  .nav-item .unread { background: #c41e3a; color: #fff; font-size: 10px; font-weight: 700; padding: 1px 5px; border-radius: 8px; margin-left: auto; }
+  .nav-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .nav-item .dot.online { background: #22c55e; }
+  .nav-item .dot.offline { background: #6b7280; }
+  .nav-item .dot.away { background: #f59e0b; }
+
+  .sidebar-user { padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; gap: 10px; }
+  .sidebar-user .avatar { width: 32px; height: 32px; border-radius: 50%; background: #c41e3a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 600; position: relative; }
+  .sidebar-user .avatar .status { position: absolute; bottom: -1px; right: -1px; width: 10px; height: 10px; border-radius: 50%; background: #22c55e; border: 2px solid #1a1a2e; }
+  .sidebar-user .name { font-size: 13px; color: #fff; font-weight: 500; }
+  .sidebar-user .role { font-size: 11px; color: #8888a0; }
+
+  /* Main Area */
+  .channel-header { padding: 12px 20px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; gap: 12px; }
+  .channel-header .hash { color: #c41e3a; font-size: 20px; font-weight: 600; }
+  .channel-header .info { flex: 1; }
+  .channel-header .info h2 { font-size: 15px; font-weight: 700; }
+  .channel-header .info p { font-size: 12px; color: #64748b; }
+  .channel-header .actions { display: flex; gap: 8px; }
+  .channel-header .actions button { background: none; border: 1px solid #e2e8f0; padding: 6px 10px; border-radius: 6px; font-size: 12px; color: #64748b; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .channel-header .actions button:hover { background: #f1f5f9; }
+  .channel-header .actions button.vote-btn { border-color: #c41e3a; color: #c41e3a; font-weight: 600; }
+
+  .messages { flex: 1; overflow-y: auto; padding: 16px 20px; }
+  .message { display: flex; gap: 10px; padding: 8px 0; }
+  .message + .message { border: none; }
+  .message .avatar { width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 600; }
+  .message .content { flex: 1; }
+  .message .meta { display: flex; align-items: baseline; gap: 8px; }
+  .message .meta .name { font-weight: 700; font-size: 14px; }
+  .message .meta .role-badge { font-size: 10px; background: #fef2f2; color: #c41e3a; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+  .message .meta .time { font-size: 11px; color: #94a3b8; }
+  .message .text { font-size: 14px; line-height: 1.5; margin-top: 2px; color: #334155; }
+  .message .text .mention { background: #fef2f2; color: #c41e3a; padding: 0 3px; border-radius: 3px; font-weight: 500; }
+  .message .reactions { display: flex; gap: 4px; margin-top: 6px; }
+  .message .reactions .reaction { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 2px 8px; border-radius: 12px; font-size: 12px; cursor: pointer; }
+  .message .reactions .reaction:hover { background: #e2e8f0; }
+  .message .thread-link { font-size: 12px; color: #3b82f6; margin-top: 4px; cursor: pointer; }
+  .message .thread-link:hover { text-decoration: underline; }
+
+  .date-divider { display: flex; align-items: center; gap: 12px; padding: 12px 0; }
+  .date-divider .line { flex: 1; height: 1px; background: #e2e8f0; }
+  .date-divider span { font-size: 12px; font-weight: 600; color: #94a3b8; }
+
+  /* Motion Banner */
+  .motion-banner { margin: 8px 0; padding: 14px 16px; background: linear-gradient(135deg, #fef2f2, #fff7ed); border: 1px solid #fecaca; border-radius: 10px; }
+  .motion-banner .motion-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .motion-banner .motion-header .icon { font-size: 16px; }
+  .motion-banner .motion-header .label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #c41e3a; }
+  .motion-banner .motion-header .status { font-size: 11px; background: #fbbf24; color: #1a1a2e; padding: 2px 8px; border-radius: 10px; font-weight: 600; margin-left: auto; }
+  .motion-banner .motion-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .motion-banner .motion-detail { font-size: 13px; color: #64748b; }
+  .motion-banner .motion-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .motion-banner .motion-actions button { padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+  .motion-banner .motion-actions .yea { background: #22c55e; color: #fff; }
+  .motion-banner .motion-actions .nay { background: #ef4444; color: #fff; }
+  .motion-banner .motion-actions .abstain { background: #e2e8f0; color: #64748b; }
+  .motion-banner .vote-progress { display: flex; gap: 16px; margin-top: 10px; font-size: 12px; color: #64748b; }
+  .motion-banner .vote-progress .count { font-weight: 700; }
+  .motion-banner .vote-bar { height: 6px; border-radius: 3px; background: #e2e8f0; margin-top: 8px; overflow: hidden; display: flex; }
+  .motion-banner .vote-bar .yea-bar { background: #22c55e; width: 62%; }
+  .motion-banner .vote-bar .nay-bar { background: #ef4444; width: 15%; }
+  .motion-banner .vote-bar .abstain-bar { background: #94a3b8; width: 8%; }
+
+  /* Composer */
+  .composer { padding: 12px 20px 16px; border-top: 1px solid #e2e8f0; }
+  .composer-box { border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; }
+  .composer-box textarea { width: 100%; border: none; padding: 12px 14px; font-size: 14px; resize: none; outline: none; font-family: inherit; height: 44px; }
+  .composer-toolbar { display: flex; align-items: center; padding: 6px 10px; background: #f8fafc; border-top: 1px solid #f1f5f9; }
+  .composer-toolbar button { background: none; border: none; padding: 4px 8px; font-size: 16px; color: #94a3b8; cursor: pointer; border-radius: 4px; }
+  .composer-toolbar button:hover { background: #e2e8f0; color: #64748b; }
+  .composer-toolbar .send { margin-left: auto; background: #c41e3a; color: #fff; padding: 5px 14px; border-radius: 6px; font-size: 13px; font-weight: 600; }
+  .composer-toolbar .send:hover { background: #a31830; }
+
+  /* Right Panel - Thread */
+  .right-header { padding: 12px 16px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center; justify-content: space-between; }
+  .right-header h3 { font-size: 14px; font-weight: 700; }
+  .right-header .close { background: none; border: none; font-size: 18px; color: #94a3b8; cursor: pointer; }
+  .thread-parent { padding: 16px; border-bottom: 1px solid #e2e8f0; }
+  .thread-replies { flex: 1; overflow-y: auto; padding: 12px 16px; }
+  .thread-replies .reply-count { font-size: 12px; color: #94a3b8; font-weight: 600; padding: 8px 0; display: flex; align-items: center; gap: 8px; }
+  .thread-replies .reply-count .line { flex: 1; height: 1px; background: #e2e8f0; }
+  .thread-composer { padding: 12px 16px; border-top: 1px solid #e2e8f0; }
+  .thread-composer input { width: 100%; border: 1px solid #e2e8f0; padding: 8px 12px; border-radius: 8px; font-size: 13px; outline: none; }
+  .thread-composer input:focus { border-color: #c41e3a; }
+
+  /* Colors for avatars */
+  .bg-red { background: #c41e3a; }
+  .bg-blue { background: #1e3a5f; }
+  .bg-green { background: #166534; }
+  .bg-purple { background: #6b21a8; }
+  .bg-orange { background: #c2410c; }
+  .bg-teal { background: #0d9488; }
+
+  /* Typing indicator */
+  .typing { padding: 4px 20px 8px; font-size: 12px; color: #94a3b8; font-style: italic; }
+
+  /* Notification badge area */
+  .notif-bar { background: #fef2f2; border-bottom: 1px solid #fecaca; padding: 8px 20px; font-size: 13px; color: #c41e3a; display: flex; align-items: center; gap: 8px; }
+  .notif-bar .icon { font-size: 14px; }
+  .notif-bar a { color: #c41e3a; font-weight: 600; text-decoration: underline; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div style="width:32px;height:32px;background:#c41e3a;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;">RLC</div>
+      <h1>RLC Messaging</h1>
+      <span class="badge">3</span>
+    </div>
+
+    <div class="sidebar-search">
+      <input type="text" placeholder="Search messages...">
+    </div>
+
+    <div class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-header">National <span class="plus">+</span></div>
+        <div class="nav-item active">
+          <span class="lock">&#128274;</span> national-board
+          <span class="unread">5</span>
+        </div>
+        <div class="nav-item">
+          <span class="hash">#</span> announcements
+        </div>
+        <div class="nav-item">
+          <span class="lock">&#128274;</span> finance-committee
+        </div>
+        <div class="nav-item">
+          <span class="lock">&#128274;</span> vetting-committee
+          <span class="unread">2</span>
+        </div>
+        <div class="nav-item">
+          <span class="hash">#</span> state-coordinators
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-header">Texas Chapter <span class="plus">+</span></div>
+        <div class="nav-item">
+          <span class="hash">#</span> tx-general
+        </div>
+        <div class="nav-item">
+          <span class="hash">#</span> tx-events
+        </div>
+        <div class="nav-item">
+          <span class="lock">&#128274;</span> tx-board
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-header">Florida Chapter <span class="plus">+</span></div>
+        <div class="nav-item">
+          <span class="hash">#</span> fl-general
+        </div>
+        <div class="nav-item">
+          <span class="hash">#</span> fl-organizing
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-header">Direct Messages <span class="plus">+</span></div>
+        <div class="nav-item">
+          <span class="dot online"></span> Dave Nalle
+        </div>
+        <div class="nav-item">
+          <span class="dot online"></span> Matt Nye
+          <span class="unread">1</span>
+        </div>
+        <div class="nav-item">
+          <span class="dot away"></span> Sarah Chen
+        </div>
+        <div class="nav-item">
+          <span class="dot offline"></span> Jim Roberts
+        </div>
+        <div class="nav-item">
+          <span class="dot offline"></span> TX Leadership (4)
+        </div>
+      </div>
+    </div>
+
+    <div class="sidebar-user">
+      <div class="avatar bg-red">MN<div class="status"></div></div>
+      <div>
+        <div class="name">Matt Nye</div>
+        <div class="role">National Admin</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Area -->
+  <div class="main">
+    <div class="channel-header">
+      <span class="hash">&#128274;</span>
+      <div class="info">
+        <h2>national-board</h2>
+        <p>National Board of Directors &mdash; 13 members</p>
+      </div>
+      <div class="actions">
+        <button>&#128269; Search</button>
+        <button>&#128206; Files</button>
+        <button>&#128101; 13</button>
+        <button class="vote-btn">&#9878; Active Motion</button>
+      </div>
+    </div>
+
+    <div class="notif-bar">
+      <span class="icon">&#9878;</span>
+      Active motion: "Approve Q1 2026 Budget" &mdash; voting closes in 2 hours. <a>Cast your vote</a>
+    </div>
+
+    <div class="messages">
+      <div class="date-divider">
+        <div class="line"></div>
+        <span>Today, February 15, 2026</span>
+        <div class="line"></div>
+      </div>
+
+      <!-- Motion Banner -->
+      <div class="motion-banner">
+        <div class="motion-header">
+          <span class="icon">&#9878;</span>
+          <span class="label">Motion #2026-004</span>
+          <span class="status">&#9201; Voting Open</span>
+        </div>
+        <div class="motion-title">Approve Q1 2026 Budget Allocation</div>
+        <div class="motion-detail">Proposed by Dave Nalle &bull; Seconded by Sarah Chen &bull; Quorum: 7 of 13 (8 voted)</div>
+        <div class="vote-bar">
+          <div class="yea-bar"></div>
+          <div class="nay-bar"></div>
+          <div class="abstain-bar"></div>
+        </div>
+        <div class="vote-progress">
+          <span>&#9989; Yea: <span class="count">5</span></span>
+          <span>&#10060; Nay: <span class="count">2</span></span>
+          <span>&#11036; Abstain: <span class="count">1</span></span>
+          <span style="margin-left:auto;">&#9201; Closes: 8:00 PM EST</span>
+        </div>
+        <div class="motion-actions">
+          <button class="yea">&#9989; Yea</button>
+          <button class="nay">&#10060; Nay</button>
+          <button class="abstain">Abstain</button>
+        </div>
+      </div>
+
+      <div class="message">
+        <div class="avatar bg-blue">DN</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name">Dave Nalle</span>
+            <span class="role-badge">Board Chair</span>
+            <span class="time">9:15 AM</span>
+          </div>
+          <div class="text">
+            Good morning everyone. I've put up the Q1 budget motion for a vote. Please review the attached spreadsheet before casting your vote. Key changes from last quarter: we're allocating an additional $5,000 to the state charter development fund.
+          </div>
+          <div class="reactions">
+            <span class="reaction">&#128077; 4</span>
+            <span class="reaction">&#128065; 7</span>
+          </div>
+          <div class="thread-link">&#128172; 3 replies</div>
+        </div>
+      </div>
+
+      <div class="message">
+        <div class="avatar bg-green">SC</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name">Sarah Chen</span>
+            <span class="role-badge">Treasurer</span>
+            <span class="time">9:32 AM</span>
+          </div>
+          <div class="text">
+            I second the motion. The budget looks solid. I've attached the detailed breakdown for anyone who wants to review the line items. <span class="mention">@all</span> please vote by 8 PM tonight so we can finalize at tomorrow's meeting.
+          </div>
+        </div>
+      </div>
+
+      <div class="message">
+        <div class="avatar bg-purple">JR</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name">Jim Roberts</span>
+            <span class="role-badge">TX State Chair</span>
+            <span class="time">10:05 AM</span>
+          </div>
+          <div class="text">
+            Quick question before I vote &mdash; does the charter development fund include the new chapter starter kits we discussed in December? I want to make sure that's still in scope for Q1.
+          </div>
+          <div class="reactions">
+            <span class="reaction">&#128076; 2</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="message">
+        <div class="avatar bg-blue">DN</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name">Dave Nalle</span>
+            <span class="role-badge">Board Chair</span>
+            <span class="time">10:12 AM</span>
+          </div>
+          <div class="text">
+            <span class="mention">@Jim Roberts</span> Yes, the starter kits are line item 4.2 in the spreadsheet. $2,500 allocated for printing + distribution. <span class="mention">@Sarah Chen</span> can you confirm the vendor quote?
+          </div>
+        </div>
+      </div>
+
+      <div class="message">
+        <div class="avatar bg-orange">RP</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name">Rachel Park</span>
+            <span class="role-badge">Secretary</span>
+            <span class="time">10:30 AM</span>
+          </div>
+          <div class="text">
+            FYI &mdash; we currently have 8 of 13 votes in. Need 7 for quorum, so we've met quorum. Voting stays open until 8 PM per the motion terms. I'll record the final tally in the minutes.
+          </div>
+          <div class="reactions">
+            <span class="reaction">&#128588; 3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="typing">Sarah Chen is typing...</div>
+
+    <div class="composer">
+      <div class="composer-box">
+        <textarea placeholder="Message #national-board"></textarea>
+        <div class="composer-toolbar">
+          <button title="Attach file">&#128206;</button>
+          <button title="Emoji">&#128522;</button>
+          <button title="Mention">@</button>
+          <button title="Create motion">&#9878;</button>
+          <button class="send">Send</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Panel - Thread -->
+  <div class="right-panel">
+    <div class="right-header">
+      <h3>Thread</h3>
+      <button class="close">&times;</button>
+    </div>
+
+    <div class="thread-parent">
+      <div class="message" style="padding:0;">
+        <div class="avatar bg-blue" style="width:32px;height:32px;font-size:11px;">DN</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name" style="font-size:13px;">Dave Nalle</span>
+            <span class="time">9:15 AM</span>
+          </div>
+          <div class="text" style="font-size:13px;">
+            Good morning everyone. I've put up the Q1 budget motion for a vote. Please review the attached spreadsheet...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="thread-replies">
+      <div class="reply-count">
+        <span>3 replies</span>
+        <div class="line"></div>
+      </div>
+
+      <div class="message" style="padding:6px 0;">
+        <div class="avatar bg-teal" style="width:28px;height:28px;font-size:10px;">MK</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name" style="font-size:13px;">Mike Kelly</span>
+            <span class="time">9:22 AM</span>
+          </div>
+          <div class="text" style="font-size:13px;">
+            Looks good. The event line items are reasonable based on what we spent in Q4. Voting yea.
+          </div>
+        </div>
+      </div>
+
+      <div class="message" style="padding:6px 0;">
+        <div class="avatar bg-green" style="width:28px;height:28px;font-size:10px;">SC</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name" style="font-size:13px;">Sarah Chen</span>
+            <span class="time">9:35 AM</span>
+          </div>
+          <div class="text" style="font-size:13px;">
+            Here's the detailed breakdown: <span style="color:#3b82f6;cursor:pointer;text-decoration:underline;">Q1-2026-Budget-Detail.xlsx</span> (48 KB)
+          </div>
+        </div>
+      </div>
+
+      <div class="message" style="padding:6px 0;">
+        <div class="avatar bg-orange" style="width:28px;height:28px;font-size:10px;">RP</div>
+        <div class="content">
+          <div class="meta">
+            <span class="name" style="font-size:13px;">Rachel Park</span>
+            <span class="time">10:28 AM</span>
+          </div>
+          <div class="text" style="font-size:13px;">
+            Thank you Sarah. I've linked the document to the motion record for the governance archive.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="thread-composer">
+      <input type="text" placeholder="Reply to thread...">
+    </div>
+  </div>
+</div>
+</body>
+</html>

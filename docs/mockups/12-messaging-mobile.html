@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=390, initial-scale=1.0">
+<title>RLC Messaging - Mobile Mockup</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f0f0; display: flex; gap: 24px; justify-content: center; padding: 32px; }
+
+  .phone { width: 390px; height: 844px; background: #fff; border-radius: 40px; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.1); position: relative; display: flex; flex-direction: column; }
+  .phone::before { content: ''; position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 126px; height: 34px; background: #000; border-radius: 0 0 18px 18px; z-index: 100; }
+  .status-bar { height: 54px; background: #1a1a2e; display: flex; align-items: flex-end; justify-content: space-between; padding: 0 24px 8px; font-size: 12px; color: #fff; font-weight: 600; flex-shrink: 0; }
+  .status-bar .time { font-size: 15px; font-weight: 700; }
+  .status-bar .icons { display: flex; gap: 4px; font-size: 12px; }
+
+  .phone-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+  /* Screen 1: Channel List (Inbox) */
+  .inbox-header { background: #1a1a2e; color: #fff; padding: 8px 16px 14px; flex-shrink: 0; }
+  .inbox-header .top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .inbox-header .top h1 { font-size: 22px; font-weight: 800; }
+  .inbox-header .top .compose { width: 32px; height: 32px; background: #c41e3a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; }
+  .inbox-header .search { background: rgba(255,255,255,0.1); border-radius: 10px; padding: 8px 12px; display: flex; align-items: center; gap: 8px; font-size: 14px; color: #8888a0; }
+
+  .inbox-tabs { display: flex; background: #fff; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
+  .inbox-tabs .tab { flex: 1; text-align: center; padding: 10px; font-size: 13px; font-weight: 600; color: #94a3b8; position: relative; }
+  .inbox-tabs .tab.active { color: #c41e3a; }
+  .inbox-tabs .tab.active::after { content: ''; position: absolute; bottom: 0; left: 20%; right: 20%; height: 2px; background: #c41e3a; border-radius: 1px; }
+  .inbox-tabs .tab .badge { background: #c41e3a; color: #fff; font-size: 10px; padding: 1px 5px; border-radius: 8px; margin-left: 4px; }
+
+  .channel-list { flex: 1; overflow-y: auto; }
+  .channel-item { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid #f1f5f9; }
+  .channel-item.unread { background: #fefce8; }
+  .channel-item .icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+  .channel-item .icon.national { background: #1a1a2e; color: #fff; }
+  .channel-item .icon.state { background: #1e3a5f; color: #fff; }
+  .channel-item .icon.chapter { background: #166534; color: #fff; }
+  .channel-item .icon.dm { background: #e2e8f0; color: #1a1a2e; font-size: 14px; font-weight: 700; }
+  .channel-item .icon.dm.online { box-shadow: inset 0 0 0 2px #fff, 0 0 0 2px #22c55e; }
+  .channel-item .info { flex: 1; min-width: 0; }
+  .channel-item .info .name { font-size: 15px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .channel-item .info .name .lock { font-size: 12px; color: #94a3b8; }
+  .channel-item .info .preview { font-size: 13px; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .channel-item .info .preview.unread { color: #334155; font-weight: 500; }
+  .channel-item .meta { text-align: right; flex-shrink: 0; }
+  .channel-item .meta .time { font-size: 11px; color: #94a3b8; }
+  .channel-item .meta .count { background: #c41e3a; color: #fff; font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 10px; margin-top: 4px; display: inline-block; }
+
+  /* Bottom Tab Bar */
+  .tab-bar { display: flex; background: #fff; border-top: 1px solid #e2e8f0; padding: 6px 0 20px; flex-shrink: 0; }
+  .tab-bar .tab-item { flex: 1; text-align: center; font-size: 10px; color: #94a3b8; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .tab-bar .tab-item.active { color: #c41e3a; }
+  .tab-bar .tab-item .tab-icon { font-size: 20px; position: relative; }
+  .tab-bar .tab-item .tab-badge { position: absolute; top: -4px; right: -8px; background: #c41e3a; color: #fff; font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 6px; }
+
+  /* Screen 2: Chat View */
+  .chat-header { background: #1a1a2e; color: #fff; padding: 6px 12px 12px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .chat-header .back { font-size: 22px; color: #fff; padding: 4px; cursor: pointer; }
+  .chat-header .channel-icon { width: 36px; height: 36px; border-radius: 10px; background: rgba(196,30,58,0.2); display: flex; align-items: center; justify-content: center; font-size: 14px; color: #fff; }
+  .chat-header .channel-info { flex: 1; }
+  .chat-header .channel-info .name { font-size: 16px; font-weight: 700; }
+  .chat-header .channel-info .sub { font-size: 11px; color: #8888a0; }
+  .chat-header .header-actions { display: flex; gap: 12px; font-size: 18px; }
+
+  .motion-strip { background: linear-gradient(135deg, #fef2f2, #fff7ed); border-bottom: 1px solid #fecaca; padding: 10px 16px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .motion-strip .motion-icon { font-size: 14px; }
+  .motion-strip .motion-text { flex: 1; font-size: 12px; color: #c41e3a; font-weight: 500; }
+  .motion-strip .motion-cta { font-size: 12px; color: #c41e3a; font-weight: 700; text-decoration: underline; }
+
+  .chat-messages { flex: 1; overflow-y: auto; padding: 12px 16px; background: #fff; }
+  .chat-msg { display: flex; gap: 8px; margin-bottom: 16px; }
+  .chat-msg .avatar { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .chat-msg .bubble { flex: 1; }
+  .chat-msg .bubble .meta { display: flex; align-items: baseline; gap: 6px; margin-bottom: 2px; }
+  .chat-msg .bubble .meta .name { font-size: 13px; font-weight: 700; }
+  .chat-msg .bubble .meta .role-badge { font-size: 9px; background: #fef2f2; color: #c41e3a; padding: 1px 5px; border-radius: 3px; font-weight: 600; }
+  .chat-msg .bubble .meta .time { font-size: 10px; color: #94a3b8; }
+  .chat-msg .bubble .text { font-size: 14px; line-height: 1.45; color: #334155; }
+  .chat-msg .bubble .text .mention { background: #fef2f2; color: #c41e3a; padding: 0 2px; border-radius: 2px; font-weight: 500; }
+  .chat-msg .bubble .reactions { display: flex; gap: 4px; margin-top: 4px; }
+  .chat-msg .bubble .reactions span { background: #f1f5f9; border: 1px solid #e2e8f0; padding: 1px 6px; border-radius: 10px; font-size: 11px; }
+  .chat-msg .bubble .thread { font-size: 11px; color: #3b82f6; margin-top: 4px; }
+
+  .chat-date { text-align: center; font-size: 11px; color: #94a3b8; font-weight: 600; padding: 8px 0; }
+
+  /* Motion card in chat */
+  .chat-motion { margin: 8px 0 16px; padding: 12px; background: linear-gradient(135deg, #fef2f2, #fff7ed); border: 1px solid #fecaca; border-radius: 12px; }
+  .chat-motion .cm-header { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .chat-motion .cm-header .cm-icon { font-size: 13px; }
+  .chat-motion .cm-header .cm-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #c41e3a; }
+  .chat-motion .cm-header .cm-status { font-size: 10px; background: #fbbf24; color: #1a1a2e; padding: 2px 6px; border-radius: 8px; font-weight: 600; margin-left: auto; }
+  .chat-motion .cm-title { font-size: 14px; font-weight: 700; margin-bottom: 3px; }
+  .chat-motion .cm-detail { font-size: 11px; color: #64748b; }
+  .chat-motion .cm-bar { height: 5px; border-radius: 3px; background: #e2e8f0; margin-top: 8px; overflow: hidden; display: flex; }
+  .chat-motion .cm-bar .yea { background: #22c55e; width: 62%; }
+  .chat-motion .cm-bar .nay { background: #ef4444; width: 15%; }
+  .chat-motion .cm-bar .abs { background: #94a3b8; width: 8%; }
+  .chat-motion .cm-votes { display: flex; gap: 10px; margin-top: 6px; font-size: 11px; color: #64748b; }
+  .chat-motion .cm-buttons { display: flex; gap: 6px; margin-top: 8px; }
+  .chat-motion .cm-buttons button { flex: 1; padding: 8px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; border: none; }
+  .chat-motion .cm-buttons .yea-btn { background: #22c55e; color: #fff; }
+  .chat-motion .cm-buttons .nay-btn { background: #ef4444; color: #fff; }
+  .chat-motion .cm-buttons .abs-btn { background: #e2e8f0; color: #64748b; }
+
+  .chat-composer { padding: 8px 12px 24px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .chat-composer .attach { font-size: 20px; color: #94a3b8; }
+  .chat-composer input { flex: 1; background: #f1f5f9; border: none; padding: 10px 14px; border-radius: 20px; font-size: 14px; outline: none; }
+  .chat-composer .send-btn { width: 36px; height: 36px; background: #c41e3a; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 16px; flex-shrink: 0; }
+
+  /* Screen 3: DM View */
+  .dm-header { background: #1a1a2e; color: #fff; padding: 6px 12px 12px; display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+  .dm-header .back { font-size: 22px; color: #fff; padding: 4px; }
+  .dm-header .dm-avatar { width: 36px; height: 36px; border-radius: 50%; background: #c41e3a; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; font-weight: 700; position: relative; }
+  .dm-header .dm-avatar .online-dot { position: absolute; bottom: 0; right: 0; width: 10px; height: 10px; border-radius: 50%; background: #22c55e; border: 2px solid #1a1a2e; }
+  .dm-header .dm-info { flex: 1; }
+  .dm-header .dm-info .name { font-size: 16px; font-weight: 700; }
+  .dm-header .dm-info .status { font-size: 11px; color: #22c55e; }
+  .dm-header .header-actions { display: flex; gap: 12px; font-size: 18px; }
+
+  .dm-messages { flex: 1; overflow-y: auto; padding: 12px 16px; background: #f8fafc; }
+  .dm-msg { margin-bottom: 12px; }
+  .dm-msg.them { display: flex; gap: 8px; }
+  .dm-msg.them .dm-bubble { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px 16px 16px 4px; padding: 10px 14px; max-width: 80%; font-size: 14px; line-height: 1.4; color: #334155; }
+  .dm-msg.me { display: flex; justify-content: flex-end; }
+  .dm-msg.me .dm-bubble { background: #c41e3a; color: #fff; border-radius: 16px 16px 4px 16px; padding: 10px 14px; max-width: 80%; font-size: 14px; line-height: 1.4; }
+  .dm-msg .dm-time { font-size: 10px; color: #94a3b8; margin-top: 2px; }
+  .dm-msg.me .dm-time { text-align: right; }
+  .dm-msg.them .dm-time { margin-left: 40px; }
+  .dm-msg.them .mini-avatar { width: 28px; height: 28px; border-radius: 50%; background: #1e3a5f; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 10px; font-weight: 700; flex-shrink: 0; margin-top: 2px; }
+  .dm-msg .img-preview { width: 200px; border-radius: 12px; margin-top: 6px; background: #e2e8f0; height: 140px; display: flex; align-items: center; justify-content: center; font-size: 12px; color: #64748b; }
+
+  .dm-composer { padding: 8px 12px 24px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+  /* Colors */
+  .bg-red { background: #c41e3a; }
+  .bg-blue { background: #1e3a5f; }
+  .bg-green { background: #166534; }
+  .bg-purple { background: #6b21a8; }
+  .bg-orange { background: #c2410c; }
+  .bg-teal { background: #0d9488; }
+
+  /* Label */
+  .phone-label { text-align: center; margin-top: 16px; font-size: 13px; font-weight: 600; color: #64748b; letter-spacing: 0.3px; }
+</style>
+</head>
+<body>
+
+<!-- Screen 1: Inbox / Channel List -->
+<div>
+<div class="phone">
+  <div class="status-bar">
+    <span class="time">6:25</span>
+    <span class="icons">&#9679;&#9679;&#9679;&#9679; &nbsp;&#128246; &nbsp;&#128267;</span>
+  </div>
+  <div class="phone-content">
+    <div class="inbox-header">
+      <div class="top">
+        <h1>Messages</h1>
+        <div class="compose">&#9998;</div>
+      </div>
+      <div class="search">&#128269; &nbsp;Search messages...</div>
+    </div>
+
+    <div class="inbox-tabs">
+      <div class="tab active">Channels <span class="badge">7</span></div>
+      <div class="tab">DMs <span class="badge">2</span></div>
+      <div class="tab">Mentions</div>
+    </div>
+
+    <div class="channel-list">
+      <div class="channel-item unread">
+        <div class="icon national">&#128274;</div>
+        <div class="info">
+          <div class="name"><span class="lock">&#128274;</span> national-board</div>
+          <div class="preview unread">Dave Nalle: Good morning everyone. I've put up the Q1 budget...</div>
+        </div>
+        <div class="meta">
+          <div class="time">10:30 AM</div>
+          <div class="count">5</div>
+        </div>
+      </div>
+
+      <div class="channel-item unread">
+        <div class="icon national">&#128274;</div>
+        <div class="info">
+          <div class="name"><span class="lock">&#128274;</span> vetting-committee</div>
+          <div class="preview unread">Sarah Chen: Section 3 assignments are ready for review</div>
+        </div>
+        <div class="meta">
+          <div class="time">9:45 AM</div>
+          <div class="count">2</div>
+        </div>
+      </div>
+
+      <div class="channel-item">
+        <div class="icon national">#</div>
+        <div class="info">
+          <div class="name"># announcements</div>
+          <div class="preview">Matt Nye: Welcome to the new RLC messaging platform!</div>
+        </div>
+        <div class="meta">
+          <div class="time">Yesterday</div>
+        </div>
+      </div>
+
+      <div class="channel-item">
+        <div class="icon national">#</div>
+        <div class="info">
+          <div class="name"># state-coordinators</div>
+          <div class="preview">Jim Roberts: Texas chapter drive is going well, 3 new...</div>
+        </div>
+        <div class="meta">
+          <div class="time">Yesterday</div>
+        </div>
+      </div>
+
+      <div class="channel-item">
+        <div class="icon state">TX</div>
+        <div class="info">
+          <div class="name"># tx-general</div>
+          <div class="preview">Rachel Park: Anyone attending the Austin meetup next week?</div>
+        </div>
+        <div class="meta">
+          <div class="time">Feb 14</div>
+        </div>
+      </div>
+
+      <div class="channel-item">
+        <div class="icon state">TX</div>
+        <div class="info">
+          <div class="name"># tx-events</div>
+          <div class="preview">Jim Roberts: Updated the Spring Convention schedule</div>
+        </div>
+        <div class="meta">
+          <div class="time">Feb 13</div>
+        </div>
+      </div>
+
+      <div class="channel-item">
+        <div class="icon chapter">FL</div>
+        <div class="info">
+          <div class="name"># fl-organizing</div>
+          <div class="preview">Mike Kelly: Good progress on the Tampa chapter petition</div>
+        </div>
+        <div class="meta">
+          <div class="time">Feb 12</div>
+        </div>
+      </div>
+
+      <div class="channel-item">
+        <div class="icon national">&#128274;</div>
+        <div class="info">
+          <div class="name"><span class="lock">&#128274;</span> finance-committee</div>
+          <div class="preview">Sarah Chen: Q4 audit complete, all clear</div>
+        </div>
+        <div class="meta">
+          <div class="time">Feb 11</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-bar">
+      <div class="tab-item">
+        <span class="tab-icon">&#127968;</span>
+        <span>Home</span>
+      </div>
+      <div class="tab-item active">
+        <span class="tab-icon">&#128172;<span class="tab-badge">9</span></span>
+        <span>Messages</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">&#128197;</span>
+        <span>Events</span>
+      </div>
+      <div class="tab-item">
+        <span class="tab-icon">&#128100;</span>
+        <span>Profile</span>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="phone-label">Inbox View</div>
+</div>
+
+<!-- Screen 2: Channel Chat View -->
+<div>
+<div class="phone">
+  <div class="status-bar">
+    <span class="time">6:25</span>
+    <span class="icons">&#9679;&#9679;&#9679;&#9679; &nbsp;&#128246; &nbsp;&#128267;</span>
+  </div>
+  <div class="phone-content">
+    <div class="chat-header">
+      <span class="back">&larr;</span>
+      <div class="channel-icon">&#128274;</div>
+      <div class="channel-info">
+        <div class="name">national-board</div>
+        <div class="sub">13 members &bull; 3 online</div>
+      </div>
+      <div class="header-actions">
+        <span>&#128269;</span>
+        <span>&#8942;</span>
+      </div>
+    </div>
+
+    <div class="motion-strip">
+      <span class="motion-icon">&#9878;</span>
+      <span class="motion-text">Active: "Q1 Budget" &mdash; 2h left</span>
+      <span class="motion-cta">Vote</span>
+    </div>
+
+    <div class="chat-messages">
+      <div class="chat-date">Today, February 15</div>
+
+      <div class="chat-motion">
+        <div class="cm-header">
+          <span class="cm-icon">&#9878;</span>
+          <span class="cm-label">Motion #2026-004</span>
+          <span class="cm-status">Voting</span>
+        </div>
+        <div class="cm-title">Approve Q1 2026 Budget</div>
+        <div class="cm-detail">Dave Nalle &bull; Seconded by Sarah Chen</div>
+        <div class="cm-bar">
+          <div class="yea"></div>
+          <div class="nay"></div>
+          <div class="abs"></div>
+        </div>
+        <div class="cm-votes">
+          <span>&#9989; 5</span>
+          <span>&#10060; 2</span>
+          <span>&#11036; 1</span>
+          <span style="margin-left:auto;">8/13</span>
+        </div>
+        <div class="cm-buttons">
+          <button class="yea-btn">&#9989; Yea</button>
+          <button class="nay-btn">&#10060; Nay</button>
+          <button class="abs-btn">Pass</button>
+        </div>
+      </div>
+
+      <div class="chat-msg">
+        <div class="avatar bg-blue">DN</div>
+        <div class="bubble">
+          <div class="meta">
+            <span class="name">Dave Nalle</span>
+            <span class="role-badge">Chair</span>
+            <span class="time">9:15 AM</span>
+          </div>
+          <div class="text">Good morning everyone. Please review the attached spreadsheet before casting your vote.</div>
+          <div class="reactions">
+            <span>&#128077; 4</span>
+            <span>&#128065; 7</span>
+          </div>
+          <div class="thread">&#128172; 3 replies</div>
+        </div>
+      </div>
+
+      <div class="chat-msg">
+        <div class="avatar bg-green">SC</div>
+        <div class="bubble">
+          <div class="meta">
+            <span class="name">Sarah Chen</span>
+            <span class="role-badge">Treasurer</span>
+            <span class="time">9:32 AM</span>
+          </div>
+          <div class="text">I second the motion. <span class="mention">@all</span> please vote by 8 PM tonight.</div>
+        </div>
+      </div>
+
+      <div class="chat-msg">
+        <div class="avatar bg-purple">JR</div>
+        <div class="bubble">
+          <div class="meta">
+            <span class="name">Jim Roberts</span>
+            <span class="time">10:05 AM</span>
+          </div>
+          <div class="text">Does the charter fund include the starter kits from December?</div>
+          <div class="reactions"><span>&#128076; 2</span></div>
+        </div>
+      </div>
+
+      <div class="chat-msg">
+        <div class="avatar bg-blue">DN</div>
+        <div class="bubble">
+          <div class="meta">
+            <span class="name">Dave Nalle</span>
+            <span class="time">10:12 AM</span>
+          </div>
+          <div class="text"><span class="mention">@Jim</span> Yes, line item 4.2 — $2,500 for printing.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-composer">
+      <span class="attach">&#43;</span>
+      <input type="text" placeholder="Message #national-board">
+      <div class="send-btn">&#9650;</div>
+    </div>
+  </div>
+</div>
+<div class="phone-label">Channel Chat</div>
+</div>
+
+<!-- Screen 3: DM View -->
+<div>
+<div class="phone">
+  <div class="status-bar">
+    <span class="time">6:25</span>
+    <span class="icons">&#9679;&#9679;&#9679;&#9679; &nbsp;&#128246; &nbsp;&#128267;</span>
+  </div>
+  <div class="phone-content">
+    <div class="dm-header">
+      <span class="back">&larr;</span>
+      <div class="dm-avatar">DN<div class="online-dot"></div></div>
+      <div class="dm-info">
+        <div class="name">Dave Nalle</div>
+        <div class="status">Online</div>
+      </div>
+      <div class="header-actions">
+        <span>&#128222;</span>
+        <span>&#8942;</span>
+      </div>
+    </div>
+
+    <div class="dm-messages">
+      <div class="chat-date">Today, February 15</div>
+
+      <div class="dm-msg them">
+        <div class="mini-avatar">DN</div>
+        <div>
+          <div class="dm-bubble">Hey Matt, did you see the vetting report for the Arizona candidate? I think we need to discuss it before the board meeting.</div>
+          <div class="dm-time">8:30 AM</div>
+        </div>
+      </div>
+
+      <div class="dm-msg me">
+        <div>
+          <div class="dm-bubble">Yes, I reviewed it this morning. The digital audit flagged a few concerning social media posts from 2023.</div>
+          <div class="dm-time">8:45 AM</div>
+        </div>
+      </div>
+
+      <div class="dm-msg them">
+        <div class="mini-avatar">DN</div>
+        <div>
+          <div class="dm-bubble">Right. Can you pull the specific screenshots? I want to have them ready for the committee review.</div>
+          <div class="dm-time">8:47 AM</div>
+        </div>
+      </div>
+
+      <div class="dm-msg me">
+        <div>
+          <div class="dm-bubble">Sure, I'll compile them and share in the vetting channel. Give me about 30 minutes.</div>
+          <div class="dm-time">8:50 AM</div>
+        </div>
+      </div>
+
+      <div class="dm-msg them">
+        <div class="mini-avatar">DN</div>
+        <div>
+          <div class="dm-bubble">Perfect. Also, the Q1 budget motion is up for vote in #national-board. Make sure you get your vote in before 8 PM.</div>
+          <div class="dm-time">9:20 AM</div>
+        </div>
+      </div>
+
+      <div class="dm-msg me">
+        <div>
+          <div class="dm-bubble">Already voted yea 👍 The charter development fund increase is a good call.</div>
+          <div class="dm-time">9:22 AM</div>
+        </div>
+      </div>
+
+      <div class="dm-msg them">
+        <div class="mini-avatar">DN</div>
+        <div>
+          <div class="dm-bubble">Great. One more thing — Sarah mentioned she's sending over the vendor quote for the chapter starter kits. Can you review when it comes in?</div>
+          <div class="dm-time">10:15 AM</div>
+        </div>
+      </div>
+
+      <div class="dm-msg me">
+        <div>
+          <div class="dm-bubble">Will do. I'll loop in Jim too since he asked about it in the board channel.</div>
+          <div class="dm-time">10:18 AM</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dm-composer">
+      <span class="attach" style="font-size:20px;color:#94a3b8;">&#43;</span>
+      <input type="text" placeholder="Message Dave Nalle" style="flex:1;background:#f1f5f9;border:none;padding:10px 14px;border-radius:20px;font-size:14px;outline:none;">
+      <div class="send-btn" style="width:36px;height:36px;background:#c41e3a;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;flex-shrink:0;">&#9650;</div>
+    </div>
+  </div>
+</div>
+<div class="phone-label">Direct Message</div>
+</div>
+
+</body>
+</html>
