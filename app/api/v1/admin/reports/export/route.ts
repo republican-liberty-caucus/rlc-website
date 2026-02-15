@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { getDescendantIds } from '@/lib/admin/report-helpers';
 import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { escapeCsvField } from '@/lib/csv';
@@ -37,34 +36,6 @@ export async function GET(request: Request) {
   }
 
   // Contribution report with date filtering
-  let query = supabase
-    .from('rlc_contributions')
-    .select(`
-      id, amount, contribution_type, payment_status, created_at, is_recurring,
-      member:rlc_contacts(first_name, last_name, email),
-      charter:rlc_charters(name)
-    `)
-    .eq('payment_status', 'completed')
-    .order('created_at', { ascending: false })
-    .limit(10000);
-
-  if (startParam) {
-    query = query.gte('created_at', new Date(startParam).toISOString());
-  }
-  if (endParam) {
-    query = query.lte('created_at', new Date(endParam).toISOString());
-  }
-  if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
-    query = query.in('charter_id', effectiveCharterIds);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    logger.error('Report export failed:', error);
-    return apiError('Export failed', ApiErrorCode.INTERNAL_ERROR, 500);
-  }
-
   type ContributionRow = {
     id: string;
     amount: number;
@@ -76,7 +47,41 @@ export async function GET(request: Request) {
     charter: { name: string } | null;
   };
 
-  const rows = (data || []) as ContributionRow[];
+  let query = supabase
+    .from('rlc_contributions')
+    .select(`
+      id, amount, contribution_type, payment_status, created_at, is_recurring,
+      member:rlc_contacts(first_name, last_name, email),
+      charter:rlc_charters(name)
+    `)
+    .eq('payment_status', 'completed')
+    .order('created_at', { ascending: false });
+
+  if (startParam) {
+    query = query.gte('created_at', new Date(startParam).toISOString());
+  }
+  if (endParam) {
+    query = query.lte('created_at', new Date(endParam).toISOString());
+  }
+  if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
+    query = query.in('charter_id', effectiveCharterIds);
+  }
+
+  // Fetch all rows via pagination (PostgREST default is 1000 per request)
+  const PAGE_SIZE = 1000;
+  const rows: ContributionRow[] = [];
+  let offset = 0;
+  while (true) {
+    const { data, error } = await query.range(offset, offset + PAGE_SIZE - 1);
+    if (error) {
+      logger.error('Report export failed:', error);
+      return apiError('Export failed', ApiErrorCode.INTERNAL_ERROR, 500);
+    }
+    if (!data?.length) break;
+    rows.push(...(data as ContributionRow[]));
+    if (data.length < PAGE_SIZE) break;
+    offset += PAGE_SIZE;
+  }
 
   // Build CSV
   const headers = ['Date', 'Name', 'Email', 'Type', 'Amount', 'Recurring', 'Charter', 'Status'];
@@ -100,13 +105,14 @@ export async function GET(request: Request) {
     csvLines.push(fields.map(escapeCsvField).join(','));
   }
 
-  const csv = csvLines.join('\n');
+  // Prepend UTF-8 BOM for Excel compatibility
+  const csv = '\uFEFF' + csvLines.join('\n');
 
   return new Response(csv, {
-    status: 200,
     headers: {
-      'Content-Type': 'text/csv',
+      'Content-Type': 'text/csv; charset=utf-8',
       'Content-Disposition': `attachment; filename="rlc-contributions-${new Date().toISOString().split('T')[0]}.csv"`,
+      'Cache-Control': 'no-store',
     },
   });
 }
