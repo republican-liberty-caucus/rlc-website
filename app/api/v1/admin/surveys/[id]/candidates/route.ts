@@ -89,7 +89,8 @@ export async function POST(
       candidate_county: input.candidateCounty || null,
       access_token: accessToken,
       token_expires_at: tokenExpiresAt.toISOString(),
-      status: 'pending',
+      status: 'submitted',
+      submitted_at: new Date().toISOString(),
     } as never)
     .select()
     .single();
