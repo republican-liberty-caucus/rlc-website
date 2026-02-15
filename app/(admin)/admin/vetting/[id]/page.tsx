@@ -121,7 +121,8 @@ export default async function VettingDetailPage({
       .from('rlc_candidate_responses')
       .select(`
         id, candidate_name, candidate_email, candidate_party, candidate_office,
-        candidate_district, total_score, status, submitted_at, created_at,
+        candidate_district, contact_id, total_score, status, submitted_at, created_at,
+        contact:rlc_members(id, first_name, last_name, email, membership_status),
         survey:rlc_surveys(id, title, election_type, election_date, state)
       `)
       .eq('id', vetting.candidate_response_id)

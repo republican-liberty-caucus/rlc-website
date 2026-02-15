@@ -37,7 +37,7 @@ export function VettingDetailTabs({ vetting, permissions, committeeMembers, surv
       </TabsList>
 
       <TabsContent value="overview">
-        <VettingOverviewTab vetting={vetting} />
+        <VettingOverviewTab vetting={vetting} surveyResponse={surveyResponse} />
       </TabsContent>
 
       <TabsContent value="survey">

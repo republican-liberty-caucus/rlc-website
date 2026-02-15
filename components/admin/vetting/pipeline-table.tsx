@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Play } from 'lucide-react';
+import { Play, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { useToast } from '@/lib/hooks/use-toast';
@@ -16,6 +16,7 @@ export interface PipelineRow {
   candidate_state: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
+  contact_id: string | null;
   office_type: { name: string; district_label: string | null } | null;
   stage: string;
   total_score: number | null;
@@ -124,7 +125,18 @@ export function PipelineTable({ rows, canCreate, emptyMessage = 'No candidates i
                     !isSubmission && row.urgency === 'amber' && 'bg-amber-50 dark:bg-amber-950/20'
                   )}
                 >
-                  <td className="px-4 py-3 text-sm font-medium">{row.candidate_name}</td>
+                  <td className="px-4 py-3 text-sm font-medium">
+                    {row.candidate_name}
+                    {row.contact_id && (
+                      <Link
+                        href={`/admin/members/${row.contact_id}`}
+                        className="ml-1.5 inline-flex text-muted-foreground hover:text-foreground"
+                        title="View contact record"
+                      >
+                        <User className="h-3.5 w-3.5" />
+                      </Link>
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-sm text-muted-foreground">
                     {row.candidate_state || '-'}
                   </td>

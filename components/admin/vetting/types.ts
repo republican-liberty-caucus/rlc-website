@@ -124,6 +124,14 @@ export interface SurveyResponseData {
   candidate_party: string | null;
   candidate_office: string | null;
   candidate_district: string | null;
+  contact_id: string | null;
+  contact: {
+    id: string;
+    first_name: string;
+    last_name: string;
+    email: string | null;
+    membership_status: string;
+  } | null;
   total_score: number | null;
   status: string;
   submitted_at: string | null;

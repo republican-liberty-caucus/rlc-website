@@ -73,6 +73,7 @@ enum HouseholdRole {
 
 enum UserRole {
   member
+  candidate
   charter_officer
   charter_admin
   state_chair
@@ -405,6 +406,7 @@ model Contact {
   splitConfigsUpdated    CharterSplitConfig[] @relation("SplitConfigUpdater")
 
   // Candidate vetting relations
+  candidateResponses        CandidateResponse[]
   committeeMembers          CandidateVettingCommitteeMember[]
   vettingSectionAssignments CandidateVettingSectionAssignment[]
   boardVotes                CandidateVettingBoardVote[]
@@ -710,6 +712,8 @@ model CandidateResponse {
   id                String                  @id @default(uuid())
   surveyId          String                  @map("survey_id")
   survey            Survey                  @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  contactId         String?                 @map("contact_id")
+  contact           Contact?                @relation(fields: [contactId], references: [id])
   candidateName     String                  @map("candidate_name")
   candidateEmail    String?                 @map("candidate_email")
   candidateParty    String?                 @map("candidate_party")
@@ -730,6 +734,7 @@ model CandidateResponse {
   answers           SurveyAnswer[]
   vetting           CandidateVetting?
 
+  @@index([contactId])
   @@map("rlc_candidate_responses")
 }
 
