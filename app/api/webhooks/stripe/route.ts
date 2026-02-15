@@ -25,6 +25,46 @@ const SUBSCRIPTION_STATUS_MAP: Record<string, MembershipStatus> = {
   incomplete_expired: 'expired',
 };
 
+// Helper to create a membership history record (non-fatal audit trail)
+async function createMembershipRecord(
+  supabase: ReturnType<typeof createServerClient>,
+  params: {
+    contactId: string;
+    tier: MembershipTier;
+    status: MembershipStatus;
+    startDate: string;
+    expiryDate: string;
+    joinDate: string;
+    amount: number;
+    currency: string;
+    isAutoRenew: boolean;
+    stripeSubscriptionId: string | null;
+  }
+): Promise<void> {
+  try {
+    const { error } = await supabase
+      .from('rlc_memberships')
+      .insert({
+        contact_id: params.contactId,
+        membership_tier: params.tier,
+        membership_status: params.status,
+        start_date: params.startDate,
+        expiry_date: params.expiryDate,
+        join_date: params.joinDate,
+        amount: params.amount,
+        currency: params.currency,
+        is_auto_renew: params.isAutoRenew,
+        stripe_subscription_id: params.stripeSubscriptionId,
+      } as never);
+
+    if (error) {
+      logger.error(`Failed to create membership record for contact ${params.contactId} (non-fatal):`, error);
+    }
+  } catch (err) {
+    logger.error(`Failed to create membership record for contact ${params.contactId} (non-fatal):`, err);
+  }
+}
+
 // Helper to find a member by stripe_customer_id with proper error handling
 async function findMemberByCustomerId(
   supabase: ReturnType<typeof createServerClient>,
@@ -415,6 +455,20 @@ async function handleCheckoutComplete(
     }
   }
 
+  // Create membership history record (non-fatal)
+  await createMembershipRecord(supabase, {
+    contactId: member.id,
+    tier: membershipTier,
+    status: 'new_member',
+    startDate: now.toISOString(),
+    expiryDate: expiryDate.toISOString(),
+    joinDate: member.membership_join_date || now.toISOString(),
+    amount: (session.amount_total || 0) / 100,
+    currency: session.currency?.toUpperCase() || 'USD',
+    isAutoRenew: session.mode === 'subscription',
+    stripeSubscriptionId: (session.subscription as string) || null,
+  });
+
   // Sync to HighLevel (non-fatal)
   try {
     await syncMemberToHighLevel({
@@ -602,6 +656,20 @@ async function handleInvoicePaid(
       logger.error(`Dues split failed for renewal contribution ${(contributionRow as { id: string }).id} (non-fatal):`, splitError);
     }
   }
+
+  // Create membership history record (non-fatal)
+  await createMembershipRecord(supabase, {
+    contactId: member.id,
+    tier: member.membership_tier,
+    status: 'current',
+    startDate: renewalStart.toISOString(),
+    expiryDate: expiryDate.toISOString(),
+    joinDate: member.membership_join_date || renewalStart.toISOString(),
+    amount: (invoice.amount_paid || 0) / 100,
+    currency: invoice.currency?.toUpperCase() || 'USD',
+    isAutoRenew: true,
+    stripeSubscriptionId: (invoice.subscription as string) || null,
+  });
 
   // Sync renewal to HighLevel (non-fatal)
   try {
