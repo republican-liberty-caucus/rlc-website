@@ -17,7 +17,7 @@ export default function ContactPage() {
 
       <section className="bg-rlc-blue py-16 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="font-heading text-4xl font-bold">Contact Us</h1>
+          <h1 className="font-heading text-2xl font-bold sm:text-3xl md:text-4xl">Contact Us</h1>
           <p className="mx-auto mt-4 max-w-2xl text-xl text-white/90">
             Have a question or want to get involved? We&apos;d love to hear from you.
           </p>

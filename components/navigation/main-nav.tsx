@@ -308,7 +308,7 @@ export function MainNav() {
 
         {/* Mobile Menu Button */}
         <button
-          className="md:hidden"
+          className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
           aria-label="Toggle menu"
           aria-expanded={mobileMenuOpen}

@@ -19,7 +19,7 @@ export default function JoinPage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-rlc-blue to-rlc-red py-16 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold">Join the Republican Liberty Caucus</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">Join the Republican Liberty Caucus</h1>
           <p className="mx-auto mt-4 max-w-2xl text-xl text-white/90">
             Stand with thousands of liberty-minded Republicans working to advance individual
             rights, limited government, and free markets within the GOP.

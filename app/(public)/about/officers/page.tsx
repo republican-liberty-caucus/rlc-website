@@ -47,7 +47,7 @@ export default function OfficersPage() {
 
       <section className="bg-rlc-blue py-16 text-white">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold">Officers & Board</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">Officers & Board</h1>
           <p className="mt-4 text-xl text-white/90">
             National leadership of the Republican Liberty Caucus
           </p>

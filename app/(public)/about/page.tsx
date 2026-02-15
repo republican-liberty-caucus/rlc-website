@@ -57,7 +57,7 @@ export default function AboutPage() {
       {/* Hero Section */}
       <section className="bg-rlc-blue py-16 text-white">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold">About the Republican Liberty Caucus</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">About the Republican Liberty Caucus</h1>
           <p className="mt-4 text-xl text-white/90">
             Advancing liberty within the Republican Party since 1991
           </p>

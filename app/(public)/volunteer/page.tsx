@@ -40,7 +40,7 @@ export default function VolunteerPage() {
 
       <section className="bg-gradient-to-br from-rlc-red to-rlc-red/80 py-16 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="font-heading text-4xl font-bold">Volunteer for Liberty</h1>
+          <h1 className="font-heading text-2xl font-bold sm:text-3xl md:text-4xl">Volunteer for Liberty</h1>
           <p className="mx-auto mt-4 max-w-2xl text-xl text-white/90">
             Your time and talent can make a real difference. Join fellow liberty-minded
             Republicans in advancing the cause of individual freedom.

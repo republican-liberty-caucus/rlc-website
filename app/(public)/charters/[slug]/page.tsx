@@ -103,7 +103,7 @@ export default async function CharterDetailPage({ params }: CharterDetailProps) 
               </div>
             )}
             <div>
-              <h1 className="text-4xl font-bold">{charter.name}</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">{charter.name}</h1>
               <p className="mt-2 text-xl text-white/90">
                 Republican Liberty Caucus {charter.state_code ? `of ${charter.state_code}` : 'Charter'}
               </p>

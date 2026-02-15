@@ -116,7 +116,7 @@ export default async function PressReleaseDetailPage({ params }: PressReleasePag
             )}
 
             {/* Title */}
-            <h1 className="mt-4 text-4xl font-bold">{post.title}</h1>
+            <h1 className="mt-4 text-2xl font-bold sm:text-3xl md:text-4xl">{post.title}</h1>
 
             {/* Byline */}
             <div className="mt-4 flex items-center gap-3 text-sm text-muted-foreground">

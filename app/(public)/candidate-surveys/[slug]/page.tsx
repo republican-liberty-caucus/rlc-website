@@ -71,7 +71,7 @@ export default async function SurveyResultsPage({ params }: SurveyResultsPagePro
           <Link href="/candidate-surveys" className="text-sm text-white/70 hover:text-white">
             &larr; All Surveys
           </Link>
-          <h1 className="mt-4 text-4xl font-bold">{survey.title}</h1>
+          <h1 className="mt-4 text-2xl font-bold sm:text-3xl md:text-4xl">{survey.title}</h1>
           {survey.description && (
             <p className="mx-auto mt-4 max-w-2xl text-lg text-white/90">{survey.description}</p>
           )}

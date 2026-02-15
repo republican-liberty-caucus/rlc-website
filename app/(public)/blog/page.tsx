@@ -70,7 +70,7 @@ export default async function BlogPage({ searchParams }: BlogPageProps) {
       {/* Hero */}
       <section className="bg-rlc-blue py-16 text-white">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold">News &amp; Blog</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">News &amp; Blog</h1>
           <p className="mt-4 text-xl text-white/90">
             Latest updates from the Republican Liberty Caucus
           </p>

@@ -13,7 +13,7 @@ export default function Error({
   return (
     <div className="flex min-h-screen items-center justify-center px-4">
       <div className="text-center">
-        <h1 className="text-4xl font-bold">Something went wrong</h1>
+        <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">Something went wrong</h1>
         <p className="mt-2 text-muted-foreground">
           An unexpected error occurred. Please try again.
         </p>
