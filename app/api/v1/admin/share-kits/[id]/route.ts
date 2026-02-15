@@ -1,9 +1,7 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import { shareKitUpdateSchema } from '@/lib/validations/share-kit';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 interface RouteParams {
   params: Promise<{ id: string }>;
@@ -11,18 +9,11 @@ interface RouteParams {
 
 export async function GET(_request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const ctx = await getAdminContext(userId);
-    if (!ctx) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
     const { id } = await params;
-    const supabase = createServerClient();
 
     const { data: kit, error } = await supabase
       .from('rlc_share_kits')
@@ -98,15 +89,9 @@ export async function GET(_request: Request, { params }: RouteParams) {
 
 export async function PATCH(request: Request, { params }: RouteParams) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const ctx = await getAdminContext(userId);
-    if (!ctx) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
     const { id } = await params;
 
@@ -124,8 +109,6 @@ export async function PATCH(request: Request, { params }: RouteParams) {
         { status: 400 },
       );
     }
-
-    const supabase = createServerClient();
 
     // Charter-scoped authorization — fetch kit first to check access
     const { data: existing, error: fetchError } = await supabase

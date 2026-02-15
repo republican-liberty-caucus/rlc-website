@@ -1,18 +1,15 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, sanitizeSearch } from '@/lib/admin/permissions';
+import { sanitizeSearch } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 /**
  * GET /api/v1/admin/members/search?q=smith&charter_id=xxx
  * Lightweight member search for dropdowns (returns id + name only).
  */
 export async function GET(request: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { searchParams } = request.nextUrl;
   const query = searchParams.get('q') || '';
@@ -23,7 +20,6 @@ export async function GET(request: NextRequest) {
   }
 
   const safe = sanitizeSearch(query);
-  const supabase = createServerClient();
 
   let q = supabase
     .from('rlc_contacts')

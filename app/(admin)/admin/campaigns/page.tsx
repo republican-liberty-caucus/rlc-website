@@ -1,9 +1,6 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { formatDate } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
@@ -28,12 +25,7 @@ interface CampaignRow {
 }
 
 export default async function AdminCampaignsPage() {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
-
-  const supabase = createServerClient();
+  const { ctx, supabase } = await requireAdmin();
 
   let query = supabase
     .from('rlc_action_campaigns')

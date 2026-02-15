@@ -1,31 +1,22 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, getRoleWeight } from '@/lib/admin/permissions';
+import { getRoleWeight } from '@/lib/admin/permissions';
 import { splitConfigUpdateWithValidation } from '@/lib/validations/split-config';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { id: charterId } = await params;
 
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-
-  const supabase = createServerClient();
 
   // Get config
   const { data: config } = await supabase
@@ -82,15 +73,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   // Require state_chair or higher
   if (getRoleWeight(ctx.highestRole) < getRoleWeight('state_chair')) {
@@ -119,7 +104,6 @@ export async function PUT(
   }
 
   const input = parseResult.data;
-  const supabase = createServerClient();
 
   // Upsert config
   const { data: config, error: configError } = await supabase

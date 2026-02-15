@@ -1,8 +1,6 @@
 import { Metadata } from 'next';
-import { auth } from '@clerk/nextjs/server';
 import { redirect } from 'next/navigation';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { CampaignManagement } from '@/components/admin/campaign-management';
 import type { ActionCampaign } from '@/types';
 
@@ -16,13 +14,9 @@ export default async function CampaignDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { supabase } = await requireAdmin();
 
   const { id } = await params;
-  const supabase = createServerClient();
 
   const { data: campaign, error } = await supabase
     .from('rlc_action_campaigns')

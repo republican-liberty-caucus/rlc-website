@@ -1,19 +1,11 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function GET(request: NextRequest) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { searchParams } = request.nextUrl;
   const officeLevel = searchParams.get('officeLevel');
@@ -26,8 +18,6 @@ export async function GET(request: NextRequest) {
       { status: 400 }
     );
   }
-
-  const supabase = createServerClient();
 
   let query = supabase
     .from('rlc_question_templates')

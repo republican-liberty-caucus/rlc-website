@@ -1,23 +1,15 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { getAdminContext } from '@/lib/admin/permissions';
-import { createServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import crypto from 'crypto';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   let formData: FormData;
   try {
@@ -52,8 +44,6 @@ export async function POST(request: Request) {
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '-');
   const uniqueId = crypto.randomUUID().slice(0, 8);
   const path = `images/${year}/${month}/${uniqueId}-${safeName}`;
-
-  const supabase = createServerClient();
   const buffer = Buffer.from(await file.arrayBuffer());
 
   const { error } = await supabase.storage

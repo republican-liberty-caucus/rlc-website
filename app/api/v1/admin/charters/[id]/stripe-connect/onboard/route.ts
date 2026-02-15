@@ -1,23 +1,16 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, getRoleWeight } from '@/lib/admin/permissions';
+import { getRoleWeight } from '@/lib/admin/permissions';
 import { createConnectAccount, createAccountLink } from '@/lib/stripe/client';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function POST(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   // Require state_chair or higher
   if (getRoleWeight(ctx.highestRole) < getRoleWeight('state_chair')) {
@@ -30,8 +23,6 @@ export async function POST(
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(charterId)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
-
-  const supabase = createServerClient();
 
   // Get charter details
   const { data: charter, error: charterError } = await supabase

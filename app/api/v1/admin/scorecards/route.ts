@@ -1,21 +1,13 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient, getMemberByClerkId } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { sessionCreateSchema } from '@/lib/validations/scorecard';
 import crypto from 'crypto';
 import { logger } from '@/lib/logger';
 
 export async function POST(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   let body: unknown;
   try {
@@ -33,8 +25,6 @@ export async function POST(request: Request) {
   }
 
   const input = parseResult.data;
-  const supabase = createServerClient();
-  const member = await getMemberByClerkId(userId);
 
   const { data, error } = await supabase
     .from('rlc_scorecard_sessions')
@@ -47,7 +37,7 @@ export async function POST(request: Request) {
       charter_id: input.charterId || null,
       session_year: input.sessionYear,
       status: 'draft',
-      created_by: member?.id || null,
+      created_by: ctx.member.id,
     } as never)
     .select()
     .single();

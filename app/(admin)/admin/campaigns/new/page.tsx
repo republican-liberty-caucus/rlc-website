@@ -1,7 +1,5 @@
 import { Metadata } from 'next';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { CampaignForm } from '@/components/admin/campaign-form';
 
 export const metadata: Metadata = {
@@ -10,10 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function NewCampaignPage() {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  await requireAdmin();
 
   return (
     <div>

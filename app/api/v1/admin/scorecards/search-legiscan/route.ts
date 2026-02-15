@@ -1,19 +1,12 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import { searchBills, getBillDetail } from '@/lib/legiscan/client';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('q');

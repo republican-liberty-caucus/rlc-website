@@ -1,8 +1,8 @@
-import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, canManageRoles, canViewMember } from '@/lib/admin/permissions';
+import { canManageRoles, canViewMember } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { formatDate, formatCurrency } from '@/lib/utils';
 import { MemberDetailForm } from '@/components/admin/member-detail-form';
 import { MemberRolesCard } from '@/components/admin/member-roles-card';
@@ -39,13 +39,9 @@ export default async function AdminMemberDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { ctx, supabase } = await requireAdmin();
 
   const { id } = await params;
-  const supabase = createServerClient();
 
   // Fetch member
   const { data: memberData, error: memberError } = await supabase

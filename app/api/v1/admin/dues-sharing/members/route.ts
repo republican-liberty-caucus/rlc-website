@@ -1,26 +1,16 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function GET(request: Request) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const authResult = await requireAdminApi();
+  if (authResult.error) return authResult.error;
+  const { ctx, supabase } = authResult;
 
   const { searchParams } = new URL(request.url);
   const charterId = searchParams.get('charterId');
   const page = parseInt(searchParams.get('page') || '1', 10);
   const limit = Math.min(parseInt(searchParams.get('limit') || '20', 10), 100);
   const offset = (page - 1) * limit;
-
-  const supabase = createServerClient();
 
   // Get contributions with splits, joined to members
   let query = supabase

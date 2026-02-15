@@ -1,7 +1,6 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, canManageRoles } from '@/lib/admin/permissions';
+import { canManageRoles } from '@/lib/admin/permissions';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 import { updateOfficerPositionSchema } from '@/lib/validations/officer-position';
 import { logger } from '@/lib/logger';
 
@@ -9,11 +8,11 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string; positionId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
-  const ctx = await getAdminContext(userId);
-  if (!ctx || !canManageRoles(ctx)) {
+  if (!canManageRoles(ctx)) {
     return NextResponse.json({ error: 'Forbidden: national_board+ required' }, { status: 403 });
   }
 
@@ -33,8 +32,6 @@ export async function PATCH(
       { status: 400 }
     );
   }
-
-  const supabase = createServerClient();
 
   // Verify position belongs to this charter
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -83,16 +80,15 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string; positionId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const result = await requireAdminApi();
+  if (result.error) return result.error;
+  const { ctx, supabase } = result;
 
-  const ctx = await getAdminContext(userId);
-  if (!ctx || !canManageRoles(ctx)) {
+  if (!canManageRoles(ctx)) {
     return NextResponse.json({ error: 'Forbidden: national_board+ required' }, { status: 403 });
   }
 
   const { id: charterId, positionId } = await params;
-  const supabase = createServerClient();
 
   // Verify position exists before deleting
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

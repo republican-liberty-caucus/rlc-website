@@ -1,9 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect, notFound } from 'next/navigation';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { notFound } from 'next/navigation';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { ShareKitEditor } from '@/components/admin/share-kit-editor';
 import type { ShareKit } from '@/types';
 
@@ -16,13 +14,9 @@ interface ShareKitEditPageProps {
 }
 
 export default async function AdminShareKitEditPage({ params }: ShareKitEditPageProps) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { supabase } = await requireAdmin();
 
   const { id } = await params;
-  const supabase = createServerClient();
 
   const { data: kit, error } = await supabase
     .from('rlc_share_kits')

@@ -1,10 +1,8 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
 import { createServerClient } from '@/lib/supabase/server';
 import { rpc } from '@/lib/supabase/rpc';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { formatCurrency } from '@/lib/utils';
 import { StatCard } from '@/components/ui/stat-card';
 import { PageHeader } from '@/components/ui/page-header';
@@ -236,10 +234,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 export default async function AdminDashboardPage() {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { ctx } = await requireAdmin();
 
   const [stats, activity] = await Promise.all([
     getDashboardStats(ctx.visibleCharterIds),

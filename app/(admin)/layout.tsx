@@ -1,6 +1,4 @@
-import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { AdminShell } from '@/components/admin/admin-shell';
 
 export default async function AdminLayout({
@@ -8,17 +6,7 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { userId } = await auth();
-
-  if (!userId) {
-    redirect('/sign-in');
-  }
-
-  const ctx = await getAdminContext(userId);
-
-  if (!ctx) {
-    redirect('/dashboard?error=unauthorized');
-  }
+  await requireAdmin();
 
   return <AdminShell>{children}</AdminShell>;
 }

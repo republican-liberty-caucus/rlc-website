@@ -1,8 +1,8 @@
-import { auth } from '@clerk/nextjs/server';
 import { redirect, notFound } from 'next/navigation';
 import Link from 'next/link';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext, canManageRoles } from '@/lib/admin/permissions';
+import { canManageRoles } from '@/lib/admin/permissions';
+import { requireAdmin } from '@/lib/admin/route-helpers';
 import { formatDate } from '@/lib/utils';
 import { CharterDetailForm } from '@/components/admin/charter-detail-form';
 import { CharterOfficersCard } from '@/components/admin/charter-officers-card';
@@ -30,10 +30,7 @@ export default async function AdminCharterDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { userId } = await auth();
-  if (!userId) redirect('/sign-in');
-  const ctx = await getAdminContext(userId);
-  if (!ctx) redirect('/dashboard?error=unauthorized');
+  const { ctx, supabase } = await requireAdmin();
 
   const { id } = await params;
 
@@ -41,8 +38,6 @@ export default async function AdminCharterDetailPage({
   if (ctx.visibleCharterIds !== null && !ctx.visibleCharterIds.includes(id)) {
     redirect('/admin/charters?error=forbidden');
   }
-
-  const supabase = createServerClient();
 
   // Fetch charter
   const { data: charterData, error: charterError } = await supabase

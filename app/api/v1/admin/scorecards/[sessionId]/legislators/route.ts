@@ -1,26 +1,17 @@
-import { auth } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
-import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
 import type { Legislator } from '@/types';
 import { logger } from '@/lib/logger';
+import { requireAdminApi } from '@/lib/admin/route-helpers';
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ sessionId: string }> }
 ) {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const ctx = await getAdminContext(userId);
-  if (!ctx) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-  }
+  const authResult = await requireAdminApi();
+  if (authResult.error) return authResult.error;
+  const { ctx, supabase } = authResult;
 
   const { sessionId } = await params;
-  const supabase = createServerClient();
 
   // Get all bills for this session
   const { data: billsData, error: billsError } = await supabase
