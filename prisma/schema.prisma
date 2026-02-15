@@ -438,6 +438,7 @@ model Membership {
   createdAt            DateTime         @default(now()) @map("created_at")
   updatedAt            DateTime         @updatedAt @map("updated_at")
 
+  @@unique([contactId, startDate, stripeSubscriptionId])
   @@index([contactId])
   @@index([membershipStatus])
   @@index([expiryDate])
