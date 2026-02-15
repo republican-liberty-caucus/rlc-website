@@ -15,9 +15,19 @@ interface CiviCRMContribution {
   civicrm_contact_id: number;
   total_amount: string;
   currency: string;
+  financial_type: string;
   receive_date: string | null;
   contribution_status: string;
 }
+
+const CONTRIBUTION_TYPE_MAP: Record<string, string> = {
+  'Member Dues': 'membership',
+  'Membership Dues': 'membership',
+  Donation: 'donation',
+  'Campaign Contribution': 'donation',
+  'Event Fee': 'event_registration',
+  'Event Registration': 'event_registration',
+};
 
 interface MigrationResult {
   success: number;
@@ -93,7 +103,7 @@ async function migrateContributionsOptimized(
     contributionRecords.push({
       id: crypto.randomUUID(),
       member_id: memberId,
-      contribution_type: 'donation', // CiviCRM contributions are donations
+      contribution_type: CONTRIBUTION_TYPE_MAP[contribution.financial_type] || 'donation',
       amount: parseFloat(contribution.total_amount),
       currency: contribution.currency || 'USD',
       payment_status: contribution.contribution_status === 'Completed' ? 'completed' : 'pending',
