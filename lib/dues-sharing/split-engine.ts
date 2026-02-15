@@ -3,6 +3,26 @@ import { createServerClient } from '@/lib/supabase/server';
 import { logger } from '@/lib/logger';
 import type { Charter, DisbursementModel, SplitSourceType } from '@/types';
 
+// ─── Amount Convention ───────────────────────────────────────────────────────
+//
+// DATABASE (rlc_contributions.amount, rlc_split_ledger_entries.amount):
+//   Decimal dollars — Decimal(10,2), e.g. 30.00
+//
+// INTERNAL CALCULATIONS (split-engine, transfer-engine):
+//   Integer cents — e.g. 3000
+//
+// STRIPE API (all amounts):
+//   Integer cents — e.g. 3000
+//
+// CONVERSION BOUNDARY: at DB read/write only.
+//   DB → engine:  Math.round(Number(amount) * 100)
+//   engine → DB:  amountCents / 100
+//
+// See issue #111 for rationale. If adding new DB reads/writes involving
+// amounts, always convert at the boundary — never pass dollars into
+// functions that expect cents or vice versa.
+// ─────────────────────────────────────────────────────────────────────────────
+
 // ─── Pure types ──────────────────────────────────────────────────────────────
 
 export interface SplitAllocation {
