@@ -22,6 +22,7 @@ interface Survey {
   id: string;
   title: string;
   state: string | null;
+  office_type_level: string | null;
 }
 
 interface AddCandidateDialogProps {
@@ -45,6 +46,7 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
   const [open, setOpen] = React.useState(false);
   const [saving, setSaving] = React.useState(false);
 
+  const [selectedLevel, setSelectedLevel] = React.useState('');
   const defaultSurveyId = surveys.length === 1 ? surveys[0].id : '';
   const [selectedSurveyId, setSelectedSurveyId] = React.useState(defaultSurveyId);
   const [candidateFirstName, setCandidateFirstName] = React.useState('');
@@ -60,6 +62,16 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
 
   const selectedOfficeType = officeTypes.find((ot) => ot.id === officeTypeId);
 
+  // Filter surveys by selected level (untagged surveys show in all levels for transition safety)
+  const filteredSurveys = selectedLevel
+    ? surveys.filter((s) => s.office_type_level === selectedLevel || s.office_type_level === null)
+    : surveys;
+
+  // Filter office types by selected level (flat list when level is selected)
+  const filteredOfficeTypes = selectedLevel
+    ? officeTypes.filter((ot) => ot.level === selectedLevel)
+    : officeTypes;
+
   // Fetch office types when dialog opens
   React.useEffect(() => {
     if (!open || officeTypes.length > 0) return;
@@ -71,6 +83,13 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
       .catch(() => toast({ title: 'Error', description: 'Failed to load office types', variant: 'destructive' }))
       .finally(() => setLoadingOfficeTypes(false));
   }, [open, officeTypes.length, toast]);
+
+  // Auto-select survey when only one matches the level and none is selected
+  React.useEffect(() => {
+    if (filteredSurveys.length === 1 && !selectedSurveyId) {
+      setSelectedSurveyId(filteredSurveys[0].id);
+    }
+  }, [filteredSurveys, selectedSurveyId]);
 
   // Auto-fill state when survey has a state
   React.useEffect(() => {
@@ -90,6 +109,7 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
   }, [officeTypeId, selectedOfficeType]);
 
   function resetForm() {
+    setSelectedLevel('');
     setSelectedSurveyId(defaultSurveyId);
     setCandidateFirstName('');
     setCandidateLastName('');
@@ -100,7 +120,23 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
     setCandidateDistrict('');
   }
 
-  const groupedOfficeTypes = officeTypes.reduce<Record<string, OfficeType[]>>((acc, ot) => {
+  function handleLevelChange(level: string) {
+    setSelectedLevel(level);
+    // Clear survey if it doesn't match the new level
+    if (level) {
+      const currentSurvey = surveys.find((s) => s.id === selectedSurveyId);
+      if (currentSurvey && currentSurvey.office_type_level !== null && currentSurvey.office_type_level !== level) {
+        setSelectedSurveyId('');
+      }
+      // Clear office type if it doesn't match the new level
+      const currentOT = officeTypes.find((ot) => ot.id === officeTypeId);
+      if (currentOT && currentOT.level !== level) {
+        setOfficeTypeId('');
+      }
+    }
+  }
+
+  const groupedOfficeTypes = filteredOfficeTypes.reduce<Record<string, OfficeType[]>>((acc, ot) => {
     const group = levelLabels[ot.level] || ot.level;
     if (!acc[group]) acc[group] = [];
     acc[group].push(ot);
@@ -165,24 +201,38 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
         </DialogHeader>
 
         <div className="grid gap-3">
-          {/* Survey picker */}
-          {surveys.length > 1 ? (
+          {/* Level picker */}
+          <select
+            value={selectedLevel}
+            onChange={(e) => handleLevelChange(e.target.value)}
+            className={fieldClass}
+          >
+            <option value="">Select level of race *</option>
+            {Object.entries(levelLabels).map(([value, label]) => (
+              <option key={value} value={value}>{label}</option>
+            ))}
+          </select>
+
+          {/* Survey picker (filtered by level) */}
+          {filteredSurveys.length > 1 ? (
             <select
               value={selectedSurveyId}
               onChange={(e) => setSelectedSurveyId(e.target.value)}
               className={fieldClass}
             >
               <option value="">Select survey *</option>
-              {surveys.map((s) => (
+              {filteredSurveys.map((s) => (
                 <option key={s.id} value={s.id}>{s.title}</option>
               ))}
             </select>
-          ) : surveys.length === 1 ? (
+          ) : filteredSurveys.length === 1 ? (
             <p className="text-sm text-muted-foreground">
-              Survey: <span className="font-medium text-foreground">{surveys[0].title}</span>
+              Survey: <span className="font-medium text-foreground">{filteredSurveys[0].title}</span>
             </p>
           ) : (
-            <p className="text-sm text-destructive">No active surveys. Create a survey first.</p>
+            <p className="text-sm text-destructive">
+              {selectedLevel ? 'No surveys for this level. Create one first.' : 'No active surveys. Create a survey first.'}
+            </p>
           )}
 
           {/* Name fields */}
@@ -210,7 +260,7 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
             className={fieldClass}
           />
 
-          {/* Office Type dropdown (grouped by level) */}
+          {/* Office Type dropdown (flat when level selected, grouped otherwise) */}
           <select
             value={officeTypeId}
             onChange={(e) => setOfficeTypeId(e.target.value)}
@@ -218,13 +268,19 @@ export function AddCandidateDialog({ surveys }: AddCandidateDialogProps) {
             disabled={loadingOfficeTypes}
           >
             <option value="">{loadingOfficeTypes ? 'Loading offices...' : 'Select office type'}</option>
-            {Object.entries(groupedOfficeTypes).map(([group, types]) => (
-              <optgroup key={group} label={group}>
-                {types.map((ot) => (
-                  <option key={ot.id} value={ot.id}>{ot.name}</option>
-                ))}
-              </optgroup>
-            ))}
+            {selectedLevel ? (
+              filteredOfficeTypes.map((ot) => (
+                <option key={ot.id} value={ot.id}>{ot.name}</option>
+              ))
+            ) : (
+              Object.entries(groupedOfficeTypes).map(([group, types]) => (
+                <optgroup key={group} label={group}>
+                  {types.map((ot) => (
+                    <option key={ot.id} value={ot.id}>{ot.name}</option>
+                  ))}
+                </optgroup>
+              ))
+            )}
           </select>
 
           {/* State dropdown (shown when office requires state) */}

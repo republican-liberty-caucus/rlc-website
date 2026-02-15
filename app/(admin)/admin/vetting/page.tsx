@@ -73,7 +73,7 @@ export default async function VettingPipelinePage() {
       .order('submitted_at', { ascending: false }),
     supabase
       .from('rlc_surveys')
-      .select('id, title, state')
+      .select('id, title, state, office_type:rlc_office_types(level)')
       .eq('status', 'active')
       .order('created_at', { ascending: false }),
   ]);
@@ -82,7 +82,19 @@ export default async function VettingPipelinePage() {
   if (pendingRes.error) throw new Error(`Failed to fetch pending submissions: ${pendingRes.error.message}`);
   if (surveysRes.error) throw new Error(`Failed to fetch surveys: ${surveysRes.error.message}`);
 
-  const activeSurveys = (surveysRes.data || []) as { id: string; title: string; state: string | null }[];
+  interface SurveyWithOfficeType {
+    id: string;
+    title: string;
+    state: string | null;
+    office_type: { level: string } | null;
+  }
+
+  const activeSurveys = ((surveysRes.data || []) as SurveyWithOfficeType[]).map((s) => ({
+    id: s.id,
+    title: s.title,
+    state: s.state,
+    office_type_level: s.office_type?.level ?? null,
+  }));
 
   const vettings = (vettingRes.data || []) as VettingRow[];
 
