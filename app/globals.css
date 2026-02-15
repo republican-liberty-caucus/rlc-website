@@ -98,7 +98,9 @@
   @apply bg-muted-foreground/50;
 }
 
-/* Focus visible styles */
-:focus-visible {
-  @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+/* TipTap / ProseMirror — suppress all browser focus decoration */
+.ProseMirror:focus,
+.ProseMirror:focus-visible {
+  outline: none;
+  box-shadow: none;
 }

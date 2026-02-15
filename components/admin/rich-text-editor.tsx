@@ -190,8 +190,7 @@ export function RichTextEditor({ initialContent, onChange, onDirtyChange, onErro
             'prose prose-sm max-w-none dark:prose-invert p-4',
             'prose-headings:text-foreground prose-a:text-rlc-red',
             'prose-img:rounded-lg prose-img:border',
-            'prose-table:border-collapse prose-td:border prose-td:p-2 prose-th:border prose-th:p-2 prose-th:bg-muted',
-            'focus-within:border-slate-400 dark:focus-within:border-slate-500'
+            'prose-table:border-collapse prose-td:border prose-td:p-2 prose-th:border prose-th:p-2 prose-th:bg-muted'
           )}
         >
           <EditorContent editor={editor} />
