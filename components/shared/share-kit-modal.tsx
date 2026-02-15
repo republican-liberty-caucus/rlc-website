@@ -86,6 +86,32 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
   }
 
   async function handleShare(platform: 'x' | 'facebook' | 'linkedin' | 'email') {
+    // Copy text to clipboard FIRST, before any async operations.
+    // Browsers require clipboard access to happen in direct response to a
+    // user gesture — an intervening fetch() breaks the gesture chain.
+    let clipboardCopied = false;
+    if (platform === 'facebook' || platform === 'linkedin') {
+      const text = getCopyForPlatform(platform);
+      try {
+        await navigator.clipboard.writeText(text);
+        clipboardCopied = true;
+      } catch {
+        // Fallback for browsers that still block
+        try {
+          const textarea = document.createElement('textarea');
+          textarea.value = text;
+          textarea.style.position = 'fixed';
+          textarea.style.opacity = '0';
+          document.body.appendChild(textarea);
+          textarea.select();
+          clipboardCopied = document.execCommand('copy');
+          document.body.removeChild(textarea);
+        } catch {
+          // Both methods failed
+        }
+      }
+    }
+
     const url = await ensureTrackedUrl();
     if (!url) {
       toast({
@@ -98,19 +124,12 @@ export function ShareKitModal({ kit, open, onOpenChange }: ShareKitModalProps) {
 
     recordShare(platform);
 
-    // Facebook and LinkedIn don't reliably support pre-filling text via URL params.
-    // Copy the platform-specific text to clipboard so the user can paste it.
-    if (platform === 'facebook' || platform === 'linkedin') {
+    if (clipboardCopied) {
       const platformLabel = platform === 'facebook' ? 'Facebook' : 'LinkedIn';
-      try {
-        await navigator.clipboard.writeText(getCopyForPlatform(platform));
-        toast({
-          title: 'Post text copied!',
-          description: `Paste it into your ${platformLabel} post.`,
-        });
-      } catch {
-        // Silent fail — the share window will still open
-      }
+      toast({
+        title: 'Post text copied!',
+        description: `Paste it into your ${platformLabel} post.`,
+      });
     }
 
     const shareUrls: Record<string, string> = {
