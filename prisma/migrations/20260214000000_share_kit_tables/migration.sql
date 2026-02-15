@@ -10,8 +10,8 @@ CREATE TABLE "rlc_share_kits" (
   "og_image_override_url" TEXT,
   "status" TEXT NOT NULL DEFAULT 'draft',
   "scope" TEXT NOT NULL DEFAULT 'national',
-  "charter_id" UUID,
-  "created_by" UUID,
+  "charter_id" TEXT,
+  "created_by" TEXT,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
   "updated_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
 
@@ -27,7 +27,7 @@ CREATE INDEX "idx_share_kits_status" ON "rlc_share_kits"("status");
 CREATE TABLE "rlc_share_links" (
   "id" UUID NOT NULL DEFAULT gen_random_uuid(),
   "share_kit_id" UUID NOT NULL,
-  "member_id" UUID NOT NULL,
+  "member_id" TEXT NOT NULL,
   "short_code" TEXT NOT NULL,
   "created_at" TIMESTAMPTZ NOT NULL DEFAULT now(),
 
