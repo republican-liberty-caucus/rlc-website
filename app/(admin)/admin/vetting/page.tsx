@@ -127,18 +127,11 @@ export default async function VettingPipelinePage() {
     election_deadline: v.election_deadline,
   }));
 
-  const rows = [...submissionRows, ...vettingRows];
-
-  // Summary counts
-  const newCount = submissionRows.length;
-  const activeCount = vettingRows.length;
-  const totalCount = rows.length;
-
   return (
     <div>
       <PageHeader
         title="Candidate Pipeline"
-        count={totalCount}
+        count={vettingRows.length + submissionRows.length}
         className="mb-8"
         action={
           <Button asChild variant="outline" size="sm">
@@ -150,25 +143,25 @@ export default async function VettingPipelinePage() {
         }
       />
 
-      {/* Summary bar */}
-      {totalCount > 0 && (
-        <div className="mb-4 flex items-center gap-4 text-sm text-muted-foreground">
-          {newCount > 0 && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
-              {newCount} new {newCount === 1 ? 'submission' : 'submissions'}
-            </span>
-          )}
-          {activeCount > 0 && (
-            <span className="flex items-center gap-1.5">
-              <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
-              {activeCount} in progress
-            </span>
-          )}
+      {/* Section 1: In Progress */}
+      <div className="mb-8">
+        <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          <span className="inline-block h-2 w-2 rounded-full bg-blue-500" />
+          In Progress ({vettingRows.length})
+        </h2>
+        <PipelineTable rows={vettingRows} canCreate={canCreate} emptyMessage="No active vettings yet. Add candidates from the submissions below." />
+      </div>
+
+      {/* Section 2: New Submissions */}
+      {(submissionRows.length > 0 || canCreate) && (
+        <div>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+            <span className="inline-block h-2 w-2 rounded-full bg-amber-500" />
+            New Submissions ({submissionRows.length})
+          </h2>
+          <PipelineTable rows={submissionRows} canCreate={canCreate} emptyMessage="No pending questionnaire submissions." />
         </div>
       )}
-
-      <PipelineTable rows={rows} canCreate={canCreate} />
     </div>
   );
 }
