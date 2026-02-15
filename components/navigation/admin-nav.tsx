@@ -88,6 +88,27 @@ interface AdminNavProps {
   onNavigate?: () => void;
 }
 
+// Collect all nav paths (without query strings) for disambiguation
+const allNavPaths = navSections.flatMap((s) =>
+  s.items.map((i) => i.href.split('?')[0])
+);
+
+function isNavItemActive(pathname: string, href: string): boolean {
+  const itemPath = href.split('?')[0];
+  if (pathname === itemPath) return true;
+  if (itemPath === '/admin') return false;
+  // Only match as parent route if no more-specific nav item matches
+  if (pathname.startsWith(itemPath + '/')) {
+    return !allNavPaths.some(
+      (other) =>
+        other !== itemPath &&
+        other.length > itemPath.length &&
+        (pathname === other || pathname.startsWith(other + '/'))
+    );
+  }
+  return false;
+}
+
 export function AdminNav({ onNavigate }: AdminNavProps) {
   const pathname = usePathname();
 
@@ -118,9 +139,7 @@ export function AdminNav({ onNavigate }: AdminNavProps) {
             <ul className="space-y-0.5">
               {section.items.map((item) => {
                 const Icon = item.icon;
-                const isActive =
-                  pathname === item.href ||
-                  (item.href !== '/admin' && pathname.startsWith(item.href));
+                const isActive = isNavItemActive(pathname, item.href);
 
                 return (
                   <li key={item.href}>
