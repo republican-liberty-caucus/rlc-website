@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/lib/hooks/use-toast';
 import { ADMIN_INPUT_CLASS, ADMIN_LABEL_CLASS } from '@/components/admin/form-styles';
-import { NovelEditor } from '@/components/admin/novel-editor';
+import { RichTextEditor } from '@/components/admin/rich-text-editor';
 import { ExternalLink, Upload } from 'lucide-react';
 import type { Post } from '@/types';
 import { uploadFile } from '@/lib/upload';
@@ -27,7 +27,23 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
   const [autoSlug, setAutoSlug] = useState(!post);
   const [content, setContent] = useState(post?.content || '');
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
   const featuredImageRef = useRef<HTMLInputElement>(null);
+
+  // Warn before leaving with unsaved changes
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+    };
+    window.addEventListener('beforeunload', handler);
+    return () => window.removeEventListener('beforeunload', handler);
+  }, [isDirty]);
+
+  const handleContentChange = useCallback((html: string) => {
+    setContent(html);
+    setIsDirty(true);
+  }, []);
 
   const isPage = contentType === 'page';
   const isPressRelease = contentType === 'press_release';
@@ -113,6 +129,7 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
       }
 
       const data = await res.json();
+      setIsDirty(false);
       toast({
         title: isCreate ? `${entityLabel} created` : `${entityLabel} updated`,
         description: `"${body.title}" has been ${isCreate ? 'created' : 'updated'}.`,
@@ -136,10 +153,13 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
   }
 
   return (
-    <form onSubmit={handleSubmit}>
+    <form onSubmit={handleSubmit} onChange={() => setIsDirty(true)}>
       {/* Basic Info */}
       <div className="rounded-lg border bg-card p-6 mb-6">
-        <h2 className="text-lg font-semibold mb-4">{entityLabel} Details</h2>
+        <h2 className="text-lg font-semibold mb-4">
+          {entityLabel} Details
+          {isDirty && <span className="ml-2 inline-block h-2 w-2 rounded-full bg-amber-500" title="Unsaved changes" />}
+        </h2>
         <div className="grid gap-4 md:grid-cols-2">
           <div className="md:col-span-2">
             <label className={ADMIN_LABEL_CLASS}>Title</label>
@@ -180,9 +200,11 @@ export function PostEditorForm({ post, charters, contentType = 'post' }: PostEdi
           </div>
           <div className="md:col-span-2">
             <label className={ADMIN_LABEL_CLASS}>Content</label>
-            <NovelEditor
+            <RichTextEditor
               initialContent={post?.content || undefined}
-              onChange={setContent}
+              onChange={handleContentChange}
+              onDirtyChange={setIsDirty}
+              onError={(msg) => toast({ title: 'Editor error', description: msg, variant: 'destructive' })}
             />
           </div>
         </div>
