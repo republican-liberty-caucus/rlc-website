@@ -164,7 +164,7 @@ export function VettingAuditTab({ vettingId, vetting: _vetting, permissions }: V
       )}
 
       {/* Status banner + trigger button */}
-      <div className="flex items-center justify-between rounded-lg border bg-card p-4">
+      <div className="flex flex-col gap-3 rounded-lg border bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium text-muted-foreground">Audit Status:</span>
           {audit ? (
@@ -223,7 +223,7 @@ export function VettingAuditTab({ vettingId, vetting: _vetting, permissions }: V
           </div>
 
           {audit.candidate_score_breakdown && (
-            <div className="mt-6 grid gap-3 sm:grid-cols-5">
+            <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
               {renderDimension('Digital Presence', audit.candidate_score_breakdown.digitalPresence)}
               {renderDimension('Campaign Consistency', audit.candidate_score_breakdown.campaignConsistency)}
               {renderDimension('Communication', audit.candidate_score_breakdown.communicationQuality)}

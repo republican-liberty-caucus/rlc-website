@@ -16,9 +16,11 @@ import {
   Users,
   Megaphone,
   Target,
+  LogOut,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { useClerk } from '@clerk/nextjs';
 import { useState } from 'react';
 
 const engagementItems = [
@@ -40,6 +42,7 @@ const ADMIN_ROLES = ['super_admin', 'national_board', 'regional_coordinator', 's
 export function MemberNav() {
   const pathname = usePathname();
   const { user } = useUser();
+  const { signOut } = useClerk();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const userRole = (user?.publicMetadata as { role?: string } | undefined)?.role;
   const isAdmin = !!userRole && ADMIN_ROLES.includes(userRole);
@@ -131,7 +134,7 @@ export function MemberNav() {
 
           {/* Mobile Menu Button */}
           <button
-            className="md:hidden"
+            className="inline-flex items-center justify-center rounded-md p-2 text-muted-foreground hover:bg-muted hover:text-foreground md:hidden"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
             aria-label="Toggle menu"
           >
@@ -201,6 +204,15 @@ export function MemberNav() {
               )}
               <Button asChild variant="outline" size="sm" className="w-full">
                 <Link href="/">Back to Site</Link>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full gap-1.5 text-destructive hover:text-destructive"
+                onClick={() => signOut({ redirectUrl: '/' })}
+              >
+                <LogOut className="h-3.5 w-3.5" />
+                Sign Out
               </Button>
             </div>
           </nav>

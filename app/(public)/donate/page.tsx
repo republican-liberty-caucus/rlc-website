@@ -26,7 +26,7 @@ export default async function DonatePage() {
       {/* Hero Section */}
       <section className="bg-gradient-to-br from-rlc-blue to-rlc-red py-16 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold">Support the Liberty Movement</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">Support the Liberty Movement</h1>
           <p className="mx-auto mt-4 max-w-2xl text-xl text-white/90">
             Your donation helps us advance the principles of individual rights, limited government,
             and free markets within the Republican Party.

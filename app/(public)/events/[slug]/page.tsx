@@ -125,7 +125,7 @@ export default async function EventDetailPage({ params }: EventDetailProps) {
               </span>
             )}
           </div>
-          <h1 className="text-4xl font-bold">{event.title}</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">{event.title}</h1>
         </div>
       </section>
 

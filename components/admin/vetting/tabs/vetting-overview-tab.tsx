@@ -66,7 +66,7 @@ export function VettingOverviewTab({ vetting, surveyResponse }: VettingOverviewT
 
         {/* Stage progress bar */}
         <div className="mt-6">
-          <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="hidden items-center justify-between text-xs text-muted-foreground sm:flex">
             {STAGE_ORDER.map((stage, i) => (
               <span
                 key={stage}
@@ -76,6 +76,10 @@ export function VettingOverviewTab({ vetting, surveyResponse }: VettingOverviewT
               </span>
             ))}
           </div>
+          <p className="text-xs text-muted-foreground sm:hidden">
+            Stage: <span className="font-medium text-foreground">{formatLabel(STAGE_ORDER[stageIndex])}</span>
+            {' '}({stageIndex + 1}/{STAGE_ORDER.length})
+          </p>
           <div className="mt-2 h-2 rounded-full bg-muted">
             <div
               className="h-2 rounded-full bg-primary transition-all"

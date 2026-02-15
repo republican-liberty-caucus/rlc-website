@@ -21,7 +21,7 @@ export default function UnauthorizedPage() {
             <ShieldX className="h-12 w-12 text-red-600" />
           </div>
 
-          <h1 className="mb-4 text-4xl font-bold">Access Denied</h1>
+          <h1 className="mb-4 text-2xl font-bold sm:text-3xl md:text-4xl">Access Denied</h1>
 
           <p className="mb-8 text-lg text-muted-foreground">
             You do not have permission to access this page. If you believe this is an error,

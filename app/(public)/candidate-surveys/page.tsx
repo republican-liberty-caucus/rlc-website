@@ -40,7 +40,7 @@ export default async function CandidateSurveysPage() {
 
       <section className="bg-gradient-to-br from-rlc-blue to-rlc-blue/80 py-16 text-white">
         <div className="container mx-auto px-4 text-center">
-          <h1 className="text-4xl font-bold">Candidate Endorsement Surveys</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">Candidate Endorsement Surveys</h1>
           <p className="mx-auto mt-4 max-w-2xl text-xl text-white/90">
             See how candidates align with the principles of individual liberty, limited government,
             and free markets.

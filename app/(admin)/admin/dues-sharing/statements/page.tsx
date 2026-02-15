@@ -77,7 +77,7 @@ export default function StatementsPage() {
       />
 
       {/* Controls */}
-      <div className="flex items-end gap-4">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-4">
         <div>
           <Label>Month</Label>
           <Input

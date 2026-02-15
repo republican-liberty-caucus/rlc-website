@@ -108,13 +108,13 @@ export function AddressLookup({ showResults = false }: Props) {
 
   return (
     <div>
-      <form onSubmit={handleSearch} className="flex gap-3">
+      <form onSubmit={handleSearch} className="flex flex-col gap-3 sm:flex-row">
         <input
           type="text"
           value={address}
           onChange={(e) => setAddress(e.target.value)}
           placeholder="Enter your full address (e.g. 123 Main St, Austin, TX 78701)"
-          className="flex-1 rounded-md border bg-background px-4 py-3 text-sm"
+          className="flex-1 rounded-md border bg-background px-4 py-3"
           required
         />
         <Button type="submit" disabled={loading} className="bg-rlc-red hover:bg-rlc-red/90">

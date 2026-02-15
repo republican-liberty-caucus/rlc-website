@@ -56,7 +56,7 @@ export default async function EndorsementsPage() {
 
       <section className="bg-rlc-blue py-16 text-white">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold">Endorsements</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">Endorsements</h1>
           <p className="mt-4 text-xl text-white/90">
             RLC-endorsed candidates for office
           </p>

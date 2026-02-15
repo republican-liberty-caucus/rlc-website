@@ -12,6 +12,7 @@ export function ContributionsTable({ contribByType }: ContributionsTableProps) {
     <Card>
       <CardContent className="p-6">
         <h2 className="mb-4 font-heading text-lg font-semibold">Contributions by Type</h2>
+        <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
             <tr className="border-b">
@@ -39,6 +40,7 @@ export function ContributionsTable({ contribByType }: ContributionsTableProps) {
             )}
           </tbody>
         </table>
+        </div>
       </CardContent>
     </Card>
   );

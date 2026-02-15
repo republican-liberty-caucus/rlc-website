@@ -55,9 +55,9 @@ export function ScorecardSpotlight({
   return (
     <section className="py-16">
       <div className="container mx-auto px-4">
-        <div className="mb-8 flex items-center justify-between">
+        <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 className="font-heading text-3xl font-bold">Liberty Scorecard</h2>
+            <h2 className="font-heading text-2xl font-bold sm:text-3xl">Liberty Scorecard</h2>
             <p className="mt-1 text-muted-foreground">{sessionName}</p>
           </div>
           <Button asChild variant="outline">

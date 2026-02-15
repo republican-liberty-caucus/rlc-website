@@ -245,8 +245,8 @@ export default async function HomePage() {
       {data.posts.length > 0 && (
         <section className="bg-muted/30 py-16">
           <div className="container mx-auto px-4">
-            <div className="mb-8 flex items-center justify-between">
-              <h2 className="font-heading text-3xl font-bold">Latest News</h2>
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+              <h2 className="font-heading text-2xl font-bold sm:text-3xl">Latest News</h2>
               <Button asChild variant="outline">
                 <Link href="/blog">View All Posts</Link>
               </Button>

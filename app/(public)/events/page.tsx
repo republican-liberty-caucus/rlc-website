@@ -77,7 +77,7 @@ export default async function EventsPage() {
       {/* Hero Section */}
       <section className="bg-rlc-blue py-16 text-white">
         <div className="container mx-auto px-4">
-          <h1 className="text-4xl font-bold">Upcoming Events</h1>
+          <h1 className="text-2xl font-bold sm:text-3xl md:text-4xl">Upcoming Events</h1>
           <p className="mt-4 text-xl text-white/90">
             Join us at our next meeting, convention, or event
           </p>

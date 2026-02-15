@@ -462,6 +462,7 @@ export function VettingReportView({ data }: VettingReportViewProps) {
         <div className="mt-8 print:mt-6 print:break-inside-avoid">
           <h2 className="text-lg font-bold mb-4">Board Vote</h2>
           <div className="rounded-lg border bg-card overflow-hidden">
+            <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b bg-muted/50">
@@ -495,6 +496,7 @@ export function VettingReportView({ data }: VettingReportViewProps) {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </div>
       )}

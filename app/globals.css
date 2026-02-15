@@ -98,6 +98,27 @@
   @apply bg-muted-foreground/50;
 }
 
+/* Prevent iOS Safari auto-zoom on form inputs (triggered when font-size < 16px) */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  select,
+  textarea,
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="url"],
+  input[type="tel"],
+  input[type="number"],
+  input[type="search"] {
+    font-size: 16px !important;
+  }
+}
+
+/* Prevent WP content from overflowing on mobile */
+.prose table {
+  display: block;
+  overflow-x: auto;
+}
+
 /* TipTap / ProseMirror — suppress all browser focus decoration */
 .ProseMirror:focus,
 .ProseMirror:focus-visible {

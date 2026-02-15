@@ -114,7 +114,7 @@ export default async function AdminContributionsPage({
       </div>
 
       {/* Filter Buttons */}
-      <div className="mb-4 flex gap-2">
+      <div className="mb-4 flex flex-wrap gap-2">
         <Link
           href="/admin/contributions"
           className={`rounded-md px-3 py-2 text-sm ${

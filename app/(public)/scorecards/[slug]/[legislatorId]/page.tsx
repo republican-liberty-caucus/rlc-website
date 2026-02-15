@@ -111,15 +111,15 @@ export default async function LegislatorDetailPage({ params }: Props) {
           >
             <ArrowLeft className="h-4 w-4" /> Back to {session.name}
           </Link>
-          <div className="flex items-center gap-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:gap-6">
             <div>
-              <h1 className="text-3xl font-bold">{legislator.name}</h1>
+              <h1 className="text-2xl font-bold sm:text-3xl">{legislator.name}</h1>
               <p className="mt-1 text-white/90">
                 {legislator.party} | {chamberLabels[legislator.chamber] || legislator.chamber} | {legislator.state_code}
                 {legislator.district ? ` - District ${legislator.district}` : ''}
               </p>
             </div>
-            <div className="ml-auto text-right">
+            <div className="sm:ml-auto sm:text-right">
               <p className="text-sm text-white/70">Liberty Score</p>
               <div className="mt-1">
                 <ScoreBadge score={score ?? 0} size="lg" />

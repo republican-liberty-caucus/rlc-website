@@ -93,7 +93,7 @@ export function LegiscanSearch({ sessionId, onBillAdded }: Props) {
 
   return (
     <div>
-      <form onSubmit={handleSearch} className="mb-4 flex gap-3">
+      <form onSubmit={handleSearch} className="mb-4 flex flex-col gap-2 sm:flex-row sm:gap-3">
         <input
           type="text"
           value={query}
