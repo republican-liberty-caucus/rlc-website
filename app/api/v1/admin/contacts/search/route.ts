@@ -1,7 +1,7 @@
 import { auth } from '@clerk/nextjs/server';
 import { NextRequest, NextResponse } from 'next/server';
 import { createServerClient } from '@/lib/supabase/server';
-import { getAdminContext } from '@/lib/admin/permissions';
+import { getAdminContext, sanitizeSearch } from '@/lib/admin/permissions';
 
 export async function GET(request: NextRequest) {
   const { userId } = await auth();
@@ -14,23 +14,27 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
-  const q = request.nextUrl.searchParams.get('q')?.trim();
-  if (!q || q.length < 2) {
+  const raw = request.nextUrl.searchParams.get('q')?.trim();
+  if (!raw || raw.length < 2) {
     return NextResponse.json({ contacts: [] });
   }
 
   const supabase = createServerClient();
+  const safe = sanitizeSearch(raw);
 
-  // Escape PostgREST filter special characters to prevent filter injection
-  const sanitized = q.replace(/[\\.,()]/g, '\\$&');
-  const pattern = `%${sanitized}%`;
-
-  const { data, error } = await supabase
+  let q = supabase
     .from('rlc_contacts')
     .select('id, first_name, last_name, email')
-    .or(`first_name.ilike.${pattern},last_name.ilike.${pattern}`)
+    .or(`first_name.ilike.%${safe}%,last_name.ilike.%${safe}%`)
     .order('last_name')
     .limit(10);
+
+  // Scope to visible charters for non-national admins
+  if (ctx.visibleCharterIds !== null && ctx.visibleCharterIds.length > 0) {
+    q = q.in('primary_charter_id', ctx.visibleCharterIds);
+  }
+
+  const { data, error } = await q;
 
   if (error) {
     return NextResponse.json({ error: 'Search failed' }, { status: 500 });
