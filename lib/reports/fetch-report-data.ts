@@ -1,5 +1,6 @@
 import { createServerClient } from '@/lib/supabase/server';
 import { rpc } from '@/lib/supabase/rpc';
+import { logger } from '@/lib/logger';
 import type { AdminContext } from '@/lib/admin/permissions';
 import {
   getDescendantIds,
@@ -50,12 +51,10 @@ export interface ReportData {
 
   membersByTier: Record<string, number>;
   membersByStatus: Record<string, number>;
-  totalAllStatuses: number;
   contribByType: Record<string, { count: number; total: number }>;
   membersByCharter: Record<string, { name: string; count: number }>;
 
   stateAggregates: StateAggregate[];
-  stateAssignedTotal: number;
 
   decliningCharters: DecliningCharter[];
   zeroGrowthCharters: string[];
@@ -83,6 +82,17 @@ function scopeByCharter<T extends { in: (col: string, vals: string[]) => T }>(
   return query;
 }
 
+type CharterIdResult = { data: { primary_charter_id: string }[] | null };
+
+/** Count rows by primary_charter_id from a Supabase query result. */
+function countByCharter(result: CharterIdResult): Record<string, number> {
+  const counts: Record<string, number> = {};
+  for (const row of result.data || []) {
+    counts[row.primary_charter_id] = (counts[row.primary_charter_id] || 0) + 1;
+  }
+  return counts;
+}
+
 interface FetchParams {
   ctx: AdminContext;
   start?: string;
@@ -97,6 +107,14 @@ export async function fetchReportData({
   charterParam,
 }: FetchParams): Promise<ReportData> {
   const supabase = createServerClient();
+
+  // --- Validate date inputs ---
+  if (start && isNaN(new Date(start).getTime())) {
+    throw new Error(`Invalid start date: "${start}"`);
+  }
+  if (end && isNaN(new Date(end).getTime())) {
+    throw new Error(`Invalid end date: "${end}"`);
+  }
 
   // --- Date range ---
   const hasDateFilter = !!(start || end);
@@ -114,10 +132,14 @@ export async function fetchReportData({
   const prevEndISO = prevEnd.toISOString();
 
   // --- Fetch all charters for dropdown + state grouping ---
-  const { data: allChartersRaw } = await supabase
+  const { data: allChartersRaw, error: chartersError } = await supabase
     .from('rlc_charters')
     .select('id, name, charter_level, parent_charter_id, state_code, status')
     .order('name');
+
+  if (chartersError) {
+    throw new Error(`Failed to fetch charters: ${chartersError.message}`);
+  }
 
   const allCharters = (allChartersRaw || []) as Pick<
     Charter,
@@ -148,6 +170,39 @@ export async function fetchReportData({
 
   // Convert null (national admin) to undefined so RPC uses SQL DEFAULT NULL
   const rpcCharterIds = effectiveCharterIds ?? undefined;
+
+  /** Query members expiring within the next 30 days. */
+  function queryExpiringMembers() {
+    const now = new Date();
+    const in30Days = new Date();
+    in30Days.setDate(in30Days.getDate() + 30);
+    return scopeByCharter(
+      supabase
+        .from('rlc_contacts')
+        .select('id, first_name, last_name, email, phone, membership_expiry_date')
+        .in('membership_status', ['current', 'expiring'])
+        .gte('membership_expiry_date', now.toISOString())
+        .lte('membership_expiry_date', in30Days.toISOString())
+        .order('membership_expiry_date', { ascending: true })
+        .limit(20),
+      effectiveCharterIds,
+    );
+  }
+
+  /** Query new members grouped by charter for a given date range. */
+  function queryNewMembersByCharter(rangeStart: string, rangeEnd: string) {
+    return scopeByCharter(
+      supabase
+        .from('rlc_contacts')
+        .select('primary_charter_id')
+        .not('primary_charter_id', 'is', null)
+        .not('membership_join_date', 'is', null)
+        .gte('membership_join_date', rangeStart)
+        .lte('membership_join_date', rangeEnd)
+        .limit(50000),
+      effectiveCharterIds,
+    );
+  }
 
   // --- Parallel queries using RPC functions (no 1000-row limit) ---
   const [
@@ -186,60 +241,51 @@ export async function fetchReportData({
     }),
     // Expiring members (single-charter only)
     ...(viewMode === 'single_charter'
-      ? [
-          (() => {
-            const now = new Date();
-            const in30Days = new Date();
-            in30Days.setDate(in30Days.getDate() + 30);
-            let q = supabase
-              .from('rlc_contacts')
-              .select('id, first_name, last_name, email, phone, membership_expiry_date')
-              .in('membership_status', ['current', 'expiring'])
-              .gte('membership_expiry_date', now.toISOString())
-              .lte('membership_expiry_date', in30Days.toISOString())
-              .order('membership_expiry_date', { ascending: true })
-              .limit(20);
-            if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
-              q = q.in('primary_charter_id', effectiveCharterIds);
-            }
-            return q;
-          })(),
-        ]
+      ? [queryExpiringMembers()]
       : [Promise.resolve({ data: null, count: null, error: null })]),
     // Per-charter new members current + previous period (multi-charter only)
     ...(viewMode === 'multi_charter'
       ? [
-          (() => {
-            let q = supabase
-              .from('rlc_contacts')
-              .select('primary_charter_id')
-              .not('primary_charter_id', 'is', null)
-              .not('membership_join_date', 'is', null)
-              .gte('membership_join_date', startISO)
-              .lte('membership_join_date', endISO)
-              .limit(50000);
-            if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
-              q = q.in('primary_charter_id', effectiveCharterIds);
-            }
-            return q;
-          })(),
-          (() => {
-            let q = supabase
-              .from('rlc_contacts')
-              .select('primary_charter_id')
-              .not('primary_charter_id', 'is', null)
-              .not('membership_join_date', 'is', null)
-              .gte('membership_join_date', prevStartISO)
-              .lte('membership_join_date', prevEndISO)
-              .limit(50000);
-            if (effectiveCharterIds !== null && effectiveCharterIds.length > 0) {
-              q = q.in('primary_charter_id', effectiveCharterIds);
-            }
-            return q;
-          })(),
+          queryNewMembersByCharter(startISO, endISO),
+          queryNewMembersByCharter(prevStartISO, prevEndISO),
         ]
       : []),
   ]);
+
+  // --- Check for RPC/query errors ---
+  const rpcErrors = [
+    { name: 'members_by_tier', result: membersByTierResult },
+    { name: 'members_by_status', result: membersByStatusResult },
+    { name: 'members_by_charter', result: membersByCharterResult },
+    { name: 'contribution_summary', result: contributionsResult },
+    { name: 'new_members_count', result: newMembersResult },
+    { name: 'prev_new_members_count', result: prevNewMembersResult },
+    { name: 'prev_contribution_summary', result: prevContributionsResult },
+  ].filter(({ result }) => result.error);
+
+  if (rpcErrors.length > 0) {
+    const details = rpcErrors.map((e) => `${e.name}: ${e.result.error!.message}`).join('; ');
+    logger.error('Report data fetch errors:', details);
+    throw new Error(`Failed to fetch report data: ${details}`);
+  }
+
+  // Check expiring members query (single-charter)
+  if (viewMode === 'single_charter' && expiringMembersResult?.error) {
+    logger.error('Expiring members query error:', expiringMembersResult.error.message);
+    throw new Error(`Failed to fetch expiring members: ${expiringMembersResult.error.message}`);
+  }
+
+  // Check per-charter queries (multi-charter)
+  if (viewMode === 'multi_charter' && perCharterResults.length >= 2) {
+    const perCharterErrors = perCharterResults
+      .map((r, i) => ({ name: `per_charter_${i}`, result: r as { error?: { message: string } | null } }))
+      .filter(({ result }) => result.error);
+    if (perCharterErrors.length > 0) {
+      const details = perCharterErrors.map((e) => `${e.name}: ${e.result.error!.message}`).join('; ');
+      logger.error('Per-charter query errors:', details);
+      throw new Error(`Failed to fetch per-charter data: ${details}`);
+    }
+  }
 
   // --- Aggregate: membership by tier ---
   const membersByTier: Record<string, number> = {};
@@ -303,19 +349,8 @@ export async function fetchReportData({
   if (viewMode === 'multi_charter' && perCharterResults.length >= 2) {
     const [currentPerCharterResult, prevPerCharterResult] = perCharterResults;
 
-    const currentCounts: Record<string, number> = {};
-    for (const row of (
-      (currentPerCharterResult as { data: { primary_charter_id: string }[] | null }).data || []
-    ) as { primary_charter_id: string }[]) {
-      currentCounts[row.primary_charter_id] = (currentCounts[row.primary_charter_id] || 0) + 1;
-    }
-
-    const prevCounts: Record<string, number> = {};
-    for (const row of (
-      (prevPerCharterResult as { data: { primary_charter_id: string }[] | null }).data || []
-    ) as { primary_charter_id: string }[]) {
-      prevCounts[row.primary_charter_id] = (prevCounts[row.primary_charter_id] || 0) + 1;
-    }
+    const currentCounts = countByCharter(currentPerCharterResult as CharterIdResult);
+    const prevCounts = countByCharter(prevPerCharterResult as CharterIdResult);
 
     const allCharterIds = new Set([...Object.keys(currentCounts), ...Object.keys(prevCounts)]);
     for (const chId of allCharterIds) {
@@ -343,7 +378,7 @@ export async function fetchReportData({
     const now = new Date();
     const in30Days = new Date();
     in30Days.setDate(in30Days.getDate() + 30);
-    const { count: expiringCount } = await scopeByCharter(
+    const { count: expiringCount, error: expiringCountError } = await scopeByCharter(
       supabase
         .from('rlc_contacts')
         .select('*', { count: 'exact', head: true })
@@ -352,23 +387,23 @@ export async function fetchReportData({
         .lte('membership_expiry_date', in30Days.toISOString()),
       effectiveCharterIds,
     );
+    if (expiringCountError) {
+      logger.error('Expiring count query error:', expiringCountError.message);
+      throw new Error(`Failed to fetch expiring member count: ${expiringCountError.message}`);
+    }
     totalExpiringCount = expiringCount || 0;
   }
 
   // --- State aggregation (national multi-charter only) ---
-  const memberCountByCharterId: Record<string, number> = {};
-  for (const [chId, data] of Object.entries(membersByCharter)) {
-    memberCountByCharterId[chId] = data.count;
-  }
+  const memberCountByCharterId = Object.fromEntries(
+    Object.entries(membersByCharter).map(([id, { count }]) => [id, count]),
+  );
   const stateAggregates =
     ctx.isNational && viewMode === 'multi_charter'
       ? aggregateByState(memberCountByCharterId, allCharters)
       : [];
-  const stateAssignedTotal = stateAggregates.reduce((s, a) => s + a.count, 0);
-
   // --- Computed totals ---
   const totalMembers = Object.values(membersByTier).reduce((a, b) => a + b, 0);
-  const totalAllStatuses = Object.values(membersByStatus).reduce((a, b) => a + b, 0);
 
   // --- Header ---
   const selectedCharter = charterParam
@@ -423,11 +458,9 @@ export async function fetchReportData({
     lapsedCount,
     membersByTier,
     membersByStatus,
-    totalAllStatuses,
     contribByType,
     membersByCharter,
     stateAggregates,
-    stateAssignedTotal,
     decliningCharters,
     zeroGrowthCharters,
     totalExpiringCount,

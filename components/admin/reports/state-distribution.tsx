@@ -4,15 +4,15 @@ import type { StateAggregate } from '@/lib/admin/report-helpers';
 interface StateDistributionProps {
   stateAggregates: StateAggregate[];
   totalMembers: number;
-  stateAssignedTotal: number;
 }
 
 export function StateDistribution({
   stateAggregates,
   totalMembers,
-  stateAssignedTotal,
 }: StateDistributionProps) {
-  const unassignedCount = totalMembers - stateAssignedTotal;
+  const assignedTotal = stateAggregates.reduce((sum, s) => sum + s.count, 0);
+  const unassignedCount = totalMembers - assignedTotal;
+  const unassignedPct = totalMembers > 0 ? (unassignedCount / totalMembers) * 100 : 0;
 
   return (
     <Card className="mb-6">
@@ -41,27 +41,25 @@ export function StateDistribution({
               </div>
             );
           })}
-          {unassignedCount > 0 &&
-            (() => {
-              const pct = totalMembers > 0 ? (unassignedCount / totalMembers) * 100 : 0;
-              return (
-                <div>
-                  <div className="mb-1 flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">No Charter Assigned</span>
-                    <span className="font-medium">
-                      {unassignedCount}{' '}
-                      <span className="text-muted-foreground">({Math.round(pct)}%)</span>
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-muted">
-                    <div
-                      className="h-2 rounded-full bg-muted-foreground/30 transition-all"
-                      style={{ width: `${Math.max(pct, 2)}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })()}
+          {unassignedCount > 0 && (
+            <div>
+              <div className="mb-1 flex items-center justify-between text-sm">
+                <span className="text-muted-foreground">No Charter Assigned</span>
+                <span className="font-medium">
+                  {unassignedCount}{' '}
+                  <span className="text-muted-foreground">
+                    ({Math.round(unassignedPct)}%)
+                  </span>
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-muted">
+                <div
+                  className="h-2 rounded-full bg-muted-foreground/30 transition-all"
+                  style={{ width: `${Math.max(unassignedPct, 2)}%` }}
+                />
+              </div>
+            </div>
+          )}
         </div>
       </CardContent>
     </Card>

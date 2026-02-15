@@ -56,7 +56,6 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
         <StateDistribution
           stateAggregates={data.stateAggregates}
           totalMembers={data.totalMembers}
-          stateAssignedTotal={data.stateAssignedTotal}
         />
       )}
 
@@ -73,7 +72,6 @@ export default async function AdminReportsPage({ searchParams }: ReportsPageProp
           membersByTier={data.membersByTier}
           totalMembers={data.totalMembers}
           membersByStatus={data.membersByStatus}
-          totalAllStatuses={data.totalAllStatuses}
         />
 
         <ContributionsTable contribByType={data.contribByType} />

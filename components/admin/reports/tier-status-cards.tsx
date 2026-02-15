@@ -36,15 +36,14 @@ interface TierStatusCardsProps {
   membersByTier: Record<string, number>;
   totalMembers: number;
   membersByStatus: Record<string, number>;
-  totalAllStatuses: number;
 }
 
 export function TierStatusCards({
   membersByTier,
   totalMembers,
   membersByStatus,
-  totalAllStatuses,
 }: TierStatusCardsProps) {
+  const totalAllStatuses = Object.values(membersByStatus).reduce((a, b) => a + b, 0);
   return (
     <>
       <Card>
